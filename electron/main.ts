@@ -6,6 +6,7 @@ const store = createStore(path.join(app.getPath('userData'), 'popdict-config.jso
 
 let mainWindow: BrowserWindow | null = null
 let trayRef: Tray | null = null
+let settingsWindow: BrowserWindow | null = null
 
 // Disable GPU acceleration for better transparency support
 // This needs to be called before app is ready
@@ -35,8 +36,38 @@ function toggleSearchWindow() {
   else showSearchWindow()
 }
 
-// Temporary stubs — implemented in later tasks (9 and 10).
-function openSettingsWindow() { /* implemented in Task 9 */ }
+function openSettingsWindow() {
+  if (settingsWindow) {
+    settingsWindow.focus()
+    return
+  }
+  settingsWindow = new BrowserWindow({
+    width: 480,
+    height: 420,
+    resizable: false,
+    title: 'PopDict Settings',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    settingsWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#/settings`)
+  } else {
+    settingsWindow.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash: 'settings' }
+    )
+  }
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null
+  })
+}
+
+// Temporary stub — implemented in Task 10.
 function openFeedback() { /* implemented in Task 10 */ }
 
 function registerHotkey(accelerator: string): boolean {
