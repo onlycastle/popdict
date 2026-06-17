@@ -23,6 +23,7 @@ export function useDictionarySearch(query: string) {
   const [response, setResponse] = useState<SearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchedTerm, setSearchedTerm] = useState('')
 
   const debouncedQuery = useDebounce(query.trim(), 300)
 
@@ -39,6 +40,7 @@ export function useDictionarySearch(query: string) {
     try {
       const result = await searchDictionaryAPI(searchQuery)
       setResponse(result)
+      setSearchedTerm(searchQuery.trim())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       setResponse(null)
@@ -57,5 +59,5 @@ export function useDictionarySearch(query: string) {
     searchDictionary(query)
   }, [query, searchDictionary])
 
-  return { response, loading, error, triggerSearch }
+  return { response, loading, error, triggerSearch, searchedTerm }
 }

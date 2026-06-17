@@ -16,8 +16,22 @@ function App() {
   }
 
   const [query, setQuery] = useState('')
-  const { response, loading, error, triggerSearch } = useDictionarySearch(query)
+  const { response, loading, error, triggerSearch, searchedTerm } = useDictionarySearch(query)
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const [history, setHistory] = useState<string[]>([])
+
+  useEffect(() => {
+    window.electronAPI?.getHistory().then(setHistory)
+  }, [])
+
+  // Record the term that produced the current result (not the live query,
+  // which runs ahead of the debounced search).
+  useEffect(() => {
+    if (response && !error && searchedTerm) {
+      window.electronAPI?.addHistory(searchedTerm).then(setHistory)
+    }
+  }, [response, error, searchedTerm])
 
   // Focus search input when window is shown
   useEffect(() => {
@@ -45,16 +59,12 @@ function App() {
   // Dynamically adjust window height based on content
   useEffect(() => {
     if (!window.electronAPI || !window.electronAPI.setWindowHeight) return
-
-    // If we have results or are loading with a query, expand window
-    if (query && (response || loading)) {
-      // Expanded height: search input + results area
-      window.electronAPI.setWindowHeight(400)
+    if ((query && (response || loading)) || (!query && history.length > 0)) {
+      window.electronAPI.setWindowHeight(query ? 400 : 240)
     } else {
-      // Compact height: just search input
       window.electronAPI.setWindowHeight(80)
     }
-  }, [query, response, loading])
+  }, [query, response, loading, history])
 
   return (
     <div className="app-container">
@@ -93,12 +103,25 @@ function App() {
               transition={{ duration: 0.15 }}
               className="empty-state"
             >
-              <p className="text-white/80 text-sm">
-                Start typing to search dictionary...
-              </p>
-              <p className="text-white/70 text-xs mt-2">
-                Press ESC to close
-              </p>
+              {history.length > 0 ? (
+                <div className="recent-list">
+                  <p className="text-white/50 text-xs mb-2">Recent</p>
+                  {history.map((word) => (
+                    <button
+                      key={word}
+                      onClick={() => setQuery(word)}
+                      className="block w-full text-left text-white/80 text-sm py-1 hover:text-white"
+                    >
+                      {word}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <p className="text-white/80 text-sm">Start typing to search dictionary...</p>
+                  <p className="text-white/70 text-xs mt-2">Press ESC to close</p>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
