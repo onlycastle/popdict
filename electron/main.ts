@@ -1,8 +1,11 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen, shell } from 'electron'
 import * as path from 'path'
 import { createStore } from './store'
 
 const store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
+
+const FEEDBACK_FORM_URL = '' // TODO: paste a Tally/Google Form URL; empty falls back to mailto
+const FEEDBACK_MAILTO = 'sungman.cho@latched.ai'
 
 let mainWindow: BrowserWindow | null = null
 let trayRef: Tray | null = null
@@ -67,8 +70,15 @@ function openSettingsWindow() {
   })
 }
 
-// Temporary stub — implemented in Task 10.
-function openFeedback() { /* implemented in Task 10 */ }
+function openFeedback() {
+  const version = app.getVersion()
+  if (FEEDBACK_FORM_URL) {
+    shell.openExternal(`${FEEDBACK_FORM_URL}?v=${encodeURIComponent(version)}`)
+  } else {
+    const subject = encodeURIComponent(`PopDict beta feedback (v${version})`)
+    shell.openExternal(`mailto:${FEEDBACK_MAILTO}?subject=${subject}`)
+  }
+}
 
 function registerHotkey(accelerator: string): boolean {
   globalShortcut.unregisterAll()
@@ -210,6 +220,9 @@ app.whenReady().then(() => {
     }
     return ok
   })
+
+  ipcMain.on('send-feedback', () => openFeedback())
+  ipcMain.on('open-settings', () => openSettingsWindow())
 
   if (process.platform === 'darwin' && app.dock) {
     app.dock.hide()
