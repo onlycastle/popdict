@@ -1,15 +1,61 @@
-import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen } from 'electron'
 import * as path from 'path'
 import { createStore } from './store'
 
 const store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
 
 let mainWindow: BrowserWindow | null = null
+let trayRef: Tray | null = null
 
 // Disable GPU acceleration for better transparency support
 // This needs to be called before app is ready
 if (app) {
   app.disableHardwareAcceleration()
+}
+
+function showSearchWindow() {
+  if (!mainWindow) return
+  const cursorPoint = screen.getCursorScreenPoint()
+  const currentDisplay = screen.getDisplayNearestPoint(cursorPoint)
+  const { width: screenWidth } = currentDisplay.workAreaSize
+  const { x: displayX, y: displayY } = currentDisplay.workArea
+  const windowBounds = mainWindow.getBounds()
+  mainWindow.setPosition(
+    displayX + Math.round((screenWidth - windowBounds.width) / 2),
+    displayY + 80
+  )
+  mainWindow.show()
+  mainWindow.focus()
+  mainWindow.webContents.send('focus-search')
+}
+
+function toggleSearchWindow() {
+  if (!mainWindow) return
+  if (mainWindow.isVisible()) mainWindow.hide()
+  else showSearchWindow()
+}
+
+// Temporary stubs — implemented in later tasks (9 and 10).
+function openSettingsWindow() { /* implemented in Task 9 */ }
+function openFeedback() { /* implemented in Task 10 */ }
+
+function rebuildTrayMenu() {
+  if (!trayRef) return
+  const menu = Menu.buildFromTemplate([
+    { label: 'Search', accelerator: store.getConfig().hotkey, click: () => showSearchWindow() },
+    { type: 'separator' },
+    {
+      label: 'Launch at Login',
+      type: 'checkbox',
+      checked: app.getLoginItemSettings().openAtLogin,
+      click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
+    },
+    { label: 'Settings…', click: () => openSettingsWindow() },
+    { label: 'Send Feedback', click: () => openFeedback() },
+    { type: 'separator' },
+    { label: 'Quit PopDict', click: () => app.quit() },
+  ])
+  trayRef.setContextMenu(menu)
 }
 
 const createWindow = () => {
@@ -47,7 +93,6 @@ const createWindow = () => {
   mainWindow.setAlwaysOnTop(true, 'floating')
 
   // Position window at top-center of screen
-  const { screen } = require('electron')
   const primaryDisplay = screen.getPrimaryDisplay()
   const { width: screenWidth } = primaryDisplay.workAreaSize
   const windowBounds = mainWindow.getBounds()
@@ -97,6 +142,7 @@ app.whenReady().then(() => {
       app.setLoginItemSettings({ openAtLogin: launchAtLogin })
     }
     const cfg = store.patch(storable)
+    rebuildTrayMenu()
     return {
       hotkey: cfg.hotkey,
       stands4Uid: cfg.stands4Uid,
@@ -113,32 +159,18 @@ app.whenReady().then(() => {
     return { uid: cfg.stands4Uid, token: cfg.stands4Token }
   })
 
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.hide()
+  }
+
+  const tray = new Tray(path.join(__dirname, '../../assets/trayTemplate.png'))
+  trayRef = tray
+  tray.setToolTip('PopDict')
+  rebuildTrayMenu()
+
   // Register global shortcut: Cmd+Shift+Space
   const ret = globalShortcut.register('CommandOrControl+Shift+Space', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide()
-      } else {
-        // Center window on current active display before showing
-        // This ensures the window appears on the current Space/Desktop
-        const { screen } = require('electron')
-        const cursorPoint = screen.getCursorScreenPoint()
-        const currentDisplay = screen.getDisplayNearestPoint(cursorPoint)
-        const { width: screenWidth } = currentDisplay.workAreaSize
-        const { x: displayX, y: displayY } = currentDisplay.workArea
-        const windowBounds = mainWindow.getBounds()
-
-        mainWindow.setPosition(
-          displayX + Math.round((screenWidth - windowBounds.width) / 2),
-          displayY + 80 // 80px from top of current display
-        )
-
-        mainWindow.show()
-        mainWindow.focus()
-        // Send message to renderer to focus search input
-        mainWindow.webContents.send('focus-search')
-      }
-    }
+    toggleSearchWindow()
   })
 
   if (!ret) {
