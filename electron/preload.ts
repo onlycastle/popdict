@@ -21,4 +21,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStands4Credentials: () => ipcRenderer.invoke('get-stands4-credentials'),
   openSettings: () => ipcRenderer.send('open-settings'),
   sendFeedback: () => ipcRenderer.send('send-feedback'),
+  changeHotkey: (accelerator: string) => ipcRenderer.invoke('change-hotkey', accelerator),
 })

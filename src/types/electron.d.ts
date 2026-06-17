@@ -17,6 +17,7 @@ export interface ElectronAPI {
   getStands4Credentials: () => Promise<{ uid: string; token: string }>
   openSettings: () => void
   sendFeedback: () => void
+  changeHotkey: (accelerator: string) => Promise<boolean>
 }
 
 declare global {

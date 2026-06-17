@@ -39,6 +39,16 @@ function toggleSearchWindow() {
 function openSettingsWindow() { /* implemented in Task 9 */ }
 function openFeedback() { /* implemented in Task 10 */ }
 
+function registerHotkey(accelerator: string): boolean {
+  globalShortcut.unregisterAll()
+  try {
+    const ok = globalShortcut.register(accelerator, () => toggleSearchWindow())
+    return ok && globalShortcut.isRegistered(accelerator)
+  } catch {
+    return false
+  }
+}
+
 function rebuildTrayMenu() {
   if (!trayRef) return
   const menu = Menu.buildFromTemplate([
@@ -159,6 +169,17 @@ app.whenReady().then(() => {
     return { uid: cfg.stands4Uid, token: cfg.stands4Token }
   })
 
+  ipcMain.handle('change-hotkey', (_e, accelerator: string) => {
+    const ok = registerHotkey(accelerator)
+    if (ok) {
+      store.patch({ hotkey: accelerator })
+      rebuildTrayMenu()
+    } else {
+      registerHotkey(store.getConfig().hotkey) // restore previous working hotkey
+    }
+    return ok
+  })
+
   if (process.platform === 'darwin' && app.dock) {
     app.dock.hide()
   }
@@ -168,17 +189,10 @@ app.whenReady().then(() => {
   tray.setToolTip('PopDict')
   rebuildTrayMenu()
 
-  // Register global shortcut: Cmd+Shift+Space
-  const ret = globalShortcut.register('CommandOrControl+Shift+Space', () => {
-    toggleSearchWindow()
-  })
-
-  if (!ret) {
-    console.log('Global shortcut registration failed')
+  const startupHotkey = store.getConfig().hotkey
+  if (!registerHotkey(startupHotkey)) {
+    console.log('Global shortcut registration failed for', startupHotkey)
   }
-
-  // Check if shortcut is registered
-  console.log('Shortcut registered:', globalShortcut.isRegistered('CommandOrControl+Shift+Space'))
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
