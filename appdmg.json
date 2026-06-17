@@ -1,0 +1,25 @@
+{
+  "title": "PopDict",
+  "icon": "icon.icns",
+  "contents": [
+    {
+      "x": 192,
+      "y": 344,
+      "type": "file",
+      "path": "out/popdict-test-darwin-x64/popdict-test.app"
+    },
+    {
+      "x": 448,
+      "y": 344,
+      "type": "link",
+      "path": "/Applications"
+    }
+  ],
+  "window": {
+    "size": {
+      "width": 660,
+      "height": 500
+    }
+  },
+  "format": "UDZO"
+}
