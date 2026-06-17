@@ -3,9 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import SearchInput from './components/SearchInput'
 import SearchResults from './components/SearchResults'
 import { useDictionarySearch } from './hooks/useDictionarySearch'
+import Settings from './components/Settings'
 import './App.css'
 
 function App() {
+  // Settings opens as a separate window at #/settings. This check MUST stay
+  // above every hook below: a window's hash is constant for its lifetime, so
+  // the search hooks run for the search window and never for the settings
+  // window, keeping hook order stable (React's Rules of Hooks).
+  if (window.location.hash === '#/settings') {
+    return <Settings />
+  }
+
   const [query, setQuery] = useState('')
   const { response, loading, error, triggerSearch } = useDictionarySearch(query)
   const searchInputRef = useRef<HTMLInputElement>(null)
