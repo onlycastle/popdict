@@ -1,5 +1,8 @@
 import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron'
 import * as path from 'path'
+import { createStore } from './store'
+
+const store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
 
 let mainWindow: BrowserWindow | null = null
 
@@ -77,6 +80,38 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
   createWindow()
+
+  ipcMain.handle('get-settings', () => {
+    const cfg = store.getConfig()
+    return {
+      hotkey: cfg.hotkey,
+      stands4Uid: cfg.stands4Uid,
+      stands4Token: cfg.stands4Token,
+      launchAtLogin: app.getLoginItemSettings().openAtLogin,
+    }
+  })
+
+  ipcMain.handle('set-settings', (_e, partial) => {
+    const { launchAtLogin, ...storable } = partial ?? {}
+    if (typeof launchAtLogin === 'boolean') {
+      app.setLoginItemSettings({ openAtLogin: launchAtLogin })
+    }
+    const cfg = store.patch(storable)
+    return {
+      hotkey: cfg.hotkey,
+      stands4Uid: cfg.stands4Uid,
+      stands4Token: cfg.stands4Token,
+      launchAtLogin: app.getLoginItemSettings().openAtLogin,
+    }
+  })
+
+  ipcMain.handle('get-history', () => store.getConfig().history)
+  ipcMain.handle('add-history', (_e, word: string) => store.addHistory(word))
+  ipcMain.handle('clear-history', () => { store.clearHistory() })
+  ipcMain.handle('get-stands4-credentials', () => {
+    const cfg = store.getConfig()
+    return { uid: cfg.stands4Uid, token: cfg.stands4Token }
+  })
 
   // Register global shortcut: Cmd+Shift+Space
   const ret = globalShortcut.register('CommandOrControl+Shift+Space', () => {
