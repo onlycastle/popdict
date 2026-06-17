@@ -2,7 +2,7 @@ import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, screen, shell 
 import * as path from 'path'
 import { createStore } from './store'
 
-const store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
+let store: ReturnType<typeof createStore>
 
 const FEEDBACK_FORM_URL = '' // TODO: paste a Tally/Google Form URL; empty falls back to mailto
 const FEEDBACK_MAILTO = 'sungman.cho@latched.ai'
@@ -175,6 +175,8 @@ const createWindow = () => {
 }
 
 app.whenReady().then(() => {
+  store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
+
   createWindow()
 
   ipcMain.handle('get-settings', () => {
@@ -188,7 +190,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('set-settings', (_e, partial) => {
-    const { launchAtLogin, ...storable } = partial ?? {}
+    const { launchAtLogin, hotkey: _ignoredHotkey, ...storable } = partial ?? {}
     if (typeof launchAtLogin === 'boolean') {
       app.setLoginItemSettings({ openAtLogin: launchAtLogin })
     }
@@ -228,7 +230,10 @@ app.whenReady().then(() => {
     app.dock.hide()
   }
 
-  const tray = new Tray(path.join(__dirname, '../../assets/trayTemplate.png'))
+  const trayIconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'assets', 'trayTemplate.png')
+    : path.join(__dirname, '../../assets/trayTemplate.png')
+  const tray = new Tray(trayIconPath)
   trayRef = tray
   tray.setToolTip('PopDict')
   rebuildTrayMenu()

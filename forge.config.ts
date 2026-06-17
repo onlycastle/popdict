@@ -11,6 +11,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './icon', // Custom app icon (auto-detects .icns on macOS)
+    extraResource: ['./assets'],
   },
   rebuildConfig: {},
   makers: [
