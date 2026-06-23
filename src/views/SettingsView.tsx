@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
 
-export default function Settings() {
+export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [status, setStatus] = useState('')
   const auth = useSupabaseAuth()

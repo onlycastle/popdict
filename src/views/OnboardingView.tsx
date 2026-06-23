@@ -12,7 +12,7 @@ function prettyHotkey(accelerator: string): string {
     .join(' ')
 }
 
-export default function Onboarding() {
+export default function OnboardingView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   // Drive the button off the ACTUAL Accessibility permission, not the
   // lookupSelection toggle — otherwise first-run users (toggle defaults on) are

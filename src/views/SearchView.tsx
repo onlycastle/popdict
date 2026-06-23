@@ -1,54 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
-import LoginModal from './components/LoginModal'
-import SearchInput from './components/SearchInput'
-import SearchResults from './components/SearchResults'
-import WindowControls from './components/WindowControls'
-import { useDictionarySearch } from './hooks/useDictionarySearch'
-import { useSupabaseAuth } from './hooks/useSupabaseAuth'
-import { savedWords } from './services/SavedWordsRepository'
-import Settings from './components/Settings'
-import SavedWords from './components/SavedWords'
-import Onboarding from './components/Onboarding'
-import type { SearchResponse } from './types/dictionary'
-import './App.css'
+import LoginModal from '../components/LoginModal'
+import SearchInput from '../components/SearchInput'
+import SearchResults from '../components/SearchResults'
+import WindowControls from '../components/WindowControls'
+import { useDictionarySearch } from '../hooks/useDictionarySearch'
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
+import { useSaveWord } from '../hooks/useSaveWord'
+import '../App.css'
 
-function getWordToSave(response: SearchResponse | null, fallback: string): string {
-  return (
-    response?.dictionaryResults?.[0]?.word ??
-    response?.idiomResult?.term ??
-    fallback
-  ).trim()
-}
-
-function App() {
-  // Settings opens as a separate window at #/settings. This check MUST stay
-  // above every hook below: a window's hash is constant for its lifetime, so
-  // the search hooks run for the search window and never for the settings
-  // window, keeping hook order stable (React's Rules of Hooks).
-  if (window.location.hash === '#/settings') {
-    return <Settings />
-  }
-
-  if (window.location.hash === '#/saved') {
-    return <SavedWords />
-  }
-
-  if (window.location.hash === '#/onboarding') {
-    return <Onboarding />
-  }
-
+export default function SearchView() {
   const [query, setQuery] = useState('')
   const { response, loading, error, triggerSearch, searchedTerm } = useDictionarySearch(query)
   const auth = useSupabaseAuth()
   const searchInputRef = useRef<HTMLInputElement>(null)
-
   const [history, setHistory] = useState<string[]>([])
-  const [loginPromptOpen, setLoginPromptOpen] = useState(false)
-  const [pendingSaveWord, setPendingSaveWord] = useState('')
-  const [saveError, setSaveError] = useState('')
-  const [savedWord, setSavedWord] = useState('')
-  const [saving, setSaving] = useState(false)
+
+  const {
+    wordToSave,
+    pendingSaveWord,
+    savedWord,
+    saveError,
+    saving,
+    alreadySaved,
+    saveLabel,
+    loginPromptOpen,
+    setLoginPromptOpen,
+    handleSaveClick,
+  } = useSaveWord({ user: auth.user, response, searchedTerm, query })
 
   useEffect(() => {
     window.electronAPI?.getHistory().then(setHistory)
@@ -97,51 +76,11 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [loginPromptOpen])
-
-  const saveCurrentWord = useCallback(async (word: string) => {
-    if (!auth.user || !response) return
-
-    setSaving(true)
-    setSaveError('')
-
-    try {
-      await savedWords.save({ source: response.source, user: auth.user, word })
-      setSavedWord(word)
-      setPendingSaveWord('')
-      setLoginPromptOpen(false)
-    } catch (saveWordError) {
-      setSaveError(saveWordError instanceof Error ? saveWordError.message : 'Could not save word')
-      setPendingSaveWord('')
-    } finally {
-      setSaving(false)
-    }
-  }, [auth.user, response])
-
-  const handleSaveClick = useCallback(() => {
-    const word = getWordToSave(response, searchedTerm || query)
-    if (!word) return
-
-    setSaveError('')
-
-    if (!auth.user) {
-      setPendingSaveWord(word)
-      setLoginPromptOpen(true)
-      return
-    }
-
-    void saveCurrentWord(word)
-  }, [auth.user, query, response, saveCurrentWord, searchedTerm])
+  }, [loginPromptOpen, setLoginPromptOpen])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
   }, [])
-
-  useEffect(() => {
-    if (auth.user && pendingSaveWord && !saving) {
-      void saveCurrentWord(pendingSaveWord)
-    }
-  }, [auth.user, pendingSaveWord, saveCurrentWord, saving])
 
   // Dynamically adjust window height based on content
   useEffect(() => {
@@ -155,33 +94,6 @@ function App() {
       window.electronAPI.setWindowHeight(128)
     }
   }, [history, loading, loginPromptOpen, query, response])
-
-  const wordToSave = getWordToSave(response, searchedTerm || query)
-  const alreadySaved =
-    !!wordToSave && savedWord.toLowerCase() === wordToSave.toLowerCase()
-  const saveLabel =
-    saving && pendingSaveWord === wordToSave ? 'Saving' : alreadySaved ? 'Saved' : 'Save'
-
-  useEffect(() => {
-    setSaveError('')
-  }, [wordToSave])
-
-  // Durable "Saved" state: reflect words saved in any prior session, not just
-  // the current one. Re-checks Supabase whenever the displayed word changes.
-  useEffect(() => {
-    if (!auth.user || !wordToSave) return
-    let cancelled = false
-    savedWords.isSaved(auth.user, wordToSave)
-      .then((saved) => {
-        if (!cancelled) setSavedWord(saved ? wordToSave : '')
-      })
-      .catch(() => {
-        // network/permission issue — leave save enabled
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [auth.user, wordToSave])
 
   return (
     <MotionConfig reducedMotion="user">
@@ -292,5 +204,3 @@ function App() {
     </MotionConfig>
   )
 }
-
-export default App

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import { savedWords, type SavedWord } from '../services/SavedWordsRepository'
 
-export default function SavedWords() {
+export default function SavedWordsView() {
   const auth = useSupabaseAuth()
   const [words, setWords] = useState<SavedWord[]>([])
   const [loading, setLoading] = useState(false)

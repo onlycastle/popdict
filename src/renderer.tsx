@@ -8,7 +8,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import Router from './Router';
 import './index.css';
 
 // Initialize React application
@@ -19,7 +19,7 @@ function initializeApp() {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>
-        <App />
+        <Router />
       </React.StrictMode>
     );
   }
