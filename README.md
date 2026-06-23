@@ -13,7 +13,7 @@ Electron 기반 데스크톱 애플리케이션
 
 ## 필수 요구사항
 
-- **Node.js** (v16 이상 권장)
+- **Node.js** (v20 이상 권장)
 - **npm** (Node.js와 함께 설치됨)
 
 ## 설치 방법
@@ -27,6 +27,32 @@ cd /Users/sungmancho/projects/PopDict
 ```bash
 npm install
 ```
+
+3. Supabase 환경 변수를 설정합니다:
+```bash
+cp .env.example .env.local
+```
+
+`.env.local`에 Supabase 프로젝트 URL과 publishable key를 입력합니다.
+
+## Supabase Google 로그인 설정
+
+Supabase Auth의 Google provider를 활성화한 뒤 다음 값을 설정해야 합니다.
+
+- Supabase Auth URL Configuration의 Additional Redirect URLs에 `popdict://auth/callback` 추가
+- Google OAuth Web application의 Authorized JavaScript origins에 개발/배포 앱에서 사용하는 origin 추가
+- Google OAuth Web application의 Authorized redirect URIs에 Supabase Google provider 화면에 표시되는 callback URL 추가
+
+앱에서는 Google OAuth가 완료되면 `popdict://auth/callback` 딥링크를 받아 Supabase 세션으로 교환합니다.
+
+저장한 단어를 Supabase에 기록하려면 마이그레이션을 적용합니다:
+
+```bash
+supabase link --project-ref <project-id>
+supabase db push
+```
+
+마이그레이션 파일은 `supabase/migrations/20260623074337_create_saved_words.sql`에 있습니다.
 
 ## 실행 방법
 
@@ -109,4 +135,4 @@ MIT
 
 ## 작성자
 
-sungmanch (sungman.cho@latched.ai)
+Sungman Cho (sungman.cho@originlayer.net)

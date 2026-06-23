@@ -9,6 +9,8 @@ export interface ElectronAPI {
   hideWindow: () => void
   setWindowHeight: (height: number) => void
   onFocusSearch: (cb: () => void) => void
+  onAuthCallback: (cb: (url: string) => void) => () => void
+  consumeAuthCallback: () => Promise<string | null>
   getSettings: () => Promise<AppSettings>
   setSettings: (partial: Partial<AppSettings>) => Promise<AppSettings>
   getHistory: () => Promise<string[]>
@@ -16,8 +18,12 @@ export interface ElectronAPI {
   clearHistory: () => Promise<void>
   getStands4Credentials: () => Promise<{ uid: string; token: string }>
   openSettings: () => void
+  openSavedWords: () => void
+  lookupWord: (word: string) => void
+  onSeedSearch: (cb: (word: string) => void) => () => void
   sendFeedback: () => void
   changeHotkey: (accelerator: string) => Promise<boolean>
+  openExternalUrl: (url: string) => Promise<void>
 }
 
 declare global {

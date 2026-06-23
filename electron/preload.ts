@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type AppSettings = {
   hotkey: string
@@ -13,6 +13,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFocusSearch: (callback: () => void) => {
     ipcRenderer.on('focus-search', callback)
   },
+  onAuthCallback: (callback: (url: string) => void) => {
+    const listener = (_event: IpcRendererEvent, url: string) => callback(url)
+    ipcRenderer.on('auth-callback', listener)
+    return () => ipcRenderer.removeListener('auth-callback', listener)
+  },
+  consumeAuthCallback: () => ipcRenderer.invoke('consume-auth-callback'),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setSettings: (partial: Partial<AppSettings>) => ipcRenderer.invoke('set-settings', partial),
   getHistory: () => ipcRenderer.invoke('get-history'),
@@ -20,6 +26,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearHistory: () => ipcRenderer.invoke('clear-history'),
   getStands4Credentials: () => ipcRenderer.invoke('get-stands4-credentials'),
   openSettings: () => ipcRenderer.send('open-settings'),
+  openSavedWords: () => ipcRenderer.send('open-saved-words'),
+  lookupWord: (word: string) => ipcRenderer.send('lookup-word', word),
+  onSeedSearch: (callback: (word: string) => void) => {
+    const listener = (_event: IpcRendererEvent, word: string) => callback(word)
+    ipcRenderer.on('seed-search', listener)
+    return () => ipcRenderer.removeListener('seed-search', listener)
+  },
   sendFeedback: () => ipcRenderer.send('send-feedback'),
   changeHotkey: (accelerator: string) => ipcRenderer.invoke('change-hotkey', accelerator),
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
 })

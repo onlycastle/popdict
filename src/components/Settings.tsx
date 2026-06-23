@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
 
 export default function Settings() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [status, setStatus] = useState('')
+  const auth = useSupabaseAuth()
 
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
@@ -13,6 +15,11 @@ export default function Settings() {
 
   const update = (patch: Partial<AppSettings>) =>
     window.electronAPI.setSettings(patch).then(setSettings)
+  const accountName =
+    auth.user?.user_metadata?.full_name ??
+    auth.user?.user_metadata?.name ??
+    auth.user?.email ??
+    'Signed in'
 
   const recordHotkey = (e: React.KeyboardEvent) => {
     e.preventDefault()
@@ -39,8 +46,45 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 p-6 space-y-5 text-white">
+    <div className="h-screen overflow-y-auto bg-neutral-900 p-6 space-y-5 text-white">
       <h1 className="text-lg font-semibold">PopDict Settings</h1>
+
+      <section className="space-y-3 border-b border-white/10 pb-5">
+        <div>
+          <h2 className="text-sm font-medium text-white">Account</h2>
+          <p className="text-xs text-white/60">
+            {auth.user ? accountName : 'Sign in or create an account with Google'}
+          </p>
+        </div>
+
+        {!auth.configured ? (
+          <p className="rounded-md border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-100">
+            Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable auth.
+          </p>
+        ) : auth.user ? (
+          <button
+            onClick={auth.signOut}
+            disabled={auth.loading}
+            className="rounded-md border border-white/20 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Sign out
+          </button>
+        ) : (
+          <button
+            onClick={auth.signInWithGoogle}
+            disabled={auth.loading}
+            className="rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Continue with Google
+          </button>
+        )}
+
+        {(auth.message || auth.error) && (
+          <p className={`text-xs ${auth.error ? 'text-red-300' : 'text-white/60'}`}>
+            {auth.error || auth.message}
+          </p>
+        )}
+      </section>
 
       <label className="block space-y-1">
         <span className="text-sm text-white/80">Global hotkey</span>

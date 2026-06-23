@@ -7,11 +7,34 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
+const shouldSkipMacSigning = process.env.POPDICT_SKIP_MAC_SIGNING === '1';
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    appBundleId: 'com.sungmancho.popdict',
+    appCategoryType: 'public.app-category.reference',
     icon: './icon', // Custom app icon (auto-detects .icns on macOS)
     extraResource: ['./assets'],
+    protocols: [
+      {
+        name: 'PopDict Auth',
+        schemes: ['popdict'],
+      },
+    ],
+    ...(shouldSkipMacSigning
+      ? {}
+      : {
+          osxSign: {
+            identity: 'Developer ID Application: Sungman Cho (J756539YX6)',
+            // Hardened Runtime is enabled by default in @electron/osx-sign
+            // (PerFileSignOptions.hardenedRuntime defaults to true) and is a
+            // prerequisite for notarization. release-arm64.sh re-verifies via spctl.
+          },
+          osxNotarize: {
+            keychainProfile: 'PopDict-notary',
+          },
+        }),
   },
   rebuildConfig: {},
   makers: [
@@ -47,14 +70,10 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
+    // Fuses are used to enable/disable various Electron functionality before
+    // Forge signs and notarizes the macOS application bundle.
     new FusesPlugin({
       version: FuseVersion.V1,
-      // Fuses mutate the Electron binary AFTER Forge ad-hoc signs it, which
-      // invalidates that signature. On Apple Silicon an invalid signature makes
-      // the app get killed/flagged as "damaged". Re-sign ad-hoc after flipping.
-      resetAdHocDarwinSignature: true,
       [FuseV1Options.RunAsNode]: false,
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,

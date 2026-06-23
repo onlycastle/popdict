@@ -28,6 +28,7 @@
   gap: 20px;
   -webkit-app-region: drag;
   overflow: hidden;
+  position: relative;
 }
 
 .empty-state {
