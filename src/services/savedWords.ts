@@ -17,6 +17,41 @@ export type SavedWord = {
   updated_at: string
 }
 
+type SupabaseErrorLike = {
+  message?: string
+  code?: string
+  details?: string | null
+  hint?: string | null
+}
+
+function savedWordsDebug(event: string, details?: Record<string, unknown>): void {
+  try {
+    console.info(`[SavedWords] ${event} ${details ? JSON.stringify(details) : ''}`.trim())
+  } catch {
+    console.info(`[SavedWords] ${event}`)
+  }
+}
+
+function toSupabaseErrorLike(error: unknown): SupabaseErrorLike | null {
+  if (!error || typeof error !== 'object') return null
+  return error as SupabaseErrorLike
+}
+
+function throwSavedWordsError(action: string, error: unknown): never {
+  const supabaseError = toSupabaseErrorLike(error)
+  savedWordsDebug(`${action} error`, {
+    message: supabaseError?.message ?? (error instanceof Error ? error.message : String(error)),
+    code: supabaseError?.code ?? null,
+    details: supabaseError?.details ?? null,
+    hint: supabaseError?.hint ?? null,
+  })
+
+  const message =
+    supabaseError?.message ??
+    (error instanceof Error ? error.message : `Could not ${action.replace('-', ' ')}`)
+  throw new Error(message)
+}
+
 export async function saveWord({ source, user, word }: SaveWordInput): Promise<void> {
   if (!supabase) {
     throw new Error('Supabase is not configured.')
@@ -26,6 +61,13 @@ export async function saveWord({ source, user, word }: SaveWordInput): Promise<v
   if (!trimmedWord) {
     throw new Error('No word to save.')
   }
+
+  savedWordsDebug('save start', {
+    word: trimmedWord,
+    normalizedWord: trimmedWord.toLowerCase(),
+    source,
+    userIdPrefix: user.id.slice(0, 8),
+  })
 
   const { error } = await supabase
     .from('saved_words')
@@ -40,7 +82,11 @@ export async function saveWord({ source, user, word }: SaveWordInput): Promise<v
       { onConflict: 'user_id,normalized_word' }
     )
 
-  if (error) throw error
+  if (error) throwSavedWordsError('save word', error)
+  savedWordsDebug('save success', {
+    word: trimmedWord,
+    userIdPrefix: user.id.slice(0, 8),
+  })
 }
 
 export async function getSavedWords(user: User): Promise<SavedWord[]> {
@@ -54,7 +100,7 @@ export async function getSavedWords(user: User): Promise<SavedWord[]> {
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
-  if (error) throw error
+  if (error) throwSavedWordsError('load saved words', error)
   return (data ?? []) as SavedWord[]
 }
 
@@ -69,7 +115,7 @@ export async function deleteSavedWord(user: User, normalizedWord: string): Promi
     .eq('user_id', user.id)
     .eq('normalized_word', normalizedWord.toLowerCase())
 
-  if (error) throw error
+  if (error) throwSavedWordsError('delete saved word', error)
 }
 
 /**
@@ -90,6 +136,6 @@ export async function isWordSaved(user: User, word: string): Promise<boolean> {
     .limit(1)
     .maybeSingle()
 
-  if (error) throw error
+  if (error) throwSavedWordsError('check saved word', error)
   return Boolean(data)
 }

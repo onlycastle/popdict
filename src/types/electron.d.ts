@@ -14,6 +14,7 @@ export interface ElectronAPI {
   setSettings: (partial: Partial<AppSettings>) => Promise<AppSettings>
   getHistory: () => Promise<string[]>
   addHistory: (word: string) => Promise<string[]>
+  removeHistory: (word: string) => Promise<string[]>
   clearHistory: () => Promise<void>
   openSettings: () => void
   openSavedWords: () => void

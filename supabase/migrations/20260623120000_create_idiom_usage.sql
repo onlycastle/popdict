@@ -35,3 +35,4 @@ end;
 $$;
 
 revoke all on function public.increment_idiom_usage(text) from public, anon, authenticated;
+grant execute on function public.increment_idiom_usage(text) to service_role;

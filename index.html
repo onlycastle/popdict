@@ -3,6 +3,10 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' data: blob: https:; connect-src 'self' https://api.dictionaryapi.dev https://*.supabase.co wss://*.supabase.co http://localhost:* ws://localhost:*; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none';"
+  />
   <title>PopDict</title>
 </head>
 

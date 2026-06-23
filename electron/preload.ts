@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setSettings: (partial: Partial<AppSettings>) => ipcRenderer.invoke('set-settings', partial),
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (word: string) => ipcRenderer.invoke('add-history', word),
+  removeHistory: (word: string) => ipcRenderer.invoke('remove-history', word),
   clearHistory: () => ipcRenderer.invoke('clear-history'),
   openSettings: () => ipcRenderer.send('open-settings'),
   openSavedWords: () => ipcRenderer.send('open-saved-words'),

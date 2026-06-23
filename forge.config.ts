@@ -1,6 +1,6 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerDMG, type MakerDMGConfig } from '@electron-forge/maker-dmg';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
@@ -42,7 +42,7 @@ const config: ForgeConfig = {
     new MakerDMG({
       format: 'ULFO',
       icon: './icon.icns',
-    } as any, ['darwin']),
+    } satisfies MakerDMGConfig, ['darwin']),
     // macOS auto-update artifact (Squirrel.Mac pulls a .zip, not the DMG).
     new MakerZIP({}, ['darwin']),
     new MakerSquirrel({}),

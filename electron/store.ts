@@ -25,6 +25,12 @@ export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): s
   return [trimmed, ...withoutDupe].slice(0, cap)
 }
 
+export function removeFromHistory(list: string[], word: string): string[] {
+  const target = word.trim().toLowerCase()
+  if (!target) return list
+  return list.filter((w) => w.toLowerCase() !== target)
+}
+
 function withDefaults(raw: unknown): StoredConfig {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONFIG }
   const r = raw as Partial<StoredConfig>
@@ -59,6 +65,12 @@ export function createStore(filePath: string) {
     addHistory(word: string): string[] {
       const cfg = read()
       cfg.history = addToHistory(cfg.history, word)
+      write(cfg)
+      return cfg.history
+    },
+    removeHistory(word: string): string[] {
+      const cfg = read()
+      cfg.history = removeFromHistory(cfg.history, word)
       write(cfg)
       return cfg.history
     },

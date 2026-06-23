@@ -42,8 +42,9 @@ step "Checking notarization credentials"
 xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" --output-format json >/dev/null
 
 if [[ -z "${POPDICT_GITHUB_REPO:-}" ]]; then
-  printf 'WARNING: POPDICT_GITHUB_REPO is unset — this build ships with auto-update DISABLED.\n' >&2
-  printf '         Re-run as: POPDICT_GITHUB_REPO=owner/repo %s\n\n' "$0" >&2
+  printf 'POPDICT_GITHUB_REPO is required for public releases so auto-update is enabled.\n' >&2
+  printf 'Re-run as: POPDICT_GITHUB_REPO=owner/repo %s\n' "$0" >&2
+  exit 1
 fi
 
 step "Running quality gate (type-check + lint)"

@@ -8,9 +8,9 @@
 // Deploy:  supabase functions deploy idioms
 // Secrets: supabase secrets set STANDS4_UID=... STANDS4_TOKEN=...
 //
-// NOTE: the in-memory cache below is per-instance and best-effort. For real
-// abuse protection at scale, add a durable rate limiter (e.g. Upstash) keyed by
-// the caller — tracked as a follow-up, not required for the initial release.
+// The in-memory cache below is per-instance and best-effort. Cache misses are
+// protected by a durable per-IP counter in Postgres, called with the service
+// role key so public clients cannot bypass it.
 
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -29,21 +29,23 @@ function clientIp(req: Request): string {
   return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown'
 }
 
-// Best-effort per-IP daily rate limit via an atomic RPC (service role). Returns
-// true when the caller is over the limit. Fails OPEN (returns false) if the
-// limiter itself errors — idioms are a non-essential feature and the 24h cache
-// already absorbs most load.
-async function isRateLimited(ip: string): Promise<boolean> {
+type RateLimitState = 'ok' | 'limited' | 'unavailable'
+
+// Per-IP daily rate limit via an atomic RPC (service role). Fail closed when
+// the limiter is unavailable; idioms are optional, but the shared STANDS4 quota
+// must not be exposed by a misconfigured function.
+async function checkRateLimit(ip: string): Promise<RateLimitState> {
   const url = Deno.env.get('SUPABASE_URL')
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!url || !serviceKey) return false
+  if (!url || !serviceKey) return 'unavailable'
   try {
     const admin = createClient(url, serviceKey)
     const { data, error } = await admin.rpc('increment_idiom_usage', { p_ip: ip })
-    if (error) return false
-    return typeof data === 'number' && data > PER_IP_DAILY_LIMIT
+    if (error) return 'unavailable'
+    if (typeof data !== 'number') return 'unavailable'
+    return data > PER_IP_DAILY_LIMIT ? 'limited' : 'ok'
   } catch {
-    return false
+    return 'unavailable'
   }
 }
 
@@ -86,8 +88,12 @@ Deno.serve(async (req: Request) => {
   }
 
   // Rate-limit only actual upstream calls (after a cache miss).
-  if (await isRateLimited(clientIp(req))) {
+  const rateLimit = await checkRateLimit(clientIp(req))
+  if (rateLimit === 'limited') {
     return json({ result: null, error: 'rate_limited' }, 429)
+  }
+  if (rateLimit === 'unavailable') {
+    return json({ result: null, error: 'rate_limiter_unavailable' }, 503)
   }
 
   const url = new URL(STANDS4_BASE)

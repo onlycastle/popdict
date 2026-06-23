@@ -92,9 +92,9 @@ const SearchResults = ({
     >
       {/* Idiom section - shown first if available */}
       {idiomResult && (
-        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-400/30 rounded-lg">
+        <div className="idiom-card mb-6 p-4 border rounded-lg">
           <div className="flex items-center gap-2 mb-3">
-            <span className="inline-block text-xs font-semibold text-blue-300 bg-blue-500/20 px-2 py-1 rounded-md">
+            <span className="idiom-badge inline-block text-xs font-semibold px-2 py-1 rounded-md">
               IDIOM
             </span>
           </div>
