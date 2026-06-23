@@ -17,6 +17,7 @@ export interface ElectronAPI {
   clearHistory: () => Promise<void>
   openSettings: () => void
   openSavedWords: () => void
+  finishOnboarding: () => void
   lookupWord: (word: string) => void
   onSeedSearch: (cb: (word: string) => void) => () => void
   sendFeedback: () => void

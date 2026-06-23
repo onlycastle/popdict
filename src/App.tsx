@@ -8,6 +8,7 @@ import { useSupabaseAuth } from './hooks/useSupabaseAuth'
 import { isWordSaved, saveWord } from './services/savedWords'
 import Settings from './components/Settings'
 import SavedWords from './components/SavedWords'
+import Onboarding from './components/Onboarding'
 import type { SearchResponse } from './types/dictionary'
 import './App.css'
 
@@ -30,6 +31,10 @@ function App() {
 
   if (window.location.hash === '#/saved') {
     return <SavedWords />
+  }
+
+  if (window.location.hash === '#/onboarding') {
+    return <Onboarding />
   }
 
   const [query, setQuery] = useState('')

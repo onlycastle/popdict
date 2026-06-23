@@ -7,12 +7,14 @@ const HISTORY_CAP = 12
 export type StoredConfig = {
   hotkey: string
   lookupSelection: boolean
+  onboardingDone: boolean
   history: string[]
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
   hotkey: DEFAULT_HOTKEY,
   lookupSelection: true,
+  onboardingDone: false,
   history: [],
 }
 
@@ -30,6 +32,7 @@ function withDefaults(raw: unknown): StoredConfig {
   return {
     hotkey: typeof r.hotkey === 'string' && r.hotkey ? r.hotkey : DEFAULT_HOTKEY,
     lookupSelection: typeof r.lookupSelection === 'boolean' ? r.lookupSelection : true,
+    onboardingDone: typeof r.onboardingDone === 'boolean' ? r.onboardingDone : false,
     history: Array.isArray(r.history) ? r.history.filter((w) => typeof w === 'string') : [],
   }
 }
