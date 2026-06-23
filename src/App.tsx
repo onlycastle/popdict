@@ -6,7 +6,7 @@ import SearchResults from './components/SearchResults'
 import WindowControls from './components/WindowControls'
 import { useDictionarySearch } from './hooks/useDictionarySearch'
 import { useSupabaseAuth } from './hooks/useSupabaseAuth'
-import { isWordSaved, saveWord } from './services/savedWords'
+import { savedWords } from './services/SavedWordsRepository'
 import Settings from './components/Settings'
 import SavedWords from './components/SavedWords'
 import Onboarding from './components/Onboarding'
@@ -106,7 +106,7 @@ function App() {
     setSaveError('')
 
     try {
-      await saveWord({ source: response.source, user: auth.user, word })
+      await savedWords.save({ source: response.source, user: auth.user, word })
       setSavedWord(word)
       setPendingSaveWord('')
       setLoginPromptOpen(false)
@@ -171,7 +171,7 @@ function App() {
   useEffect(() => {
     if (!auth.user || !wordToSave) return
     let cancelled = false
-    isWordSaved(auth.user, wordToSave)
+    savedWords.isSaved(auth.user, wordToSave)
       .then((saved) => {
         if (!cancelled) setSavedWord(saved ? wordToSave : '')
       })

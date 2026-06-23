@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
-import { deleteSavedWord, getSavedWords, type SavedWord } from '../services/savedWords'
+import { savedWords, type SavedWord } from '../services/SavedWordsRepository'
 
 export default function SavedWords() {
   const auth = useSupabaseAuth()
@@ -14,7 +14,7 @@ export default function SavedWords() {
     setLoading(true)
     setError('')
     try {
-      setWords(await getSavedWords(auth.user))
+      setWords(await savedWords.list(auth.user))
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load saved words')
     } finally {
@@ -32,7 +32,7 @@ export default function SavedWords() {
       const previous = words
       setWords((current) => current.filter((w) => w.id !== entry.id)) // optimistic
       try {
-        await deleteSavedWord(auth.user, entry.normalized_word)
+        await savedWords.delete(auth.user, entry.normalized_word)
       } catch (deleteError) {
         setWords(previous) // rollback
         setError(deleteError instanceof Error ? deleteError.message : 'Could not delete word')

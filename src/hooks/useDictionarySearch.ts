@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { SearchResponse } from '../types/dictionary'
-import { searchDictionary as searchDictionaryAPI } from '../services/dictionaryApi'
+import { dictionaryService } from '../services/dictionary'
 
 // Simple debounce function
 function useDebounce<T>(value: T, delay: number): T {
@@ -44,7 +44,7 @@ export function useDictionarySearch(query: string) {
     setError(null)
 
     try {
-      const result = await searchDictionaryAPI(trimmed)
+      const result = await dictionaryService.search(trimmed)
       if (requestId !== requestIdRef.current) return // a newer search superseded this one
       setResponse(result)
       setSearchedTerm(trimmed)
