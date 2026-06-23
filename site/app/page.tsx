@@ -1,4 +1,7 @@
 export default function Home() {
+  const githubRepo = process.env.GITHUB_REPO
+  const issuesUrl = githubRepo ? `https://github.com/${githubRepo}/issues` : null
+
   return (
     <main>
       <div className="container">
@@ -88,7 +91,7 @@ export default function Home() {
           <div className="links">
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>
-            <a href="mailto:sungman.cho@originlayer.net">Contact</a>
+            {issuesUrl ? <a href={issuesUrl}>GitHub Issues</a> : null}
           </div>
           <div>© {new Date().getFullYear()} Sungman Cho · PopDict</div>
         </div>

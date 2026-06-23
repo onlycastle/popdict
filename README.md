@@ -1,90 +1,141 @@
 # PopDict
 
-**A macOS menu-bar dictionary for English learners.** Press one hotkey, look up any
-word or idiom, hear how it's pronounced, and save it to review later — without leaving
-whatever you're reading.
+PopDict is a macOS menu-bar dictionary for English learners. Press one hotkey to
+look up a word or idiom, hear pronunciation, and save words for later without
+leaving the app you are reading in.
 
 ## Features
 
-- **Instant lookup** — a global hotkey (default `⌘⇧Space`) opens a floating glass popup.
-- **Select-to-lookup** — highlight a word in any app, press the hotkey, and PopDict
-  searches it automatically (requires Accessibility permission; toggle in Settings).
-- **Audio pronunciation** — plays the recorded clip when available, with a text-to-speech
-  fallback so every word can be heard.
-- **Idioms & phrases** — multi-word queries also return idiomatic meanings.
-- **Saved words** — sign in with Google to save words and review, filter, or delete them
-  from the Saved Words window. Saved state persists across restarts.
-- **Recent searches**, **launch at login**, and a configurable hotkey.
+- Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
+- Optional select-to-lookup for highlighted text on macOS.
+- Free Dictionary API definitions with audio playback and text-to-speech fallback.
+- Idiom and phrase lookup through a Supabase Edge Function proxy.
+- Google sign-in for saved words, backed by Supabase.
+- Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
+- GitHub release auto-update support for public macOS releases.
 
-> Requires macOS (Apple Silicon). Free.
+## Requirements
 
-## Tech stack
+- macOS for the desktop app.
+- Node.js 20 or newer.
+- A Supabase project if you want auth, saved words, or idiom lookups.
+- A public GitHub repository if you want release downloads, app feedback links, and
+  auto-updates.
 
-Electron · React · TypeScript · Vite · Tailwind CSS · Framer Motion · Supabase
-(auth + saved words + idiom proxy).
-
-## Development
-
-Requires Node.js ≥ 20.
+## Quick Start
 
 ```bash
 npm install
-cp .env.example .env.local   # add your Supabase URL + publishable key
-npm start                    # run in development (Electron Forge + Vite)
+cp .env.example .env.local
+npm start
 ```
 
-Quality gate (also run in the release preflight):
+The app can run without Supabase configured, but saved words and idioms are disabled
+until you provide Supabase settings.
 
-```bash
-npx tsc --noEmit && npm run lint && npm test
-```
+## Configuration
 
-### Supabase setup (auth, saved words, idioms)
+Root app environment:
 
-1. **Google sign-in** — enable the Google provider in Supabase Auth, add
-   `popdict://auth/callback` to *Additional Redirect URLs*, and configure your Google
-   OAuth client's authorized origins/redirect URIs to match the Supabase callback. After
-   Google sign-in, the app receives the `popdict://auth/callback` deep link and exchanges
-   it for a Supabase session.
-2. **Saved words table** — apply the migration:
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Supabase project URL for auth, saved words, and Edge Functions. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key safe to ship in the renderer bundle. |
+| `POPDICT_GITHUB_REPO` | `owner/repo` used at release build time for auto-updates and GitHub Issues feedback links. |
+| `POPDICT_MAC_SIGNING_IDENTITY` | Developer ID signing identity. Required only for signed release builds. |
+| `POPDICT_NOTARY_PROFILE` | `notarytool` keychain profile. Required only for signed release builds. |
+
+Site environment:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Public URL for site metadata. |
+| `GITHUB_REPO` | `owner/repo` used by `/download/latest` and public GitHub links. |
+
+## Supabase Setup
+
+1. Enable Google sign-in in Supabase Auth.
+2. Add `popdict://auth/callback` to Supabase Auth redirect URLs.
+3. Apply migrations:
    ```bash
-   supabase link --project-ref <project-id>
-   supabase db push   # migrations/20260623074337_create_saved_words.sql
+   supabase link --project-ref <project-ref>
+   supabase db push
    ```
-3. **Idioms** — deploy the Edge Function and set the STANDS4 token as a secret (it never
-   ships in the app). See [IDIOM_SETUP.md](IDIOM_SETUP.md).
+4. Deploy the idiom Edge Function if you want phrase lookup:
+   ```bash
+   supabase functions deploy idioms
+   supabase secrets set STANDS4_UID=your_uid STANDS4_TOKEN=your_tokenid
+   ```
 
-## Building & releasing
+More detail is in [IDIOM_SETUP.md](IDIOM_SETUP.md).
+
+## Development
 
 ```bash
-npm run release:arm64   # preflight (tsc, lint, tests, Gatekeeper) → signed, notarized DMG + zip
+npm start          # Electron Forge + Vite dev app
+npm run lint       # ESLint
+npm test           # Vitest
+npx tsc --noEmit   # TypeScript check
 ```
 
-This produces a notarized `.dmg` (the download) and a `.zip` (the Squirrel.Mac
-auto-update artifact). Upload **both** to the GitHub release. Auto-update activates once
-the repo is public and `GITHUB_REPO` is set in `electron/updater.ts`.
+Useful build commands:
 
-Other scripts: `npm run package`, `npm run make`, `npm run lint`, `npm test`.
-
-## Project structure
-
+```bash
+npm run package      # package the app locally
+npm run make         # create distributable artifacts; unsigned if signing env is absent
+npm run make:local   # local unsigned macOS package + DMG helper
 ```
-PopDict/
-├── electron/            # Electron main process, preload, store, updater, selection
-├── src/
-│   ├── components/       # React components (search, results, settings, saved words…)
-│   ├── hooks/            # useDictionarySearch, useSupabaseAuth
-│   ├── services/         # dictionaryApi, savedWords, supabaseClient
-│   ├── utils/            # pronounce (audio + TTS)
-│   └── types/            # shared types
-├── supabase/            # migrations + functions/idioms (Edge Function)
-└── forge.config.ts      # build, signing, makers
+
+## Site
+
+The Next.js site lives in `site/`.
+
+```bash
+cd site
+npm install
+cp .env.example .env.local
+npm run dev
 ```
+
+`/download/latest` redirects to the newest `.dmg` asset in the GitHub repository
+configured by `GITHUB_REPO`.
+
+## Release
+
+Public macOS releases require a public GitHub repo, a Developer ID signing identity,
+and a configured notary profile:
+
+```bash
+POPDICT_GITHUB_REPO=owner/repo \
+POPDICT_MAC_SIGNING_IDENTITY="Developer ID Application: Example (TEAMID)" \
+POPDICT_NOTARY_PROFILE=notary-profile-name \
+npm run release:arm64
+```
+
+The release script runs the quality gate, builds signed macOS artifacts, verifies
+Gatekeeper/notarization, and prints the `.dmg` and `.zip` paths to upload to the
+GitHub release. The `.zip` is required for Squirrel.Mac auto-updates.
+
+## Project Structure
+
+```text
+electron/    Electron main process, preload bridge, local store, updater
+src/         React renderer, hooks, services, styles, and shared types
+supabase/    Database migrations and the idiom Edge Function
+site/        Public Next.js landing and legal pages
+scripts/     Release and notarization helpers
+```
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Product bugs
+and feature requests should go through GitHub Issues on the configured public repo.
+
+## Security
+
+Read [SECURITY.md](SECURITY.md) for vulnerability reporting guidance. Do not post
+secrets or private account data in public issues.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
-## Author
-
-Sungman Cho (sungman.cho@originlayer.net)
+MIT. See [LICENSE](LICENSE).

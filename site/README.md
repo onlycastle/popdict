@@ -3,7 +3,7 @@
 Marketing + download site for PopDict, built with Next.js (App Router) for deployment on
 Vercel. It also hosts the **privacy policy** (`/privacy`) required by the Google OAuth
 consent screen, and a `/download/latest` route that redirects to the newest GitHub release
-DMG.
+DMG. Public support links point to GitHub Issues.
 
 ## Local development
 
@@ -19,7 +19,7 @@ npm run dev
 | Variable               | Purpose                                                        |
 | ---------------------- | ------------------------------------------------------------- |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL, used for SEO / Open Graph metadata.       |
-| `GITHUB_REPO`          | `owner/repo` hosting PopDict releases. Powers `/download/latest`. |
+| `GITHUB_REPO`          | `owner/repo` hosting PopDict releases. Powers `/download/latest` and GitHub Issues links. |
 
 ## Deploy (Vercel)
 

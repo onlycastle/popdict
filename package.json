@@ -20,10 +20,7 @@
     "test:watch": "vitest"
   },
   "keywords": [],
-  "author": {
-    "name": "Sungman Cho",
-    "email": "sungman.cho@originlayer.net"
-  },
+  "author": "PopDict contributors",
   "license": "MIT",
   "engines": {
     "node": ">=20"

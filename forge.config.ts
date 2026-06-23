@@ -9,6 +9,22 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const shouldSkipMacSigning = process.env.POPDICT_SKIP_MAC_SIGNING === '1';
+const macSigningIdentity = process.env.POPDICT_MAC_SIGNING_IDENTITY;
+const notaryProfile = process.env.POPDICT_NOTARY_PROFILE;
+const macSigningConfig =
+  !shouldSkipMacSigning && macSigningIdentity && notaryProfile
+    ? {
+        osxSign: {
+          identity: macSigningIdentity,
+          // Hardened Runtime is enabled by default in @electron/osx-sign
+          // (PerFileSignOptions.hardenedRuntime defaults to true) and is a
+          // prerequisite for notarization. release-arm64.sh re-verifies via spctl.
+        },
+        osxNotarize: {
+          keychainProfile: notaryProfile,
+        },
+      }
+    : {};
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -23,19 +39,7 @@ const config: ForgeConfig = {
         schemes: ['popdict'],
       },
     ],
-    ...(shouldSkipMacSigning
-      ? {}
-      : {
-          osxSign: {
-            identity: 'Developer ID Application: Sungman Cho (J756539YX6)',
-            // Hardened Runtime is enabled by default in @electron/osx-sign
-            // (PerFileSignOptions.hardenedRuntime defaults to true) and is a
-            // prerequisite for notarization. release-arm64.sh re-verifies via spctl.
-          },
-          osxNotarize: {
-            keychainProfile: 'PopDict-notary',
-          },
-        }),
+    ...macSigningConfig,
   },
   rebuildConfig: {},
   makers: [

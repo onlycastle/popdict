@@ -133,7 +133,7 @@ export default function Settings() {
           onClick={() => window.electronAPI.sendFeedback()}
           className="text-sm text-white/70 underline"
         >
-          Send feedback
+          Open GitHub Issue
         </button>
       </div>
 

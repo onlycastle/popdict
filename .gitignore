@@ -1,5 +1,5 @@
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -8,31 +8,58 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Dependencies
-node_modules
-dist
-dist-electron
-dist-ssr
-*.local
+node_modules/
+site/node_modules/
+
+# Build output and generated caches
+build/
+dist/
+dist-electron/
+dist-ssr/
+out/
+.vite/
+site/.next/
+.cache/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Release artifacts
+release/
+releases/
+artifacts/
+*.dmg
+*.pkg
+*.zip
+*.blockmap
+
+# Environment and local service metadata
+.env
+.env.*
+!.env.example
+!.env.*.example
+site/.env
+site/.env.*
+!site/.env.example
+supabase/.temp/
+
+# Private keys, certificates, and signing material
+*.pem
+*.key
+*.p8
+*.p12
+*.cer
+*.crt
+*.csr
+*.mobileprovision
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Build
-build
-out
-.vite
-
-# Environment
-.env
-.env.local
-
-# macOS
-.DS_Store

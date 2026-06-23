@@ -4,10 +4,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const signingIdentity =
-  process.env.POPDICT_MAC_SIGNING_IDENTITY ||
-  'Developer ID Application: Sungman Cho (J756539YX6)';
-const notaryProfile = process.env.POPDICT_NOTARY_PROFILE || 'PopDict-notary';
+const signingIdentity = process.env.POPDICT_MAC_SIGNING_IDENTITY;
+const notaryProfile = process.env.POPDICT_NOTARY_PROFILE;
 const makeDir = path.join(__dirname, '..', 'out', 'make');
 const explicitPaths = process.argv.slice(2);
 
@@ -64,6 +62,13 @@ const dmgs = (explicitPaths.length > 0 ? explicitPaths : findDmgs(makeDir))
 
 if (dmgs.length === 0) {
   console.log('No DMG files found to notarize.');
+  process.exit(0);
+}
+
+if (!signingIdentity || !notaryProfile) {
+  console.log(
+    'Skipping DMG signing/notarization; POPDICT_MAC_SIGNING_IDENTITY and POPDICT_NOTARY_PROFILE are not set.'
+  );
   process.exit(0);
 }
 

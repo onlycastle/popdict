@@ -10,8 +10,8 @@ ARCH="arm64"
 VERSION="$(node -p "require('./package.json').version")"
 APP_PATH="out/${APP_NAME}-darwin-${ARCH}/${APP_NAME}.app"
 DMG_PATH="out/make/${APP_NAME}-${VERSION}-${ARCH}.dmg"
-SIGNING_IDENTITY="${POPDICT_MAC_SIGNING_IDENTITY:-Developer ID Application: Sungman Cho (J756539YX6)}"
-NOTARY_PROFILE="${POPDICT_NOTARY_PROFILE:-PopDict-notary}"
+SIGNING_IDENTITY="${POPDICT_MAC_SIGNING_IDENTITY:-}"
+NOTARY_PROFILE="${POPDICT_NOTARY_PROFILE:-}"
 
 step() {
   printf '\n==> %s\n' "$*"
@@ -26,6 +26,20 @@ require_cmd() {
 
 require_cmd node
 require_cmd npm
+
+if [[ -z "$SIGNING_IDENTITY" ]]; then
+  printf 'POPDICT_MAC_SIGNING_IDENTITY is required for signed public releases.\n' >&2
+  exit 1
+fi
+
+if [[ -z "$NOTARY_PROFILE" ]]; then
+  printf 'POPDICT_NOTARY_PROFILE is required for signed public releases.\n' >&2
+  exit 1
+fi
+
+export POPDICT_MAC_SIGNING_IDENTITY="$SIGNING_IDENTITY"
+export POPDICT_NOTARY_PROFILE="$NOTARY_PROFILE"
+
 require_cmd security
 require_cmd codesign
 require_cmd spctl

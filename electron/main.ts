@@ -19,8 +19,7 @@ import { initAutoUpdates } from './updater'
 let store: ReturnType<typeof createStore>
 
 const AUTH_PROTOCOL = 'popdict'
-const FEEDBACK_FORM_URL = '' // TODO: paste a Tally/Google Form URL; empty falls back to mailto
-const FEEDBACK_MAILTO = 'sungman.cho@originlayer.net'
+const GITHUB_REPO = process.env.POPDICT_GITHUB_REPO || ''
 
 let mainWindow: BrowserWindow | null = null
 let trayRef: Tray | null = null
@@ -407,12 +406,16 @@ function lookupWordInSearch(word: string) {
 
 function openFeedback() {
   const version = app.getVersion()
-  if (FEEDBACK_FORM_URL) {
-    shell.openExternal(`${FEEDBACK_FORM_URL}?v=${encodeURIComponent(version)}`)
-  } else {
-    const subject = encodeURIComponent(`PopDict beta feedback (v${version})`)
-    shell.openExternal(`mailto:${FEEDBACK_MAILTO}?subject=${subject}`)
+  if (!GITHUB_REPO) {
+    console.warn('POPDICT_GITHUB_REPO is unset; cannot open GitHub Issues feedback URL.')
+    return
   }
+
+  const params = new URLSearchParams({
+    title: `PopDict feedback (${version})`,
+    body: `## Feedback\n\n\n## Version\n${version}\n`,
+  })
+  shell.openExternal(`https://github.com/${GITHUB_REPO}/issues/new?${params.toString()}`)
 }
 
 function registerHotkey(accelerator: string): boolean {
@@ -438,7 +441,7 @@ function rebuildTrayMenu() {
     },
     { label: 'Saved Words…', click: () => openSavedWordsWindow() },
     { label: 'Settings…', click: () => openSettingsWindow() },
-    { label: 'Send Feedback', click: () => openFeedback() },
+    { label: 'Open GitHub Issue', click: () => openFeedback() },
     { type: 'separator' },
     { label: 'Quit PopDict', click: () => app.quit() },
   ])
