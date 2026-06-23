@@ -12,6 +12,9 @@
 // abuse protection at scale, add a durable rate limiter (e.g. Upstash) keyed by
 // the caller — tracked as a follow-up, not required for the initial release.
 
+// @ts-ignore - resolved by the Deno runtime, not the app's tsc
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void
   env: { get: (key: string) => string | undefined }
@@ -20,6 +23,29 @@ declare const Deno: {
 const STANDS4_BASE = 'https://www.stands4.com/services/v2/phrases.php'
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 // 24h
 const MAX_PHRASE_LEN = 80
+const PER_IP_DAILY_LIMIT = 40 // cap upstream calls per IP/day (STANDS4 free tier is 100/day total)
+
+function clientIp(req: Request): string {
+  return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown'
+}
+
+// Best-effort per-IP daily rate limit via an atomic RPC (service role). Returns
+// true when the caller is over the limit. Fails OPEN (returns false) if the
+// limiter itself errors — idioms are a non-essential feature and the 24h cache
+// already absorbs most load.
+async function isRateLimited(ip: string): Promise<boolean> {
+  const url = Deno.env.get('SUPABASE_URL')
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!url || !serviceKey) return false
+  try {
+    const admin = createClient(url, serviceKey)
+    const { data, error } = await admin.rpc('increment_idiom_usage', { p_ip: ip })
+    if (error) return false
+    return typeof data === 'number' && data > PER_IP_DAILY_LIMIT
+  } catch {
+    return false
+  }
+}
 
 const cache = new Map<string, { at: number; result: unknown }>()
 
@@ -56,7 +82,12 @@ Deno.serve(async (req: Request) => {
   const key = phrase.toLowerCase()
   const cached = cache.get(key)
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
-    return json({ result: cached.result })
+    return json({ result: cached.result }) // cache hits don't count against the limit
+  }
+
+  // Rate-limit only actual upstream calls (after a cache miss).
+  if (await isRateLimited(clientIp(req))) {
+    return json({ result: null, error: 'rate_limited' }, 429)
   }
 
   const url = new URL(STANDS4_BASE)

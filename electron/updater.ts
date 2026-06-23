@@ -9,9 +9,9 @@ import { app, autoUpdater } from 'electron'
 //   2. Releases must include a macOS .zip asset (added via MakerZIP in
 //      forge.config.ts) whose name carries the arch, e.g.
 //      `PopDict-darwin-arm64-<version>.zip`, so the service serves the right one.
-//   3. Set GITHUB_REPO below to "owner/repo".
-// Until GITHUB_REPO is set, auto-update is disabled (safe no-op).
-const GITHUB_REPO = '' // e.g. 'sungmancho/popdict'
+//   3. Build with POPDICT_GITHUB_REPO=owner/repo (baked in via vite.main.config).
+// Until that env var is set at build time, auto-update is disabled (safe no-op).
+const GITHUB_REPO = process.env.POPDICT_GITHUB_REPO || ''
 
 const SIX_HOURS = 1000 * 60 * 60 * 6
 

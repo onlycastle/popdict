@@ -3,14 +3,40 @@ import { supabase } from './supabaseClient'
 
 const FREE_DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en'
 
-export async function fetchFreeDictionary(word: string): Promise<DictionaryResult[]> {
-  const response = await fetch(
-    `${FREE_DICTIONARY_API}/${encodeURIComponent(word)}`
-  )
+export type DictionaryErrorKind = 'network' | 'not-found' | 'service'
 
-  if (!response.ok) {
-    throw new Error('Not found in dictionary')
+/** Typed lookup failure so the UI can tell "offline" apart from "no such word". */
+export class DictionaryError extends Error {
+  constructor(public kind: DictionaryErrorKind, message?: string) {
+    super(message ?? kind)
+    this.name = 'DictionaryError'
   }
+}
+
+/** Map a thrown error to a user-facing message; `notFoundMessage` is the default. */
+function toUserError(error: unknown, notFoundMessage: string): Error {
+  if (error instanceof DictionaryError) {
+    if (error.kind === 'network') {
+      return new Error('No connection — check your internet and try again.')
+    }
+    if (error.kind === 'service') {
+      return new Error('Dictionary service is unavailable. Try again shortly.')
+    }
+  }
+  return new Error(notFoundMessage)
+}
+
+export async function fetchFreeDictionary(word: string): Promise<DictionaryResult[]> {
+  let response: Response
+  try {
+    response = await fetch(`${FREE_DICTIONARY_API}/${encodeURIComponent(word)}`)
+  } catch {
+    // fetch only rejects on network-level failures (offline, DNS, CORS).
+    throw new DictionaryError('network')
+  }
+
+  if (response.status === 404) throw new DictionaryError('not-found')
+  if (!response.ok) throw new DictionaryError('service')
 
   return response.json()
 }
@@ -56,7 +82,7 @@ export async function searchDictionary(query: string): Promise<SearchResponse> {
         source: 'free-dictionary'
       }
     } catch (error) {
-      throw new Error('Word not found')
+      throw toUserError(error, `"${trimmedQuery}" not found`)
     }
   }
 
@@ -70,6 +96,11 @@ export async function searchDictionary(query: string): Promise<SearchResponse> {
   const hasIdiom = idiomResult.status === 'fulfilled'
 
   if (!hasDict && !hasIdiom) {
+    // If the dictionary call failed on the network, say so rather than
+    // pretending the word doesn't exist.
+    if (dictResult.status === 'rejected') {
+      throw toUserError(dictResult.reason, `No results found for "${trimmedQuery}"`)
+    }
     throw new Error(`No results found for "${trimmedQuery}"`)
   }
 

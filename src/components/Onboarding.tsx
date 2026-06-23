@@ -14,21 +14,22 @@ function prettyHotkey(accelerator: string): string {
 
 export default function Onboarding() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [selectionEnabled, setSelectionEnabled] = useState(false)
+  // Drive the button off the ACTUAL Accessibility permission, not the
+  // lookupSelection toggle — otherwise first-run users (toggle defaults on) are
+  // never prompted and capture silently fails.
+  const [accessibilityGranted, setAccessibilityGranted] = useState(false)
+  const [requested, setRequested] = useState(false)
 
   useEffect(() => {
-    window.electronAPI.getSettings().then((s) => {
-      setSettings(s)
-      setSelectionEnabled(s.lookupSelection)
-    })
+    window.electronAPI.getSettings().then(setSettings)
+    window.electronAPI.isAccessibilityTrusted().then(setAccessibilityGranted)
   }, [])
 
-  const enableSelection = () => {
-    // Flipping this on prompts macOS for Accessibility permission (main process).
-    window.electronAPI.setSettings({ lookupSelection: true }).then((s) => {
-      setSettings(s)
-      setSelectionEnabled(true)
-    })
+  const enableSelection = async () => {
+    await window.electronAPI.setSettings({ lookupSelection: true })
+    const granted = await window.electronAPI.requestAccessibility()
+    setAccessibilityGranted(granted)
+    setRequested(true)
   }
 
   const hotkey = settings ? prettyHotkey(settings.hotkey) : '⌘ ⇧ Space'
@@ -56,11 +57,17 @@ export default function Onboarding() {
           </p>
           <button
             onClick={enableSelection}
-            disabled={selectionEnabled}
+            disabled={accessibilityGranted}
             className="mt-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {selectionEnabled ? 'Selection lookup enabled' : 'Enable selection lookup'}
+            {accessibilityGranted ? 'Selection lookup enabled' : 'Enable selection lookup'}
           </button>
+          {requested && !accessibilityGranted && (
+            <p className="mt-2 text-xs text-white/50">
+              Grant PopDict access in System Settings → Privacy &amp; Security →
+              Accessibility, then relaunch PopDict.
+            </p>
+          )}
         </div>
 
         <div>

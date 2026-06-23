@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { SearchResponse } from '../types/dictionary'
 import { searchDictionary as searchDictionaryAPI } from '../services/dictionaryApi'
 
@@ -24,13 +24,19 @@ export function useDictionarySearch(query: string) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchedTerm, setSearchedTerm] = useState('')
+  // Monotonic id so a slow earlier lookup can't overwrite a newer one.
+  const requestIdRef = useRef(0)
 
   const debouncedQuery = useDebounce(query.trim(), 300)
 
   const searchDictionary = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
+    const trimmed = searchQuery.trim()
+    const requestId = ++requestIdRef.current
+
+    if (!trimmed) {
       setResponse(null)
       setError(null)
+      setLoading(false)
       return
     }
 
@@ -38,14 +44,16 @@ export function useDictionarySearch(query: string) {
     setError(null)
 
     try {
-      const result = await searchDictionaryAPI(searchQuery)
+      const result = await searchDictionaryAPI(trimmed)
+      if (requestId !== requestIdRef.current) return // a newer search superseded this one
       setResponse(result)
-      setSearchedTerm(searchQuery.trim())
+      setSearchedTerm(trimmed)
     } catch (err) {
+      if (requestId !== requestIdRef.current) return
       setError(err instanceof Error ? err.message : 'An error occurred')
       setResponse(null)
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [])
 

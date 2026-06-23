@@ -27,17 +27,22 @@ configured, idiom lookups are simply skipped (single-word search still works).
    https://www.stands4.com/services/v2/phrases.php (free tier: 100 queries/day). You get
    a `uid` and a `tokenid`.
 
-2. **Deploy the function:**
+2. **Apply migrations** (creates `saved_words` and the `idiom_usage` rate-limit table):
+   ```bash
+   supabase db push
+   ```
+
+3. **Deploy the function:**
    ```bash
    supabase functions deploy idioms
    ```
 
-3. **Set the token as a secret** (server-side only — never in `.env` / the app bundle):
+4. **Set the token as a secret** (server-side only — never in `.env` / the app bundle):
    ```bash
    supabase secrets set STANDS4_UID=your_uid STANDS4_TOKEN=your_tokenid
    ```
 
-4. **Point the app at your Supabase project** in `.env` (these are safe to bundle):
+5. **Point the app at your Supabase project** in `.env` (these are safe to bundle):
    ```env
    VITE_SUPABASE_URL=https://your-project-ref.supabase.co
    VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
@@ -45,13 +50,24 @@ configured, idiom lookups are simply skipped (single-word search still works).
 
 Test with: "kick the bucket", "break the ice", "once in a blue moon", "piece of cake".
 
-## Notes & follow-ups
+## Abuse protection
 
-- The function's cache is **per-instance** and best-effort. For real abuse protection at
-  scale, add a durable rate limiter (e.g. Upstash) keyed by caller — a follow-up, not
-  required for the initial release.
-- If you don't want to run STANDS4 at all, you can leave the function undeployed; idioms
-  simply won't appear and single-word lookups are unaffected.
+The anon key ships in the app, so the function is publicly callable. Two guards protect the
+shared STANDS4 quota:
+
+- **24h response cache** (per function instance) — repeated lookups of the same phrase don't
+  re-hit STANDS4.
+- **Per-IP daily limit** (`PER_IP_DAILY_LIMIT`, default 40) via the `idiom_usage` table and
+  the `increment_idiom_usage` RPC (service role). Over-limit callers get HTTP 429. The
+  limiter **fails open** if the table/RPC is unavailable, so a DB hiccup won't break idioms.
+
+Tune `PER_IP_DAILY_LIMIT` in `supabase/functions/idioms/index.ts`. For stronger protection
+(e.g. botnets), add a global daily budget or a durable limiter such as Upstash.
+
+## Notes
+
+- If you don't want to run STANDS4 at all, leave the function undeployed; idioms simply
+  won't appear and single-word lookups are unaffected.
 
 ## Resources
 

@@ -18,6 +18,8 @@ export interface ElectronAPI {
   openSettings: () => void
   openSavedWords: () => void
   finishOnboarding: () => void
+  isAccessibilityTrusted: () => Promise<boolean>
+  requestAccessibility: () => Promise<boolean>
   lookupWord: (word: string) => void
   onSeedSearch: (cb: (word: string) => void) => () => void
   sendFeedback: () => void
