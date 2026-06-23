@@ -15,10 +15,18 @@ import { execFile } from 'node:child_process'
 import { createStore } from './store'
 import { sanitizeSelection } from './selection'
 import { initAutoUpdates } from './updater'
+import { createLogger } from '../shared/logger'
+import {
+  AUTH_PROTOCOL,
+  describeAuthUrl,
+  describeExternalAuthUrl,
+  isAuthCallbackUrl,
+} from '../shared/authUrl'
+
+const log = createLogger('Auth')
 
 let store: ReturnType<typeof createStore>
 
-const AUTH_PROTOCOL = 'popdict'
 const GITHUB_REPO = process.env.POPDICT_GITHUB_REPO || ''
 
 let mainWindow: BrowserWindow | null = null
@@ -31,62 +39,6 @@ let deliveredAuthCallbackUrl: string | null = null
 let authCallbackTargetWindow: BrowserWindow | null = null
 
 const SEARCH_WINDOW_TOP_OFFSET = 32
-
-function formatAuthDebugDetails(details?: Record<string, unknown>): string {
-  if (!details) return ''
-  try {
-    return JSON.stringify(details)
-  } catch {
-    return '[unserializable details]'
-  }
-}
-
-function authDebug(event: string, details?: Record<string, unknown>) {
-  console.log(`[Auth] ${event} ${formatAuthDebugDetails(details)}`.trim())
-}
-
-function describeAuthUrl(rawUrl: string): Record<string, unknown> {
-  try {
-    const url = new URL(rawUrl)
-    const search = url.searchParams
-    const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
-    return {
-      protocol: url.protocol,
-      host: url.host,
-      pathname: url.pathname,
-      searchKeys: Array.from(search.keys()),
-      hashKeys: Array.from(hash.keys()),
-      hasCode: search.has('code'),
-      hasAccessToken: search.has('access_token') || hash.has('access_token'),
-      hasRefreshToken: search.has('refresh_token') || hash.has('refresh_token'),
-      error: search.get('error') ?? hash.get('error') ?? null,
-      errorDescription: search.get('error_description') ?? hash.get('error_description') ?? null,
-    }
-  } catch {
-    return { invalidUrl: true }
-  }
-}
-
-function describeExternalUrl(rawUrl: string): Record<string, unknown> {
-  try {
-    const url = new URL(rawUrl)
-    const redirectTo = url.searchParams.get('redirect_to')
-    let redirectSummary: Record<string, unknown> | null = null
-    if (redirectTo) {
-      redirectSummary = describeAuthUrl(redirectTo)
-    }
-
-    return {
-      protocol: url.protocol,
-      host: url.host,
-      pathname: url.pathname,
-      searchKeys: Array.from(url.searchParams.keys()),
-      redirectTo: redirectSummary,
-    }
-  } catch {
-    return { invalidUrl: true }
-  }
-}
 
 // Disable GPU acceleration for better transparency support
 // This needs to be called before app is ready
@@ -101,32 +53,23 @@ if (!hasSingleInstanceLock) {
   app.quit()
 }
 
-function isAuthCallbackUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    return parsed.protocol === `${AUTH_PROTOCOL}:` && parsed.hostname === 'auth'
-  } catch {
-    return false
-  }
-}
-
 function registerAuthProtocol() {
   if (process.defaultApp && process.argv.length >= 2) {
     const ok = app.setAsDefaultProtocolClient(AUTH_PROTOCOL, process.execPath, [
       path.resolve(process.argv[1]),
     ])
-    authDebug('register protocol default app', { ok, protocol: AUTH_PROTOCOL })
+    log.event('register protocol default app', { ok, protocol: AUTH_PROTOCOL })
     return
   }
 
   const ok = app.setAsDefaultProtocolClient(AUTH_PROTOCOL)
-  authDebug('register protocol packaged app', { ok, protocol: AUTH_PROTOCOL })
+  log.event('register protocol packaged app', { ok, protocol: AUTH_PROTOCOL })
 }
 
 function dispatchPendingAuthCallback() {
   if (!pendingAuthCallbackUrl) return
   if (deliveredAuthCallbackUrl === pendingAuthCallbackUrl) {
-    authDebug('skip duplicate callback delivery')
+    log.event('skip duplicate callback delivery')
     return
   }
   const targetWindow =
@@ -134,17 +77,17 @@ function dispatchPendingAuthCallback() {
       ? authCallbackTargetWindow
       : settingsWindow ?? mainWindow
   if (!targetWindow || targetWindow.webContents.isDestroyed()) {
-    authDebug('callback pending but no target window')
+    log.event('callback pending but no target window')
     return
   }
 
   if (targetWindow.webContents.isLoading()) {
-    authDebug('callback target loading; waiting')
+    log.event('callback target loading; waiting')
     targetWindow.webContents.once('did-finish-load', dispatchPendingAuthCallback)
     return
   }
 
-  authDebug('deliver callback to renderer', describeAuthUrl(pendingAuthCallbackUrl))
+  log.event('deliver callback to renderer', describeAuthUrl(pendingAuthCallbackUrl))
   targetWindow.webContents.send('auth-callback', pendingAuthCallbackUrl)
   deliveredAuthCallbackUrl = pendingAuthCallbackUrl
 
@@ -155,15 +98,15 @@ function dispatchPendingAuthCallback() {
 
 function handleAuthCallback(url: string) {
   if (!isAuthCallbackUrl(url)) {
-    authDebug('ignore non-auth callback url', describeAuthUrl(url))
+    log.event('ignore non-auth callback url', describeAuthUrl(url))
     return
   }
-  authDebug('received auth callback', describeAuthUrl(url))
+  log.event('received auth callback', describeAuthUrl(url))
   pendingAuthCallbackUrl = url
   deliveredAuthCallbackUrl = null
 
   if (!app.isReady()) {
-    authDebug('app not ready; callback stored')
+    log.event('app not ready; callback stored')
     return
   }
   dispatchPendingAuthCallback()
@@ -171,7 +114,7 @@ function handleAuthCallback(url: string) {
 
 app.on('open-url', (event, url) => {
   event.preventDefault()
-  authDebug('macOS open-url event', describeAuthUrl(url))
+  log.event('macOS open-url event', describeAuthUrl(url))
   handleAuthCallback(url)
 })
 
@@ -209,10 +152,10 @@ if (hasSingleInstanceLock) {
   app.on('second-instance', (_event, argv) => {
     const callbackUrl = argv.find((arg) => isAuthCallbackUrl(arg))
     if (callbackUrl) {
-      authDebug('second instance auth callback', describeAuthUrl(callbackUrl))
+      log.event('second instance auth callback', describeAuthUrl(callbackUrl))
       handleAuthCallback(callbackUrl)
     } else {
-      authDebug('second instance without auth callback')
+      log.event('second instance without auth callback')
       showSearchWindow()
     }
   })
@@ -591,7 +534,7 @@ if (hasSingleInstanceLock) {
     )
     ipcMain.handle('consume-auth-callback', () => {
       const callbackUrl = pendingAuthCallbackUrl
-      authDebug('renderer consumed callback', {
+      log.event('renderer consumed callback', {
         hasCallback: Boolean(callbackUrl),
         ...(callbackUrl ? describeAuthUrl(callbackUrl) : {}),
       })
@@ -601,15 +544,15 @@ if (hasSingleInstanceLock) {
       return callbackUrl
     })
     ipcMain.handle('open-external-url', async (event, url: string) => {
-      authDebug('renderer requested external url', describeExternalUrl(url))
+      log.event('renderer requested external url', describeExternalAuthUrl(url))
       const parsed = new URL(url)
       if (parsed.protocol !== 'https:') {
-        authDebug('blocked non-https external url', describeExternalUrl(url))
+        log.event('blocked non-https external url', describeExternalAuthUrl(url))
         throw new Error('Only HTTPS URLs can be opened externally')
       }
       authCallbackTargetWindow = BrowserWindow.fromWebContents(event.sender)
       await shell.openExternal(url)
-      authDebug('external url opened', describeExternalUrl(url))
+      log.event('external url opened', describeExternalAuthUrl(url))
     })
 
     if (process.platform === 'darwin' && app.dock) {

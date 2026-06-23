@@ -1,6 +1,9 @@
 import type { User } from '@supabase/supabase-js'
 import { supabase } from './supabaseClient'
 import type { SearchSource } from '../types/dictionary'
+import { createLogger } from '../../shared/logger'
+
+const log = createLogger('SavedWords')
 
 export type SaveWordInput = {
   source: SearchSource
@@ -24,14 +27,6 @@ type SupabaseErrorLike = {
   hint?: string | null
 }
 
-function savedWordsDebug(event: string, details?: Record<string, unknown>): void {
-  try {
-    console.info(`[SavedWords] ${event} ${details ? JSON.stringify(details) : ''}`.trim())
-  } catch {
-    console.info(`[SavedWords] ${event}`)
-  }
-}
-
 function toSupabaseErrorLike(error: unknown): SupabaseErrorLike | null {
   if (!error || typeof error !== 'object') return null
   return error as SupabaseErrorLike
@@ -39,7 +34,7 @@ function toSupabaseErrorLike(error: unknown): SupabaseErrorLike | null {
 
 function throwSavedWordsError(action: string, error: unknown): never {
   const supabaseError = toSupabaseErrorLike(error)
-  savedWordsDebug(`${action} error`, {
+  log.event(`${action} error`, {
     message: supabaseError?.message ?? (error instanceof Error ? error.message : String(error)),
     code: supabaseError?.code ?? null,
     details: supabaseError?.details ?? null,
@@ -62,7 +57,7 @@ export async function saveWord({ source, user, word }: SaveWordInput): Promise<v
     throw new Error('No word to save.')
   }
 
-  savedWordsDebug('save start', {
+  log.event('save start', {
     word: trimmedWord,
     normalizedWord: trimmedWord.toLowerCase(),
     source,
@@ -83,7 +78,7 @@ export async function saveWord({ source, user, word }: SaveWordInput): Promise<v
     )
 
   if (error) throwSavedWordsError('save word', error)
-  savedWordsDebug('save success', {
+  log.event('save success', {
     word: trimmedWord,
     userIdPrefix: user.id.slice(0, 8),
   })
