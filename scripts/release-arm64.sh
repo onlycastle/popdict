@@ -66,6 +66,12 @@ codesign --verify --verbose=2 "$DMG_PATH"
 xcrun stapler validate "$DMG_PATH"
 spctl -a -vvv -t open --context context:primary-signature "$DMG_PATH"
 
-step "Release artifact ready"
+step "Release artifacts ready"
 ls -lh "$DMG_PATH"
-printf '\n%s\n' "$DMG_PATH"
+ZIP_PATH="$(find out/make/zip -name '*.zip' -print -quit 2>/dev/null || true)"
+if [[ -n "${ZIP_PATH:-}" ]]; then
+  ls -lh "$ZIP_PATH"
+  printf '\nUpload BOTH to the GitHub release:\n  DMG (download):     %s\n  ZIP (auto-update):  %s\n' "$DMG_PATH" "$ZIP_PATH"
+else
+  printf '\n%s\n' "$DMG_PATH"
+fi
