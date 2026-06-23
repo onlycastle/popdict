@@ -1,192 +1,60 @@
-# Idiom & Phrase Support Setup Guide
+# Idiom & Phrase Support
 
-PopDict now supports searching for idioms and phrases in addition to single words!
+PopDict searches idioms/phrases in addition to single words:
 
-## 🎯 How It Works
+- **Single word** (e.g. "apple") → Free Dictionary API only
+- **Multi-word** (e.g. "kick the bucket") → Free Dictionary API **and** the STANDS4
+  phrases source (queried in parallel); the idiom shows in a blue highlighted box.
 
-### Automatic Detection
-- **Single word** (e.g., "apple") → Uses Free Dictionary API only
-- **Multi-word phrase** (e.g., "kick the bucket") → Queries both Free Dictionary API and STANDS4 Phrases API in parallel
+## Architecture — why a server-side proxy
 
-### What You'll See
+The STANDS4 token must **never** ship in the desktop app: anything in the renderer
+bundle is extractable from the `.asar`, and the free tier is a shared 100 requests/day
+quota. So idiom lookups go through a **Supabase Edge Function** (`supabase/functions/idioms`)
+that holds the token server-side and caches responses.
 
-When searching for an idiom like "kick the bucket", you'll see:
+```
+renderer  --supabase.functions.invoke('idioms')-->  Edge Function  --token-->  STANDS4
+                                                     (cache, no token in client)
+```
 
-1. **Idiom Section** (blue highlight box)
-   - Idiomatic meaning: "To die"
-   - Example usage
-   - Marked with "IDIOM" badge
+The client code is `fetchIdiom()` in `src/services/dictionaryApi.ts`. With no Supabase
+configured, idiom lookups are simply skipped (single-word search still works).
 
-2. **Dictionary Section** (below idiom)
-   - Literal meanings of each word
-   - Helps understand the components
+## One-time setup (maintainer)
 
-## 🔑 Setting Up STANDS4 Phrases API (Optional but Recommended)
+1. **Get STANDS4 credentials** — sign up at
+   https://www.stands4.com/services/v2/phrases.php (free tier: 100 queries/day). You get
+   a `uid` and a `tokenid`.
 
-The app works out of the box with Free Dictionary API, which supports many common idioms. However, for broader idiom coverage, you can add STANDS4 Phrases API:
-
-### Step 1: Get API Credentials
-
-1. Visit: https://www.stands4.com/services/v2/phrases.php
-2. Sign up for a free account
-3. You'll receive:
-   - `uid` (User ID)
-   - `tokenid` (API Token)
-4. Free tier includes **100 queries per day**
-
-### Step 2: Configure Environment Variables
-
-1. Copy the example environment file:
+2. **Deploy the function:**
    ```bash
-   cp .env.example .env
+   supabase functions deploy idioms
    ```
 
-2. Edit `.env` and add your credentials:
+3. **Set the token as a secret** (server-side only — never in `.env` / the app bundle):
+   ```bash
+   supabase secrets set STANDS4_UID=your_uid STANDS4_TOKEN=your_tokenid
+   ```
+
+4. **Point the app at your Supabase project** in `.env` (these are safe to bundle):
    ```env
-   VITE_PHRASES_API_UID=your_uid_here
-   VITE_PHRASES_API_TOKEN=your_token_here
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
 
-3. Restart the app:
-   ```bash
-   npm start
-   ```
+Test with: "kick the bucket", "break the ice", "once in a blue moon", "piece of cake".
 
-### Step 3: Test It Out
+## Notes & follow-ups
 
-Try searching for these idioms:
-- "kick the bucket"
-- "break the ice"
-- "once in a blue moon"
-- "piece of cake"
-- "hit the nail on the head"
+- The function's cache is **per-instance** and best-effort. For real abuse protection at
+  scale, add a durable rate limiter (e.g. Upstash) keyed by caller — a follow-up, not
+  required for the initial release.
+- If you don't want to run STANDS4 at all, you can leave the function undeployed; idioms
+  simply won't appear and single-word lookups are unaffected.
 
-## 📊 API Coverage Comparison
+## Resources
 
-| Idiom | Free Dictionary API | With STANDS4 API |
-|-------|---------------------|------------------|
-| "kick the bucket" | ✅ Works | ✅ Enhanced |
-| "break the ice" | ✅ Works | ✅ Enhanced |
-| "once in a blue moon" | ✅ Works | ✅ Enhanced |
-| "piece of cake" | ❌ Not found | ✅ Works |
-| "spill the beans" | ❌ Not found | ✅ Works |
-
-## 🔧 Technical Details
-
-### Architecture
-
-```
-User enters text
-    ↓
-Is it multi-word?
-    ↓
-YES → Query both APIs in parallel
-    ├─→ Free Dictionary API (for literal meanings)
-    └─→ STANDS4 Phrases API (for idiomatic meanings)
-
-NO → Query Free Dictionary API only
-```
-
-### Files Modified
-
-- [`src/types/dictionary.ts`](src/types/dictionary.ts) - Added `IdiomResult` and `SearchResponse` types
-- [`src/services/dictionaryApi.ts`](src/services/dictionaryApi.ts) - New API service layer
-- [`src/hooks/useDictionarySearch.ts`](src/hooks/useDictionarySearch.ts) - Updated to use new API service
-- [`src/components/SearchResults.tsx`](src/components/SearchResults.tsx) - Added idiom display section
-- [`src/components/SearchInput.tsx`](src/components/SearchInput.tsx) - Updated placeholder text
-
-### API Response Structure
-
-**Free Dictionary API Response:**
-```json
-[
-  {
-    "word": "kick the bucket",
-    "phonetic": "/ˈkɪk ðə ˈbʌkɪt/",
-    "meanings": [
-      {
-        "partOfSpeech": "verb",
-        "definitions": [
-          {
-            "definition": "To die.",
-            "example": "The old horse finally kicked the bucket.",
-            "synonyms": ["bite the dust", "buy the farm"]
-          }
-        ]
-      }
-    ]
-  }
-]
-```
-
-**STANDS4 Phrases API Response:**
-```json
-{
-  "results": {
-    "result": {
-      "term": "buckle up",
-      "explanation": "To fasten one's seat belt or safety belt.",
-      "example": "Buckle up every time you drive somewhere in a car."
-    }
-  }
-}
-```
-
-## 🚀 Without API Key
-
-Even without configuring STANDS4 API, the app will:
-- Work perfectly for single words
-- Work for many common idioms (via Free Dictionary API)
-- Show graceful error messages for unsupported idioms
-
-## 🎨 UI Design
-
-Idioms are displayed in a **blue-highlighted box** to visually distinguish them from regular dictionary definitions:
-
-```
-┌─────────────────────────────────────┐
-│ 🏷️ IDIOM                            │
-│                                     │
-│ kick the bucket                     │
-│ To die (informal)                   │
-│ "The old horse finally kicked..."   │
-└─────────────────────────────────────┘
-
-┌─────────────────────────────────────┐
-│ Dictionary Definition               │
-│ kick (verb)                         │
-│ 1. Strike with the foot...          │
-└─────────────────────────────────────┘
-```
-
-## 📈 Future Enhancements
-
-Potential improvements for Phase 2:
-- Local caching to reduce API calls
-- Favorites/history for commonly searched idioms
-- "Related idioms" suggestions
-- Support for more languages
-- Offline idiom database
-
-## ❓ Troubleshooting
-
-### "Phrases API credentials not configured" error
-- Make sure you created the `.env` file
-- Verify the credentials are correct
-- Restart the app after adding credentials
-
-### Idioms not showing up
-- Check if the idiom is supported by searching it directly
-- Ensure you're searching with correct spelling
-- Try with and without articles (e.g., "kick bucket" vs "kick the bucket")
-
-### API rate limit reached
-- Free tier: 100 queries/day for STANDS4
-- Wait 24 hours or upgrade to premium
-- Free Dictionary API has no rate limit
-
-## 📚 Resources
-
-- [Free Dictionary API Docs](https://dictionaryapi.dev/)
-- [STANDS4 Phrases API Docs](https://www.stands4.com/services/v2/phrases.php)
-- [Merriam-Webster API](https://dictionaryapi.com/) (alternative with 1000/day free tier)
+- [Free Dictionary API](https://dictionaryapi.dev/)
+- [STANDS4 Phrases API](https://www.stands4.com/services/v2/phrases.php)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)

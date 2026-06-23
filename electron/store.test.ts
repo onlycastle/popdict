@@ -39,14 +39,13 @@ describe('createStore', () => {
     const store = createStore(file)
     const cfg = store.getConfig()
     expect(cfg.hotkey).toBe(DEFAULT_HOTKEY)
-    expect(cfg.stands4Uid).toBe('')
+    expect(cfg.lookupSelection).toBe(true)
     expect(cfg.history).toEqual([])
   })
   it('persists patched values across instances', () => {
-    createStore(file).patch({ stands4Uid: 'abc', stands4Token: 'tok', hotkey: 'CommandOrControl+Shift+D' })
+    createStore(file).patch({ lookupSelection: false, hotkey: 'CommandOrControl+Shift+D' })
     const cfg = createStore(file).getConfig()
-    expect(cfg.stands4Uid).toBe('abc')
-    expect(cfg.stands4Token).toBe('tok')
+    expect(cfg.lookupSelection).toBe(false)
     expect(cfg.hotkey).toBe('CommandOrControl+Shift+D')
   })
   it('addHistory persists and dedupes', () => {

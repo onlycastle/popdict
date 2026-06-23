@@ -4,9 +4,9 @@ import react from '@vitejs/plugin-react';
 // Strict Content-Security-Policy for the SHIPPED app. Injected as a <meta> tag
 // only at build time so it does not interfere with the Vite dev server (which
 // needs inline scripts + a ws: HMR connection). connect-src lists the only
-// remote origins the renderer talks to: Supabase (auth + saved words) and the
-// dictionary APIs. media-src stays permissive so pronunciation audio (served
-// from assorted CDNs) can play.
+// remote origins the renderer talks to: Supabase (auth, saved words, and the
+// idioms Edge Function) and the free dictionary API. media-src stays permissive
+// so pronunciation audio (served from assorted CDNs) can play.
 const PRODUCTION_CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -17,7 +17,7 @@ const PRODUCTION_CSP = [
   "img-src 'self' data: https:",
   "font-src 'self' data:",
   "media-src 'self' https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.dictionaryapi.dev https://www.stands4.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.dictionaryapi.dev",
 ].join('; ');
 
 function injectCspMeta(): Plugin {

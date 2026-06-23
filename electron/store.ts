@@ -6,15 +6,13 @@ const HISTORY_CAP = 12
 
 export type StoredConfig = {
   hotkey: string
-  stands4Uid: string
-  stands4Token: string
+  lookupSelection: boolean
   history: string[]
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
   hotkey: DEFAULT_HOTKEY,
-  stands4Uid: '',
-  stands4Token: '',
+  lookupSelection: true,
   history: [],
 }
 
@@ -28,12 +26,10 @@ export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): s
 function withDefaults(raw: unknown): StoredConfig {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONFIG }
   const r = raw as Partial<StoredConfig>
-  // hotkey falls back to the default if missing/empty; empty credentials are
-  // valid and mean "STANDS4 not configured".
+  // hotkey falls back to the default if missing/empty.
   return {
     hotkey: typeof r.hotkey === 'string' && r.hotkey ? r.hotkey : DEFAULT_HOTKEY,
-    stands4Uid: typeof r.stands4Uid === 'string' ? r.stands4Uid : '',
-    stands4Token: typeof r.stands4Token === 'string' ? r.stands4Token : '',
+    lookupSelection: typeof r.lookupSelection === 'boolean' ? r.lookupSelection : true,
     history: Array.isArray(r.history) ? r.history.filter((w) => typeof w === 'string') : [],
   }
 }

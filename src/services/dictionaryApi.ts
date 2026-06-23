@@ -1,16 +1,7 @@
 import { DictionaryResult, IdiomResult, SearchResponse } from '../types/dictionary'
+import { supabase } from './supabaseClient'
 
 const FREE_DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en'
-const PHRASES_API_BASE = 'https://www.stands4.com/services/v2/phrases.php'
-
-export type Stands4Credentials = { uid: string; token: string }
-
-async function getStands4Credentials(): Promise<Stands4Credentials> {
-  if (typeof window !== 'undefined' && (window as any).electronAPI?.getStands4Credentials) {
-    return (window as any).electronAPI.getStands4Credentials()
-  }
-  return { uid: '', token: '' }
-}
 
 export async function fetchFreeDictionary(word: string): Promise<DictionaryResult[]> {
   const response = await fetch(
@@ -24,33 +15,26 @@ export async function fetchFreeDictionary(word: string): Promise<DictionaryResul
   return response.json()
 }
 
-export async function fetchPhrasesAPI(
-  phrase: string,
-  creds: Stands4Credentials
-): Promise<IdiomResult> {
-  if (!creds.uid || !creds.token) {
-    throw new Error('Phrases API credentials not configured')
+/**
+ * Look up an idiom/phrase via the Supabase Edge Function proxy. The STANDS4
+ * token lives server-side in the function (never bundled in the app), and the
+ * function caches results to protect the shared free-tier quota.
+ */
+export async function fetchIdiom(phrase: string): Promise<IdiomResult> {
+  if (!supabase) {
+    throw new Error('Idiom lookup is not configured')
   }
 
-  const url = new URL(PHRASES_API_BASE)
-  url.searchParams.set('uid', creds.uid)
-  url.searchParams.set('tokenid', creds.token)
-  url.searchParams.set('phrase', phrase)
-  url.searchParams.set('format', 'json')
+  const { data, error } = await supabase.functions.invoke('idioms', {
+    body: { phrase },
+  })
 
-  const response = await fetch(url.toString())
-
-  if (!response.ok) {
-    throw new Error('Not found in phrases API')
+  if (error) throw error
+  if (!data?.result) {
+    throw new Error('No idiom found')
   }
 
-  const data = await response.json()
-
-  if (!data.results?.result) {
-    throw new Error('Invalid response from phrases API')
-  }
-
-  return data.results.result
+  return data.result as IdiomResult
 }
 
 export async function searchDictionary(query: string): Promise<SearchResponse> {
@@ -76,11 +60,10 @@ export async function searchDictionary(query: string): Promise<SearchResponse> {
     }
   }
 
-  // Multi-word - try both APIs in parallel
-  const creds = await getStands4Credentials()
+  // Multi-word - try both sources in parallel
   const [dictResult, idiomResult] = await Promise.allSettled([
     fetchFreeDictionary(trimmedQuery),
-    fetchPhrasesAPI(trimmedQuery, creds),
+    fetchIdiom(trimmedQuery),
   ])
 
   const hasDict = dictResult.status === 'fulfilled'

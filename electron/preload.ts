@@ -2,8 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type AppSettings = {
   hotkey: string
-  stands4Uid: string
-  stands4Token: string
+  lookupSelection: boolean
   launchAtLogin: boolean
 }
 
@@ -24,7 +23,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (word: string) => ipcRenderer.invoke('add-history', word),
   clearHistory: () => ipcRenderer.invoke('clear-history'),
-  getStands4Credentials: () => ipcRenderer.invoke('get-stands4-credentials'),
   openSettings: () => ipcRenderer.send('open-settings'),
   openSavedWords: () => ipcRenderer.send('open-saved-words'),
   lookupWord: (word: string) => ipcRenderer.send('lookup-word', word),

@@ -1,7 +1,6 @@
 export type AppSettings = {
   hotkey: string
-  stands4Uid: string
-  stands4Token: string
+  lookupSelection: boolean
   launchAtLogin: boolean
 }
 
@@ -16,7 +15,6 @@ export interface ElectronAPI {
   getHistory: () => Promise<string[]>
   addHistory: (word: string) => Promise<string[]>
   clearHistory: () => Promise<void>
-  getStands4Credentials: () => Promise<{ uid: string; token: string }>
   openSettings: () => void
   openSavedWords: () => void
   lookupWord: (word: string) => void

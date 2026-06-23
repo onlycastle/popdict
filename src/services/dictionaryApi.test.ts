@@ -1,28 +1,34 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchPhrasesAPI } from './dictionaryApi'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-afterEach(() => {
-  vi.unstubAllGlobals()
+const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }))
+vi.mock('./supabaseClient', () => ({ supabase: { functions: { invoke } } }))
+
+import { fetchIdiom } from './dictionaryApi'
+
+beforeEach(() => {
+  invoke.mockReset()
 })
 
-describe('fetchPhrasesAPI', () => {
-  it('throws when credentials are empty', async () => {
-    await expect(fetchPhrasesAPI('kick the bucket', { uid: '', token: '' }))
-      .rejects.toThrow('Phrases API credentials not configured')
+describe('fetchIdiom', () => {
+  it('returns the idiom result from the edge function', async () => {
+    invoke.mockResolvedValue({
+      data: { result: { term: 'break the ice', explanation: 'to initiate conversation' } },
+      error: null,
+    })
+
+    const result = await fetchIdiom('break the ice')
+
+    expect(result.explanation).toBe('to initiate conversation')
+    expect(invoke).toHaveBeenCalledWith('idioms', { body: { phrase: 'break the ice' } })
   })
 
-  it('calls STANDS4 with the provided credentials and returns the result', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ results: { result: { term: 'x', explanation: 'y' } } }),
-    })
-    vi.stubGlobal('fetch', fetchMock)
+  it('throws when the edge function returns an error', async () => {
+    invoke.mockResolvedValue({ data: null, error: new Error('boom') })
+    await expect(fetchIdiom('break the ice')).rejects.toThrow('boom')
+  })
 
-    const result = await fetchPhrasesAPI('break the ice', { uid: 'U', token: 'T' })
-
-    expect(result.explanation).toBe('y')
-    const calledUrl = fetchMock.mock.calls[0][0] as string
-    expect(calledUrl).toContain('uid=U')
-    expect(calledUrl).toContain('tokenid=T')
+  it('throws when no idiom is found', async () => {
+    invoke.mockResolvedValue({ data: { result: null }, error: null })
+    await expect(fetchIdiom('not an idiom')).rejects.toThrow('No idiom found')
   })
 })
