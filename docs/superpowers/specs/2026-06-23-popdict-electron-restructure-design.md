@@ -41,6 +41,7 @@ electron/
   tray/TrayMenu.ts         [class] build / rebuild menu from injected deps
   hotkey/HotkeyManager.ts  [class] register / unregister / change
   security/hardenWebContents.ts   navigation + window-open hardening (pure function)
+  feedback/openFeedback.ts open feedback form/mailto (pure function — NO class: stateless)
   config/ConfigStore.ts    today's store.ts (already a clean factory — relocated)
   preload.ts               unchanged in shape
 ```
@@ -107,6 +108,9 @@ interface WindowSpec {
   singleton: boolean                           // focus-if-already-open
   afterCreate?: (win: BrowserWindow) => void   // bespoke wiring (search positioning, blur-hide)
 }
+// UrlResolver centralizes the dev-server-vs-packaged load logic duplicated in all 4
+// factories today: (spec) => MAIN_WINDOW_VITE_DEV_SERVER_URL ? loadURL(dev+#hash) : loadFile(index, {hash})
+type UrlResolver = (win: BrowserWindow, spec: WindowSpec) => void
 class WindowManager {
   constructor(specs: Record<WindowId, WindowSpec>, resolveUrl: UrlResolver, log: Logger)
   open(id: WindowId): BrowserWindow            // dedup → build → load(dev URL | file+hash) → track 'closed'
@@ -136,7 +140,8 @@ class IpcRouter {
 }
 function registerHandlers(router: IpcRouter, deps: {
   store: ConfigStore; windows: WindowManager; broker: AuthCallbackBroker;
-  hotkey: HotkeyManager; tray: TrayMenu; selection: SelectionCapture; feedback: FeedbackService
+  hotkey: HotkeyManager; tray: TrayMenu; selection: SelectionCapture;
+  openFeedback: () => void   // plain function, not a service
 }): void
 ```
 Every current `ipcMain.handle/on` becomes a named function in `handlers.ts` reading from `deps`. `main.ts` no longer contains handler bodies.
@@ -177,8 +182,8 @@ const windows = new WindowManager(windowSpecs, resolveUrl, createLogger('Win'))
 const broker  = new AuthCallbackBroker(windows, createLogger('Auth'))
 const selection = new SelectionCapture()
 const hotkey  = new HotkeyManager(() => onHotkey(store, windows, selection))
-const tray    = new TrayMenu({ store, windows, onFeedback })
-registerHandlers(new IpcRouter(), { store, windows, broker, hotkey, tray, selection, feedback })
+const tray    = new TrayMenu({ store, windows, openFeedback })
+registerHandlers(new IpcRouter(), { store, windows, broker, hotkey, tray, selection, openFeedback })
 ```
 
 ---
