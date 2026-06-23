@@ -23,7 +23,8 @@
     ".vite/",
     "dist/",
     "out/",
-    "supabase/functions/"
+    "supabase/functions/",
+    "site/"
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",

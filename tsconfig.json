@@ -15,5 +15,5 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true
   },
-  "exclude": ["node_modules", "out", "dist", ".vite", "supabase/functions"]
+  "exclude": ["node_modules", "out", "dist", ".vite", "supabase/functions", "site"]
 }
