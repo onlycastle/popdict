@@ -97,8 +97,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   }, [user, wordToSave])
 
   const alreadySaved = !!wordToSave && savedWord.toLowerCase() === wordToSave.toLowerCase()
-  const saveLabel =
-    saving && pendingSaveWord === wordToSave ? 'Saving' : alreadySaved ? 'Saved' : 'Save'
+  const saveLabel = saving ? 'Saving' : alreadySaved ? 'Saved' : 'Save'
 
   return {
     wordToSave,
