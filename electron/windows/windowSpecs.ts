@@ -67,9 +67,10 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
           displayY + SEARCH_WINDOW_TOP_OFFSET
         )
 
-        // Hide when focus is lost (unless devtools are open).
+        // Hide on focus loss, but stay visible while detached DevTools is focused.
+        // isDevToolsOpened() stays true for the whole dev session.
         win.on('blur', () => {
-          if (!win.isDestroyed() && !win.webContents.isDevToolsOpened()) win.hide()
+          if (!win.isDestroyed() && !win.webContents.isDevToolsFocused()) win.hide()
         })
 
         // Diagnostics.
