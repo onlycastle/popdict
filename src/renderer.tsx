@@ -9,6 +9,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import Router from './Router';
+// Bundled, self-hosted fonts (the CSP forbids remote font loading). Fraunces is
+// the dictionary "headword" serif; JetBrains Mono carries IPA, labels, and keys.
+import '@fontsource-variable/fraunces/wght.css';
+import '@fontsource-variable/fraunces/wght-italic.css';
+import '@fontsource-variable/jetbrains-mono/wght.css';
 import './index.css';
 
 // Initialize React application

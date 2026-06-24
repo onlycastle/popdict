@@ -35,30 +35,34 @@ export default function OnboardingView() {
   const hotkey = settings ? prettyHotkey(settings.hotkey) : '⌘ ⇧ Space'
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-900 p-7 text-white">
-      <h1 className="text-xl font-semibold">Welcome to PopDict</h1>
-      <p className="mt-1 text-sm text-white/60">A dictionary one keystroke away.</p>
+    <div className="window flex h-screen flex-col p-7">
+      <p className="dict-label mb-2">macOS · menu-bar dictionary</p>
+      <h1 className="view-title text-3xl">Welcome to PopDict</h1>
+      <p className="mt-1.5 text-sm text-white/60">A dictionary one keystroke away.</p>
 
-      <div className="mt-6 space-y-5">
+      <div className="mt-7 space-y-6">
         <div>
-          <h2 className="text-sm font-medium">1 · Open it anywhere</h2>
-          <p className="mt-1 text-sm text-white/70">
-            Press{' '}
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs">{hotkey}</kbd>{' '}
-            to pop up the search box from any app. Press Esc to dismiss it.
+          <h2 className="view-title text-base">
+            <span className="dict-sense-num mr-2">1</span>Open it anywhere
+          </h2>
+          <p className="mt-1.5 text-sm text-white/70">
+            Press <kbd className="dict-key">{hotkey}</kbd> to pop up the search box from
+            any app. Press Esc to dismiss it.
           </p>
         </div>
 
         <div>
-          <h2 className="text-sm font-medium">2 · Look up what you’re reading</h2>
-          <p className="mt-1 text-sm text-white/70">
+          <h2 className="view-title text-base">
+            <span className="dict-sense-num mr-2">2</span>Look up what you’re reading
+          </h2>
+          <p className="mt-1.5 text-sm text-white/70">
             Select a word in any app, then press the hotkey to search it instantly.
             This needs macOS Accessibility permission.
           </p>
           <button
             onClick={enableSelection}
             disabled={accessibilityGranted}
-            className="mt-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary mt-3 text-sm"
           >
             {accessibilityGranted ? 'Selection lookup enabled' : 'Enable selection lookup'}
           </button>
@@ -71,8 +75,10 @@ export default function OnboardingView() {
         </div>
 
         <div>
-          <h2 className="text-sm font-medium">3 · Save words to review</h2>
-          <p className="mt-1 text-sm text-white/70">
+          <h2 className="view-title text-base">
+            <span className="dict-sense-num mr-2">3</span>Save words to review
+          </h2>
+          <p className="mt-1.5 text-sm text-white/70">
             Sign in with Google (optional — only needed to save) and tap Save on any
             result. Review them anytime from the tray → Saved Words.
           </p>
@@ -82,7 +88,7 @@ export default function OnboardingView() {
       <div className="mt-auto flex justify-end pt-6">
         <button
           onClick={() => window.electronAPI.finishOnboarding()}
-          className="rounded-md border border-white/20 px-4 py-2 text-sm text-white/90 transition hover:bg-white/10"
+          className="btn-ghost text-sm"
         >
           Get started
         </button>

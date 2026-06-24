@@ -56,7 +56,7 @@ export default function AuthCallbackPage() {
         <h1>{title}</h1>
         <p>{message}</p>
         {callbackUrl && (
-          <a className="cta" href={callbackUrl}>
+          <a className="btn" href={callbackUrl}>
             Open PopDict
           </a>
         )}

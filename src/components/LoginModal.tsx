@@ -43,11 +43,11 @@ export default function LoginModal({
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id="login-modal-title" className="text-base font-semibold text-white">
+                <h2 id="login-modal-title" className="dict-headword text-xl">
                   Sign in to save
                 </h2>
                 <p className="mt-1 text-sm text-white/70">
-                  Save "{word}" to your account.
+                  Save “{word}” to your account.
                 </p>
               </div>
               <button
@@ -56,22 +56,22 @@ export default function LoginModal({
                 onClick={onClose}
                 aria-label="Close login modal"
               >
-                x
+                ✕
               </button>
             </div>
 
             {!configured ? (
-              <p className="mt-4 rounded-md border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-100">
+              <p className="notice mt-4">
                 Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable login.
               </p>
             ) : (
               <button
                 type="button"
-                className="mt-5 w-full rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary mt-5 w-full"
                 onClick={onSignIn}
                 disabled={loading}
               >
-                {loading ? 'Opening Google...' : 'Continue with Google'}
+                {loading ? 'Opening Google…' : 'Continue with Google'}
               </button>
             )}
 

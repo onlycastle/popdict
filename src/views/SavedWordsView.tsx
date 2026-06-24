@@ -47,17 +47,17 @@ export default function SavedWordsView() {
   }, [words, filter])
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-900 text-white">
+    <div className="window flex h-screen flex-col">
       <header className="flex items-center justify-between border-b border-white/10 p-6 pb-4">
-        <h1 className="text-lg font-semibold">Saved Words</h1>
+        <h1 className="view-title text-lg">Saved Words</h1>
         {auth.user && words.length > 0 && (
-          <span className="text-xs text-white/50">{words.length} saved</span>
+          <span className="dict-label">{words.length} saved</span>
         )}
       </header>
 
       {!auth.configured ? (
         <div className="p-6">
-          <p className="rounded-md border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-100">
+          <p className="notice">
             Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable saved words.
           </p>
         </div>
@@ -67,7 +67,7 @@ export default function SavedWordsView() {
           <button
             onClick={auth.signInWithGoogle}
             disabled={auth.loading}
-            className="rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary text-sm"
           >
             Continue with Google
           </button>
@@ -109,7 +109,7 @@ export default function SavedWordsView() {
                     <button
                       onClick={() => window.electronAPI?.lookupWord(entry.word)}
                       title="Look up this word"
-                      className="min-w-0 flex-1 truncate text-left text-sm text-white/90 hover:text-white"
+                      className="dict-headword min-w-0 flex-1 truncate text-left text-[15px] hover:text-white/80"
                     >
                       {entry.word}
                     </button>
