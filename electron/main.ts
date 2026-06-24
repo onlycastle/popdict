@@ -75,17 +75,17 @@ if (hasSingleInstanceLock) {
 
     store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
 
+    const tray = new TrayMenu({ store, windows, openFeedback, iconPath: trayIconPath() })
+    tray.init()
+
+    registerIpcHandlers(new IpcRouter(), { store, windows, broker, hotkey, tray, openFeedback })
+
     windows.open('search')
     initAutoUpdates()
 
     if (!store.getConfig().onboardingDone) {
       windows.open('onboarding')
     }
-
-    const tray = new TrayMenu({ store, windows, openFeedback, iconPath: trayIconPath() })
-    tray.init()
-
-    registerIpcHandlers(new IpcRouter(), { store, windows, broker, hotkey, tray, openFeedback })
 
     if (process.platform === 'darwin' && app.dock) {
       app.dock.hide()
