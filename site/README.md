@@ -2,8 +2,9 @@
 
 Marketing + download site for PopDict, built with Next.js (App Router) for deployment on
 Vercel. It also hosts the **privacy policy** (`/privacy`) required by the Google OAuth
-consent screen, and a `/download/latest` route that redirects to the newest GitHub release
-DMG. Public support links point to GitHub Issues.
+consent screen, an OAuth handoff page (`/auth/callback`), and a `/download/latest` route
+that redirects to the newest GitHub release DMG. Public support links point to GitHub
+Issues.
 
 ## Local development
 
@@ -34,6 +35,8 @@ npm run dev
 ## Routes
 
 - `/` — hero, how-it-works, features, FAQ.
+- `/auth/callback` — OAuth handoff page that opens `popdict://auth/callback` and leaves
+  the browser on a completed page.
 - `/privacy` — privacy policy (link this in the Google OAuth consent screen).
 - `/terms` — terms of use.
 - `/download/latest` — 302 redirect to the latest release's `.dmg` asset.
