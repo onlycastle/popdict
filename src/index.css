@@ -2,16 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+:root {
   /* Signature accent: a warm "highlighter" amber (#F5B05C). Stored as space-
      separated RGB channels so it composes with alpha via rgb(var(--accent)/a). */
   --accent: 245 176 92;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
+
+  /* Warm near-black surfaces for the opaque windows (Saved/Settings/Onboarding),
+     tuned to the same temperature as the popup's dark glass — not a cool gray. */
+  --surface: #16130f;
+  --surface-2: #211c15;
+
+  /* Type roles, matching the site: a dictionary serif (headwords, examples), a
+     utility mono (IPA, labels, keycaps), and the native sans for body/UI. */
+  --font-serif: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+/* ============================================================================
+   Dictionary type system — shared vocabulary across every window. These read as
+   a real dictionary entry: serif headwords, mono phonetics/labels, italic-serif
+   examples set off by a marker rule, amber sense numbers.
+   ============================================================================ */
+
+.dict-headword {
+  font-family: var(--font-serif);
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.dict-ipa {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Part of speech, set in italic like a print dictionary (noun, adj., …). */
+.dict-pos {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dict-sense-num {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: rgb(var(--accent) / 0.95);
+}
+
+.dict-example {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.62);
+  border-left: 2px solid rgb(var(--accent) / 0.4);
+  padding-left: 10px;
+}
+
+/* Uppercase mono micro-label: "Recent", saved counts, "Similar", section tags. */
+.dict-label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.view-title {
+  font-family: var(--font-serif);
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+/* Opaque secondary windows share the popup's warm-dark temperature. */
+.window {
+  background: var(--surface);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-sans);
+}
+
+/* Keycap, matching the site's <kbd>. */
+.dict-key {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 3px 7px;
+  line-height: 1;
+}
+
+/* ---- Buttons --------------------------------------------------------------
+   Primary = the amber "highlighter" fill (one affirmative action per screen);
+   ghost = quiet secondary. Both opt out of the drag region for the popup. */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: #1a1714;
+  background: rgb(var(--accent));
+  border: 1px solid rgb(var(--accent) / 0.55);
+  border-radius: 9px;
+  padding: 9px 16px;
+  transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+  -webkit-app-region: no-drag;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #f7bd72;
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.3);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  color: rgba(255, 255, 255, 0.85);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9px;
+  padding: 9px 16px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+.btn-ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-ghost:focus-visible {
+  outline: none;
+  border-color: rgb(var(--accent) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.3);
+}
+
+/* A config-needed notice (Supabase env missing). Amber, in the app's voice. */
+.notice {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: rgb(var(--accent) / 0.95);
+  background: rgb(var(--accent) / 0.1);
+  border: 1px solid rgb(var(--accent) / 0.3);
+  border-radius: 9px;
+  padding: 12px 14px;
+}
+
+/* Native form controls inherit the highlighter amber, not the OS blue. */
+input[type='checkbox'] {
+  accent-color: rgb(var(--accent));
+  width: 15px;
+  height: 15px;
 }
 
 /* Custom component styles */
@@ -190,6 +359,11 @@ body {
 }
 
 .idiom-badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: rgb(var(--accent) / 0.95);
   background: rgb(var(--accent) / 0.2);
 }
