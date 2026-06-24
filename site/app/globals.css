@@ -10,7 +10,7 @@
   --paper-2: #ffffff; /* the "article you're reading" card */
   --ink: #1a1714; /* warm near-black */
   --ink-soft: #6b6358; /* secondary text */
-  --ink-faint: #9a9286; /* labels, meta */
+  --ink-faint: #7a7160; /* labels, meta — darkened to clear the AA 4.5:1 floor */
   --edge: #ece7de; /* hairline rules / borders */
   --edge-strong: #ddd6c9;
   --marker: #f5b05c; /* the highlighter amber — from the app */
@@ -758,13 +758,15 @@ footer {
 /* ------------------------------------------- page-load: the marker draws in */
 
 @media (prefers-reduced-motion: no-preference) {
-  .mark,
-  .reading-mark {
+  .mark {
     background-size: 0% 52%;
     animation: marker-draw 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards;
   }
+  /* The reading-card highlight uses a taller 56% band, so it needs its own
+     keyframe — sharing marker-draw would land it at 52% when the draw ends. */
   .reading-mark {
     background-size: 0% 56%;
+    animation: reading-mark-draw 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards;
   }
   .popup {
     opacity: 0;
@@ -774,6 +776,11 @@ footer {
   @keyframes marker-draw {
     to {
       background-size: 100% 52%;
+    }
+  }
+  @keyframes reading-mark-draw {
+    to {
+      background-size: 100% 56%;
     }
   }
   @keyframes popup-bloom {
