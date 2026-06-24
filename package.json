@@ -1,25 +1,38 @@
 {
-  "name": "popdict-test",
-  "productName": "popdict-test",
+  "name": "popdict",
+  "productName": "PopDict",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "PopDict desktop dictionary app",
   "main": ".vite/build/main.js",
+  "homepage": "https://github.com/onlycastle/popdict#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onlycastle/popdict.git"
+  },
+  "bugs": {
+    "url": "https://github.com/onlycastle/popdict/issues"
+  },
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "npm run package && node create-dmg.js",
+    "make": "electron-forge make && node scripts/notarize-dmg.js",
+    "make:local": "POPDICT_SKIP_MAC_SIGNING=1 npm run package && node create-dmg.js",
+    "make:mac:arm64": "electron-forge make --platform=darwin --arch=arm64 && node scripts/notarize-dmg.js",
+    "make:mac:x64": "electron-forge make --platform=darwin --arch=x64 && node scripts/notarize-dmg.js",
     "make:all": "electron-forge make",
+    "notarize:dmg": "node scripts/notarize-dmg.js",
+    "release:arm64": "./scripts/release-arm64.sh",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "keywords": [],
-  "author": {
-    "name": "sungmanch",
-    "email": "sungman.cho@latched.ai"
-  },
+  "author": "PopDict contributors",
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
     "@electron-forge/maker-deb": "^7.10.2",
@@ -46,11 +59,12 @@
     "eslint-plugin-import": "^2.32.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "~4.5.4",
+    "typescript": "5.9.3",
     "vite": "^5.4.21",
     "vitest": "^2.1.9"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.108.2",
     "electron-squirrel-startup": "^1.0.1",
     "framer-motion": "^11.15.0",
     "react": "^18.3.1",

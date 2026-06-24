@@ -1,14 +1,30 @@
 import { motion } from 'framer-motion'
 import { SearchResponse } from '../types/dictionary'
+import { getAudioUrl, pronounce } from '../utils/pronounce'
 
 interface SearchResultsProps {
   response: SearchResponse | null
   loading: boolean
   error: string | null
   query: string
+  onSave?: () => void
+  saveDisabled?: boolean
+  saveFeedback?: string
+  saveFeedbackTone?: 'error' | 'success'
+  saveLabel?: string
 }
 
-const SearchResults = ({ response, loading, error, query }: SearchResultsProps) => {
+const SearchResults = ({
+  response,
+  loading,
+  error,
+  query,
+  onSave,
+  saveDisabled,
+  saveFeedback,
+  saveFeedbackTone = 'success',
+  saveLabel = 'Save',
+}: SearchResultsProps) => {
   if (loading) {
     return (
       <motion.div
@@ -64,6 +80,7 @@ const SearchResults = ({ response, loading, error, query }: SearchResultsProps) 
 
   const { dictionaryResults, idiomResult } = response
   const firstResult = dictionaryResults?.[0]
+  const audioUrl = getAudioUrl(firstResult)
 
   return (
     <motion.div
@@ -75,9 +92,9 @@ const SearchResults = ({ response, loading, error, query }: SearchResultsProps) 
     >
       {/* Idiom section - shown first if available */}
       {idiomResult && (
-        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-400/30 rounded-lg">
+        <div className="idiom-card mb-6 p-4 border rounded-lg">
           <div className="flex items-center gap-2 mb-3">
-            <span className="inline-block text-xs font-semibold text-blue-300 bg-blue-500/20 px-2 py-1 rounded-md">
+            <span className="idiom-badge inline-block text-xs font-semibold px-2 py-1 rounded-md">
               IDIOM
             </span>
           </div>
@@ -99,14 +116,53 @@ const SearchResults = ({ response, loading, error, query }: SearchResultsProps) 
       {firstResult && (
         <>
           {/* Word header */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white leading-tight">
-              {firstResult.word}
-            </h2>
-            {firstResult.phonetic && (
-              <p className="text-white/80 text-sm mt-2">
-                {firstResult.phonetic}
-              </p>
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="break-words text-2xl font-bold leading-tight text-white">
+                {firstResult.word}
+              </h2>
+              <div className="mt-2 flex items-center gap-2">
+                {firstResult.phonetic && (
+                  <p className="text-white/80 text-sm">
+                    {firstResult.phonetic}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => pronounce(firstResult.word, audioUrl)}
+                  aria-label={`Play pronunciation of ${firstResult.word}`}
+                  title="Play pronunciation"
+                  className="shrink-0 rounded-md p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <path d="M13 3.5a1 1 0 0 0-1.6-.8L6.66 6.5H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h2.66l4.74 3.8a1 1 0 0 0 1.6-.8v-17Z" />
+                    <path d="M16.5 8.5a1 1 0 0 1 1.4 0 5 5 0 0 1 0 7 1 1 0 1 1-1.4-1.42 3 3 0 0 0 0-4.16 1 1 0 0 1 0-1.42Z" />
+                    <path d="M18.9 5.6a1 1 0 0 1 1.42 0 9 9 0 0 1 0 12.8 1 1 0 1 1-1.42-1.42 7 7 0 0 0 0-9.96 1 1 0 0 1 0-1.42Z" />
+                  </svg>
+                </button>
+              </div>
+              {saveFeedback && (
+                <p className={`mt-2 text-xs ${saveFeedbackTone === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>
+                  {saveFeedback}
+                </p>
+              )}
+            </div>
+
+            {onSave && (
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saveDisabled}
+                className="save-word-button"
+              >
+                {saveLabel}
+              </button>
             )}
           </div>
 

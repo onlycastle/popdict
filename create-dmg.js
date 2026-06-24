@@ -12,6 +12,8 @@ function createDMG() {
   let appPath;
   let appDirName;
   const possiblePaths = [
+    { path: path.join(outDir, 'PopDict-darwin-x64', 'PopDict.app'), dir: 'PopDict-darwin-x64' },
+    { path: path.join(outDir, 'PopDict-darwin-arm64', 'PopDict.app'), dir: 'PopDict-darwin-arm64' },
     { path: path.join(outDir, 'popdict-test-darwin-x64', 'popdict-test.app'), dir: 'popdict-test-darwin-x64' },
     { path: path.join(outDir, 'popdict-test-darwin-arm64', 'popdict-test.app'), dir: 'popdict-test-darwin-arm64' },
   ];

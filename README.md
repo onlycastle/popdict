@@ -1,112 +1,143 @@
 # PopDict
 
-Electron 기반 데스크톱 애플리케이션
+PopDict is a macOS menu-bar dictionary for English learners. Press one hotkey to
+look up a word or idiom, hear pronunciation, and save words for later without
+leaving the app you are reading in.
 
-## 기술 스택
+## Features
 
-- **Electron** - 크로스 플랫폼 데스크톱 애플리케이션 프레임워크
-- **React** - UI 라이브러리
-- **TypeScript** - 타입 안전성을 위한 언어
-- **Vite** - 빠른 빌드 도구
-- **Tailwind CSS** - 유틸리티 우선 CSS 프레임워크
-- **Framer Motion** - 애니메이션 라이브러리
+- Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
+- Optional select-to-lookup for highlighted text on macOS.
+- Free Dictionary API definitions with audio playback and text-to-speech fallback.
+- Idiom and phrase lookup through a Supabase Edge Function proxy.
+- Google sign-in for saved words, backed by Supabase.
+- Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
+- GitHub release auto-update support for public macOS releases.
 
-## 필수 요구사항
+## Requirements
 
-- **Node.js** (v16 이상 권장)
-- **npm** (Node.js와 함께 설치됨)
+- macOS for the desktop app.
+- Node.js 20 or newer.
+- A Supabase project if you want auth, saved words, or idiom lookups.
+- A public GitHub repository if you want release downloads, app feedback links, and
+  auto-updates.
 
-## 설치 방법
+## Quick Start
 
-1. 저장소를 클론하거나 프로젝트 디렉토리로 이동합니다:
-```bash
-cd /Users/sungmancho/projects/PopDict
-```
-
-2. 의존성 패키지를 설치합니다:
 ```bash
 npm install
-```
-
-## 실행 방법
-
-### 개발 모드로 실행
-
-개발 모드에서 애플리케이션을 실행하려면 다음 명령어를 사용합니다:
-
-```bash
+cp .env.example .env.local
 npm start
 ```
 
-이 명령어는 Electron Forge를 사용하여 애플리케이션을 시작하며, 코드 변경 시 자동으로 새로고침됩니다.
+The app can run without Supabase configured, but saved words and idioms are disabled
+until you provide Supabase settings.
 
-### 프로덕션 빌드
+## Configuration
 
-애플리케이션을 패키징하려면:
+Root app environment:
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Supabase project URL for auth, saved words, and Edge Functions. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key safe to ship in the renderer bundle. |
+| `VITE_SUPABASE_AUTH_REDIRECT_URL` | OAuth callback URL. Defaults to `https://popdict.app/auth/callback`, which forwards into the desktop app. |
+| `POPDICT_GITHUB_REPO` | `owner/repo` used at release build time for auto-updates and GitHub Issues feedback links. |
+| `POPDICT_MAC_SIGNING_IDENTITY` | Developer ID signing identity. Required only for signed release builds. |
+| `POPDICT_NOTARY_PROFILE` | `notarytool` keychain profile. Required only for signed release builds. |
+
+Site environment:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Public URL for site metadata. |
+| `GITHUB_REPO` | `owner/repo` used by `/download/latest` and public GitHub links. |
+
+## Supabase Setup
+
+1. Enable Google sign-in in Supabase Auth.
+2. Add `https://popdict.app/auth/callback` to Supabase Auth redirect URLs.
+   If you override `VITE_SUPABASE_AUTH_REDIRECT_URL`, add that exact URL instead.
+3. Apply migrations:
+   ```bash
+   supabase link --project-ref <project-ref>
+   supabase db push
+   ```
+4. Deploy the idiom Edge Function if you want phrase lookup:
+   ```bash
+   supabase functions deploy idioms
+   supabase secrets set STANDS4_UID=your_uid STANDS4_TOKEN=your_tokenid
+   ```
+
+More detail is in [IDIOM_SETUP.md](IDIOM_SETUP.md).
+
+## Development
 
 ```bash
-npm run package
+npm start          # Electron Forge + Vite dev app
+npm run lint       # ESLint
+npm test           # Vitest
+npx tsc --noEmit   # TypeScript check
 ```
 
-배포 가능한 설치 파일을 생성하려면:
+Useful build commands:
 
 ```bash
-npm run make
+npm run package      # package the app locally
+npm run make         # create distributable artifacts; unsigned if signing env is absent
+npm run make:local   # local unsigned macOS package + DMG helper
 ```
 
-## 사용 가능한 스크립트
+## Site
 
-- `npm start` - 개발 모드로 애플리케이션 실행
-- `npm run package` - 애플리케이션 패키징
-- `npm run make` - 배포 가능한 설치 파일 생성
-- `npm run publish` - 애플리케이션 배포
-- `npm run lint` - TypeScript 코드 린팅
+The Next.js site lives in `site/`.
 
-## 프로젝트 구조
-
-```
-PopDict/
-├── electron/          # Electron 메인 프로세스 관련 파일
-├── src/              # 소스 코드
-│   ├── components/   # React 컴포넌트
-│   ├── hooks/        # 커스텀 React 훅
-│   ├── types/        # TypeScript 타입 정의
-│   ├── App.tsx       # 메인 App 컴포넌트
-│   ├── main.ts       # Electron 메인 프로세스
-│   ├── preload.ts    # Preload 스크립트
-│   └── renderer.ts   # 렌더러 프로세스
-├── index.html        # HTML 엔트리 포인트
-├── package.json      # 프로젝트 설정 및 의존성
-└── vite.config.ts    # Vite 설정
-```
-
-## 문제 해결
-
-### 애플리케이션이 시작되지 않는 경우
-
-1. `node_modules` 디렉토리를 삭제하고 다시 설치합니다:
 ```bash
-rm -rf node_modules package-lock.json
+cd site
 npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-2. Node.js 버전을 확인합니다:
+`/download/latest` redirects to the newest `.dmg` asset in the GitHub repository
+configured by `GITHUB_REPO`.
+
+## Release
+
+Public macOS releases require a public GitHub repo, a Developer ID signing identity,
+and a configured notary profile:
+
 ```bash
-node --version
+POPDICT_GITHUB_REPO=owner/repo \
+POPDICT_MAC_SIGNING_IDENTITY="Developer ID Application: Example (TEAMID)" \
+POPDICT_NOTARY_PROFILE=notary-profile-name \
+npm run release:arm64
 ```
 
-### 빌드 오류가 발생하는 경우
+The release script runs the quality gate, builds signed macOS artifacts, verifies
+Gatekeeper/notarization, and prints the `.dmg` and `.zip` paths to upload to the
+GitHub release. The `.zip` is required for Squirrel.Mac auto-updates.
 
-캐시를 정리하고 다시 시도합니다:
-```bash
-rm -rf .vite
-npm start
+## Project Structure
+
+```text
+electron/    Electron main process, preload bridge, local store, updater
+src/         React renderer, hooks, services, styles, and shared types
+supabase/    Database migrations and the idiom Edge Function
+site/        Public Next.js landing and legal pages
+scripts/     Release and notarization helpers
 ```
 
-## 라이선스
+## Contributing
 
-MIT
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Product bugs
+and feature requests should go through GitHub Issues on the configured public repo.
 
-## 작성자
+## Security
 
-sungmanch (sungman.cho@latched.ai)
+Read [SECURITY.md](SECURITY.md) for vulnerability reporting guidance. Do not post
+secrets or private account data in public issues.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

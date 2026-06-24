@@ -25,9 +25,47 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   -webkit-app-region: drag;
   overflow: hidden;
+  position: relative;
+}
+
+/* Slim chrome rail at the top of the popup: wordmark (left) + controls (right).
+   Stays a drag handle so the window can still be moved by its header; only the
+   buttons inside opt out via .icon-button { -webkit-app-region: no-drag }. */
+.header-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  -webkit-app-region: drag;
+}
+
+.header-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.45);
+  user-select: none;
+}
+
+/* The amber marker dot — a tiny nod to the highlighter signature. */
+.header-wordmark::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: rgb(var(--accent) / 0.9);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .empty-state {
@@ -39,9 +77,33 @@
   text-align: center;
 }
 
+/* Recent-word buttons live inside the draggable glass, so they must opt out of
+   the drag region or their clicks get swallowed as window drags. Full width +
+   left-aligned (overriding .empty-state centering) so each row has room for its
+   inline delete control. */
+.recent-list {
+  -webkit-app-region: no-drag;
+  width: 100%;
+  text-align: left;
+}
+
 @media (prefers-color-scheme: dark) {
   .glass-window {
     background: rgba(0, 0, 0, 0.4);
     border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Respect the OS "Reduce motion" setting. MotionConfig handles framer-motion's
+   JS-driven entrances; this covers CSS transitions and keyframe animations
+   (e.g. Tailwind's animate-spin) that it won't touch. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

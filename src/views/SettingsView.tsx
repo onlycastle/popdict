@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
 
-export default function Settings() {
+export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [status, setStatus] = useState('')
+  const auth = useSupabaseAuth()
 
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
@@ -13,6 +15,11 @@ export default function Settings() {
 
   const update = (patch: Partial<AppSettings>) =>
     window.electronAPI.setSettings(patch).then(setSettings)
+  const accountName =
+    auth.user?.user_metadata?.full_name ??
+    auth.user?.user_metadata?.name ??
+    auth.user?.email ??
+    'Signed in'
 
   const recordHotkey = (e: React.KeyboardEvent) => {
     e.preventDefault()
@@ -39,8 +46,45 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 p-6 space-y-5 text-white">
+    <div className="h-screen overflow-y-auto bg-neutral-900 p-6 space-y-5 text-white">
       <h1 className="text-lg font-semibold">PopDict Settings</h1>
+
+      <section className="space-y-3 border-b border-white/10 pb-5">
+        <div>
+          <h2 className="text-sm font-medium text-white">Account</h2>
+          <p className="text-xs text-white/60">
+            {auth.user ? accountName : 'Sign in or create an account with Google'}
+          </p>
+        </div>
+
+        {!auth.configured ? (
+          <p className="rounded-md border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-100">
+            Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable auth.
+          </p>
+        ) : auth.user ? (
+          <button
+            onClick={auth.signOut}
+            disabled={auth.loading}
+            className="rounded-md border border-white/20 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Sign out
+          </button>
+        ) : (
+          <button
+            onClick={auth.signInWithGoogle}
+            disabled={auth.loading}
+            className="rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Continue with Google
+          </button>
+        )}
+
+        {(auth.message || auth.error) && (
+          <p className={`text-xs ${auth.error ? 'text-red-300' : 'text-white/60'}`}>
+            {auth.error || auth.message}
+          </p>
+        )}
+      </section>
 
       <label className="block space-y-1">
         <span className="text-sm text-white/80">Global hotkey</span>
@@ -53,24 +97,6 @@ export default function Settings() {
         />
       </label>
 
-      <label className="block space-y-1">
-        <span className="text-sm text-white/80">STANDS4 UID</span>
-        <input
-          defaultValue={settings.stands4Uid}
-          onBlur={(e) => update({ stands4Uid: e.target.value })}
-          className="search-input"
-        />
-      </label>
-
-      <label className="block space-y-1">
-        <span className="text-sm text-white/80">STANDS4 Token</span>
-        <input
-          defaultValue={settings.stands4Token}
-          onBlur={(e) => update({ stands4Token: e.target.value })}
-          className="search-input"
-        />
-      </label>
-
       <label className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -78,6 +104,22 @@ export default function Settings() {
           onChange={(e) => update({ launchAtLogin: e.target.checked })}
         />
         <span className="text-sm text-white/80">Launch at login</span>
+      </label>
+
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={settings.lookupSelection}
+          onChange={(e) => update({ lookupSelection: e.target.checked })}
+        />
+        <span className="text-sm text-white/80">
+          Look up selected text
+          <span className="block text-xs text-white/50">
+            When you press the hotkey, search the text selected in the frontmost app.
+            Requires Accessibility permission.
+          </span>
+        </span>
       </label>
 
       <div className="flex items-center justify-between pt-2">
@@ -91,7 +133,7 @@ export default function Settings() {
           onClick={() => window.electronAPI.sendFeedback()}
           className="text-sm text-white/70 underline"
         >
-          Send feedback
+          Open GitHub Issue
         </button>
       </div>
 

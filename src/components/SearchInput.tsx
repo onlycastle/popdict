@@ -17,6 +17,21 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 
     return (
       <div className="relative">
+        {/* Decorative affordance only — aria-hidden + pointer-events:none so it
+            never steals focus/clicks or interferes with the drag region. */}
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white/45"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
         <input
           ref={ref}
           type="text"
@@ -24,7 +39,7 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Search for words, phrases, or idioms..."
-          className="search-input"
+          className="search-input search-input--with-icon"
           autoFocus
         />
         {loading && (

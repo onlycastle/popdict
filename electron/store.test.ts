@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { createStore, DEFAULT_HOTKEY, addToHistory } from './store'
+import { createStore, DEFAULT_HOTKEY, addToHistory, removeFromHistory } from './store'
 
 let dir: string
 let file: string
@@ -34,19 +34,31 @@ describe('addToHistory', () => {
   })
 })
 
+describe('removeFromHistory', () => {
+  it('removes a matching word case-insensitively', () => {
+    expect(removeFromHistory(['apple', 'Banana', 'cherry'], 'banana')).toEqual(['apple', 'cherry'])
+  })
+  it('preserves order of the remaining words', () => {
+    expect(removeFromHistory(['a', 'b', 'c'], 'b')).toEqual(['a', 'c'])
+  })
+  it('is a no-op for a blank or absent word', () => {
+    expect(removeFromHistory(['apple'], '   ')).toEqual(['apple'])
+    expect(removeFromHistory(['apple'], 'pear')).toEqual(['apple'])
+  })
+})
+
 describe('createStore', () => {
   it('returns defaults when no file exists', () => {
     const store = createStore(file)
     const cfg = store.getConfig()
     expect(cfg.hotkey).toBe(DEFAULT_HOTKEY)
-    expect(cfg.stands4Uid).toBe('')
+    expect(cfg.lookupSelection).toBe(true)
     expect(cfg.history).toEqual([])
   })
   it('persists patched values across instances', () => {
-    createStore(file).patch({ stands4Uid: 'abc', stands4Token: 'tok', hotkey: 'CommandOrControl+Shift+D' })
+    createStore(file).patch({ lookupSelection: false, hotkey: 'CommandOrControl+Shift+D' })
     const cfg = createStore(file).getConfig()
-    expect(cfg.stands4Uid).toBe('abc')
-    expect(cfg.stands4Token).toBe('tok')
+    expect(cfg.lookupSelection).toBe(false)
     expect(cfg.hotkey).toBe('CommandOrControl+Shift+D')
   })
   it('addHistory persists and dedupes', () => {
@@ -54,6 +66,14 @@ describe('createStore', () => {
     store.addHistory('apple')
     const list = store.addHistory('apple')
     expect(list).toEqual(['apple'])
+  })
+  it('removeHistory persists removal and returns the new list', () => {
+    const store = createStore(file)
+    store.addHistory('apple')
+    store.addHistory('banana')
+    const list = store.removeHistory('APPLE')
+    expect(list).toEqual(['banana'])
+    expect(createStore(file).getConfig().history).toEqual(['banana'])
   })
   it('clearHistory empties the list', () => {
     const store = createStore(file)

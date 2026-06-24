@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 body {
+  /* Signature accent: a warm "highlighter" amber (#F5B05C). Stored as space-
+     separated RGB channels so it composes with alpha via rgb(var(--accent)/a). */
+  --accent: 245 176 92;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
     sans-serif;
@@ -27,12 +30,19 @@ body {
 
 .search-input:focus {
   background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
+  border-color: rgb(var(--accent) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
 }
 
 .search-input::placeholder {
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* Only the main popup's search box carries the leading magnifier glyph; the
+   bare .search-input is reused unadorned in Settings and Saved Words, so the
+   icon clearance lives on this modifier rather than the base class. */
+.search-input--with-icon {
+  padding-left: 42px;
 }
 
 .results-container {
@@ -53,6 +63,135 @@ body {
 .definition-item {
   padding-left: 12px;
   border-left: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.save-word-button {
+  flex: 0 0 auto;
+  min-width: 64px;
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.save-word-button:hover:not(:disabled) {
+  background: rgb(var(--accent) / 0.16);
+  border-color: rgb(var(--accent) / 0.45);
+}
+
+.save-word-button:focus-visible {
+  outline: none;
+  border-color: rgb(var(--accent) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+}
+
+.save-word-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.login-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-app-region: no-drag;
+}
+
+.login-modal {
+  width: min(360px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(24, 24, 27, 0.96);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+  -webkit-app-region: no-drag;
+}
+
+.modal-icon-button {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 16px;
+  line-height: 1;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.modal-icon-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+}
+
+.modal-icon-button:focus-visible {
+  outline: none;
+  color: white;
+  border-color: rgb(var(--accent) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+}
+
+/* Ghost icon button for window chrome (Saved · Settings · Close). Transparent at
+   rest so the header rail stays quiet; brightens on hover; amber ring on keyboard
+   focus. MUST stay no-drag — the rail around it is a drag handle. */
+.icon-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.icon-button:focus-visible {
+  outline: none;
+  color: white;
+  border-color: rgb(var(--accent) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Idiom result: the one place colour earns its keep. Warm amber on dark, tying
+   the "highlight a phrase → see its meaning" gesture to the signature accent. */
+.idiom-card {
+  background: rgb(var(--accent) / 0.1);
+  border-color: rgb(var(--accent) / 0.32);
+}
+
+.idiom-badge {
+  color: rgb(var(--accent) / 0.95);
+  background: rgb(var(--accent) / 0.2);
 }
 
 /* Custom scrollbar */

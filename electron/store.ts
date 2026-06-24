@@ -6,15 +6,15 @@ const HISTORY_CAP = 12
 
 export type StoredConfig = {
   hotkey: string
-  stands4Uid: string
-  stands4Token: string
+  lookupSelection: boolean
+  onboardingDone: boolean
   history: string[]
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
   hotkey: DEFAULT_HOTKEY,
-  stands4Uid: '',
-  stands4Token: '',
+  lookupSelection: true,
+  onboardingDone: false,
   history: [],
 }
 
@@ -25,15 +25,20 @@ export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): s
   return [trimmed, ...withoutDupe].slice(0, cap)
 }
 
+export function removeFromHistory(list: string[], word: string): string[] {
+  const target = word.trim().toLowerCase()
+  if (!target) return list
+  return list.filter((w) => w.toLowerCase() !== target)
+}
+
 function withDefaults(raw: unknown): StoredConfig {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONFIG }
   const r = raw as Partial<StoredConfig>
-  // hotkey falls back to the default if missing/empty; empty credentials are
-  // valid and mean "STANDS4 not configured".
+  // hotkey falls back to the default if missing/empty.
   return {
     hotkey: typeof r.hotkey === 'string' && r.hotkey ? r.hotkey : DEFAULT_HOTKEY,
-    stands4Uid: typeof r.stands4Uid === 'string' ? r.stands4Uid : '',
-    stands4Token: typeof r.stands4Token === 'string' ? r.stands4Token : '',
+    lookupSelection: typeof r.lookupSelection === 'boolean' ? r.lookupSelection : true,
+    onboardingDone: typeof r.onboardingDone === 'boolean' ? r.onboardingDone : false,
     history: Array.isArray(r.history) ? r.history.filter((w) => typeof w === 'string') : [],
   }
 }
@@ -60,6 +65,12 @@ export function createStore(filePath: string) {
     addHistory(word: string): string[] {
       const cfg = read()
       cfg.history = addToHistory(cfg.history, word)
+      write(cfg)
+      return cfg.history
+    },
+    removeHistory(word: string): string[] {
+      const cfg = read()
+      cfg.history = removeFromHistory(cfg.history, word)
       write(cfg)
       return cfg.history
     },
