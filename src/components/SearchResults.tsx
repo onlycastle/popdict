@@ -94,19 +94,19 @@ const SearchResults = ({
       {idiomResult && (
         <div className="idiom-card mb-6 p-4 border rounded-lg">
           <div className="flex items-center gap-2 mb-3">
-            <span className="idiom-badge inline-block text-xs font-semibold px-2 py-1 rounded-md">
-              IDIOM
+            <span className="idiom-badge inline-block px-2 py-1 rounded-md">
+              idiom
             </span>
           </div>
-          <h3 className="text-lg font-bold text-white mb-2 leading-tight">
+          <h3 className="dict-headword text-xl mb-2 leading-tight">
             {idiomResult.term}
           </h3>
           <p className="text-white/90 text-sm leading-relaxed mb-2">
             {idiomResult.explanation}
           </p>
           {idiomResult.example && (
-            <p className="text-white/70 text-xs italic leading-relaxed mt-3">
-              "{idiomResult.example}"
+            <p className="dict-example text-sm leading-relaxed mt-3">
+              {idiomResult.example}
             </p>
           )}
         </div>
@@ -118,12 +118,12 @@ const SearchResults = ({
           {/* Word header */}
           <div className="mb-6 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h2 className="break-words text-2xl font-bold leading-tight text-white">
+              <h2 className="dict-headword break-words text-3xl leading-tight">
                 {firstResult.word}
               </h2>
               <div className="mt-2 flex items-center gap-2">
                 {firstResult.phonetic && (
-                  <p className="text-white/80 text-sm">
+                  <p className="dict-ipa">
                     {firstResult.phonetic}
                   </p>
                 )}
@@ -170,7 +170,7 @@ const SearchResults = ({
           <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2">
             {firstResult.meanings.map((meaning, meaningIndex) => (
               <div key={meaningIndex} className="meaning-section">
-                <span className="inline-block text-xs font-semibold text-white bg-white/10 px-2 py-1 rounded-md mb-3">
+                <span className="dict-pos mb-3 inline-block">
                   {meaning.partOfSpeech}
                 </span>
 
@@ -178,16 +178,17 @@ const SearchResults = ({
                   {meaning.definitions.slice(0, 3).map((def, defIndex) => (
                     <div key={defIndex} className="definition-item">
                       <p className="text-white/90 text-sm leading-relaxed">
-                        {defIndex + 1}. {def.definition}
+                        <span className="dict-sense-num mr-1.5">{defIndex + 1}.</span>
+                        {def.definition}
                       </p>
                       {def.example && (
-                        <p className="text-white/70 text-xs mt-2 italic leading-relaxed">
-                          "{def.example}"
+                        <p className="dict-example text-xs mt-2 leading-relaxed">
+                          {def.example}
                         </p>
                       )}
                       {def.synonyms && def.synonyms.length > 0 && (
-                        <div className="mt-2">
-                          <span className="text-white/70 text-xs">Similar: </span>
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="dict-label">Similar</span>
                           <span className="text-white/80 text-xs">
                             {def.synonyms.slice(0, 3).join(', ')}
                           </span>

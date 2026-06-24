@@ -42,7 +42,7 @@ function CloseIcon() {
 function WindowControls() {
   return (
     <div className="header-rail">
-      <span className="header-wordmark">PopDict</span>
+      <span className="header-wordmark">popdict</span>
       <div className="header-controls">
         <button
           type="button"

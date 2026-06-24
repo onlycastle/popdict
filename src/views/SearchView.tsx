@@ -144,7 +144,7 @@ export default function SearchView() {
               >
                 {history.length > 0 ? (
                   <div className="recent-list">
-                    <p className="text-white/50 text-xs mb-2">Recent</p>
+                    <p className="dict-label mb-2.5">Recent</p>
                     {history.map((word) => (
                       <div
                         key={word}

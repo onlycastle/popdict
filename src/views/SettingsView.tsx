@@ -11,7 +11,7 @@ export default function SettingsView() {
     window.electronAPI.getSettings().then(setSettings)
   }, [])
 
-  if (!settings) return <div className="min-h-screen bg-neutral-900 p-6 text-white/80">Loading…</div>
+  if (!settings) return <div className="window min-h-screen p-6 text-white/80">Loading…</div>
 
   const update = (patch: Partial<AppSettings>) =>
     window.electronAPI.setSettings(patch).then(setSettings)
@@ -46,26 +46,26 @@ export default function SettingsView() {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-neutral-900 p-6 space-y-5 text-white">
-      <h1 className="text-lg font-semibold">PopDict Settings</h1>
+    <div className="window h-screen overflow-y-auto p-6 space-y-5">
+      <h1 className="view-title text-lg">Settings</h1>
 
       <section className="space-y-3 border-b border-white/10 pb-5">
         <div>
-          <h2 className="text-sm font-medium text-white">Account</h2>
-          <p className="text-xs text-white/60">
+          <h2 className="dict-label mb-1.5">Account</h2>
+          <p className="text-sm text-white/70">
             {auth.user ? accountName : 'Sign in or create an account with Google'}
           </p>
         </div>
 
         {!auth.configured ? (
-          <p className="rounded-md border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-100">
+          <p className="notice">
             Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable auth.
           </p>
         ) : auth.user ? (
           <button
             onClick={auth.signOut}
             disabled={auth.loading}
-            className="rounded-md border border-white/20 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-ghost text-sm"
           >
             Sign out
           </button>
@@ -73,7 +73,7 @@ export default function SettingsView() {
           <button
             onClick={auth.signInWithGoogle}
             disabled={auth.loading}
-            className="rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary text-sm"
           >
             Continue with Google
           </button>
