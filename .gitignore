@@ -17,6 +17,7 @@ dist/
 dist-electron/
 dist-ssr/
 out/
+output/
 .vite/
 site/.next/
 .cache/
