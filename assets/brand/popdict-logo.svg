@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="PopDict app logo">
+  <defs>
+    <linearGradient id="bg" x1="164" y1="92" x2="860" y2="932" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2b3038"/>
+      <stop offset="0.46" stop-color="#14161b"/>
+      <stop offset="1" stop-color="#07080a"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="112" y1="96" x2="868" y2="904" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="0.34" stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="406" y1="250" x2="739" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#e8e1d4"/>
+    </linearGradient>
+    <linearGradient id="popup" x1="302" y1="226" x2="778" y2="734" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#252a33"/>
+      <stop offset="1" stop-color="#101217"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="251" y1="402" x2="722" y2="690" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd485"/>
+      <stop offset="0.52" stop-color="#f5b05c"/>
+      <stop offset="1" stop-color="#e8892f"/>
+    </linearGradient>
+    <linearGradient id="amberDark" x1="352" y1="688" x2="730" y2="858" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5b05c"/>
+      <stop offset="1" stop-color="#b75f11"/>
+    </linearGradient>
+    <filter id="deepShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="34" stdDeviation="34" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+    <filter id="lift" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+    <clipPath id="squircle">
+      <rect x="56" y="56" width="912" height="912" rx="214"/>
+    </clipPath>
+    <clipPath id="popupClip">
+      <path d="M329 252c0-40 32-72 72-72h287c40 0 72 32 72 72v336c0 40-32 72-72 72H401c-40 0-72-32-72-72V252z"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <rect x="56" y="56" width="912" height="912" rx="214" fill="url(#bg)"/>
+    <rect x="56" y="56" width="912" height="912" rx="214" fill="url(#sheen)"/>
+    <path
+      d="M112 246C245 118 463 70 674 111c127 25 224 81 294 158V56H56v359c11-61 30-118 56-169z"
+      fill="#ffffff"
+      opacity="0.08"
+    />
+    <path
+      d="M56 713c144 118 353 173 566 135 153-27 268-94 346-186v306H56V713z"
+      fill="#6ea8fe"
+      opacity="0.06"
+    />
+  </g>
+
+  <rect x="56" y="56" width="912" height="912" rx="214" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
+
+  <g filter="url(#deepShadow)">
+    <path d="M329 252c0-40 32-72 72-72h287c40 0 72 32 72 72v336c0 40-32 72-72 72H401c-40 0-72-32-72-72V252z" fill="url(#popup)"/>
+    <g clip-path="url(#popupClip)">
+      <path d="M329 252c0-40 32-72 72-72h287c40 0 72 32 72 72v76H329v-76z" fill="#ffffff" opacity="0.08"/>
+      <path d="M399 180h290c39 0 71 32 71 71v26H329v-26c0-39 31-71 70-71z" fill="#ffffff" opacity="0.05"/>
+      <path d="M704 180v117c0 19 15 34 34 34h22v-80c0-39-32-71-71-71h15z" fill="#ffffff" opacity="0.08"/>
+    </g>
+
+    <rect x="393" y="285" width="216" height="56" rx="28" fill="url(#amber)"/>
+    <rect x="393" y="386" width="283" height="32" rx="16" fill="#edf0f1" opacity="0.88"/>
+    <rect x="393" y="458" width="237" height="32" rx="16" fill="#edf0f1" opacity="0.7"/>
+    <rect x="393" y="530" width="166" height="32" rx="16" fill="#edf0f1" opacity="0.5"/>
+
+    <path
+      d="M688 180v92c0 31 25 56 56 56h16L688 180z"
+      fill="url(#paper)"
+      opacity="0.95"
+    />
+    <path d="M710 303l50 25h-16c-19 0-34-10-34-25z" fill="#bfc5c7" opacity="0.36"/>
+  </g>
+
+  <g filter="url(#lift)">
+    <path
+      d="M208 662c0-34 28-62 62-62h290c34 0 62 28 62 62v96c0 34-28 62-62 62H270c-34 0-62-28-62-62v-96z"
+      fill="#fff7e6"
+    />
+    <path
+      d="M240 704c0-24 20-44 44-44h335c29 0 53 24 53 53s-24 53-53 53H284c-24 0-44-20-44-44v-18z"
+      fill="url(#amber)"
+    />
+    <path
+      d="M556 660h63c29 0 53 24 53 53s-24 53-53 53h-63c29-36 29-71 0-106z"
+      fill="url(#amberDark)"
+      opacity="0.92"
+    />
+    <path d="M294 713h248" stroke="#7c3f0b" stroke-opacity="0.22" stroke-width="18" stroke-linecap="round"/>
+  </g>
+
+  <path
+    d="M622 666c-28-24-60-36-96-36h-139"
+    fill="none"
+    stroke="#f5b05c"
+    stroke-width="22"
+    stroke-linecap="round"
+    opacity="0.55"
+  />
+  <path
+    d="M250 157h519c44 0 80 36 80 80"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="8"
+    stroke-linecap="round"
+    opacity="0.11"
+  />
+</svg>
