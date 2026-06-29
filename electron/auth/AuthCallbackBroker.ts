@@ -3,6 +3,9 @@ import type { Logger } from '../../shared/logger'
 import { describeAuthUrl, isAuthCallbackUrl } from '../../shared/authUrl'
 import type { WindowManager } from '../windows/WindowManager'
 
+// How long after the app opens the OAuth browser a callback is still accepted.
+const AUTH_INITIATION_WINDOW_MS = 5 * 60 * 1000
+
 /**
  * Owns the OAuth deep-link callback state machine: which callback URL is
  * pending, whether it's been delivered, and which window opened the external
@@ -13,8 +16,18 @@ export class AuthCallbackBroker {
   private pending: string | null = null
   private delivered: string | null = null
   private target: BrowserWindow | null = null
+  private initiatedAt = 0
 
-  constructor(private windows: WindowManager, private log: Logger) {}
+  constructor(
+    private windows: WindowManager,
+    private log: Logger,
+    private now: () => number = () => Date.now()
+  ) {}
+
+  /** Record that the app just opened the OAuth browser (gates inbound callbacks). */
+  markAuthInitiated(): void {
+    this.initiatedAt = this.now()
+  }
 
   get hasPending(): boolean {
     return this.pending !== null
@@ -24,6 +37,10 @@ export class AuthCallbackBroker {
   receive(url: string): void {
     if (!isAuthCallbackUrl(url)) {
       this.log.event('ignore non-auth callback url', describeAuthUrl(url))
+      return
+    }
+    if (this.now() - this.initiatedAt > AUTH_INITIATION_WINDOW_MS) {
+      this.log.event('ignore callback without recent auth initiation', describeAuthUrl(url))
       return
     }
     this.log.event('received auth callback', describeAuthUrl(url))
