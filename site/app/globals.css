@@ -182,6 +182,31 @@ a:hover {
   border-radius: 9px;
 }
 
+/* Secondary action. Stays quiet on purpose: the amber fill is reserved for the
+   one primary button, so "View source" is a paper-and-hairline ghost instead. */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--paper-2);
+  color: var(--ink);
+  border: 1px solid var(--edge-strong);
+  box-shadow: 0 1px 2px rgba(26, 23, 20, 0.04), 0 8px 20px -16px rgba(26, 23, 20, 0.45);
+}
+.btn-ghost:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+  border-color: var(--ink-faint);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(26, 23, 20, 0.05), 0 12px 24px -16px rgba(26, 23, 20, 0.5);
+}
+.gh-mark {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  opacity: 0.85;
+}
+
 /* --------------------------------------------------------------------- hero */
 
 .hero {
@@ -263,6 +288,12 @@ a:hover {
 
 .hero-cta {
   margin-top: 34px;
+}
+.hero-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
 .cta-note {
   margin-top: 13px;
