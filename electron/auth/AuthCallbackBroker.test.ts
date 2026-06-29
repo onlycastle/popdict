@@ -137,4 +137,15 @@ describe('AuthCallbackBroker auth-initiation gate', () => {
     broker.receive(CALLBACK)
     expect(settings.webContents.send).toHaveBeenCalledWith('auth-callback', CALLBACK)
   })
+
+  it('rejects a callback received after consume() resets the initiation gate', () => {
+    const settings = fakeWindow()
+    const broker = armedBroker({ settings })
+    broker.receive(CALLBACK)
+    broker.consume()
+    settings.webContents.send.mockClear()
+    broker.receive(CALLBACK)
+    expect(broker.hasPending).toBe(false)
+    expect(settings.webContents.send).not.toHaveBeenCalled()
+  })
 })
