@@ -9,6 +9,7 @@ import { createLogger } from '../../shared/logger'
 import {
   describeAuthUrl,
   describeExternalAuthUrl,
+  planAuthAction,
   readAuthCallbackParams,
 } from '../../shared/authUrl'
 
@@ -80,19 +81,12 @@ export function useSupabaseAuth() {
       })
       if (params.error) throw new Error(params.error)
 
-      if (params.code) {
+      const action = planAuthAction(params)
+      if (action.type === 'exchange-code') {
         log.event('exchange code for session start')
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(params.code)
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(action.code)
         if (exchangeError) throw exchangeError
         log.event('exchange code for session success')
-      } else if (params.accessToken && params.refreshToken) {
-        log.event('set session from callback tokens start')
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: params.accessToken,
-          refresh_token: params.refreshToken,
-        })
-        if (sessionError) throw sessionError
-        log.event('set session from callback tokens success')
       } else {
         throw new Error('The auth callback did not include a session code.')
       }

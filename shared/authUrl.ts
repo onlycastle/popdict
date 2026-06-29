@@ -88,3 +88,22 @@ export function readAuthCallbackParams(callbackUrl: string): AuthCallbackParams 
     error,
   }
 }
+
+export type AuthAction =
+  | { type: 'error'; message: string }
+  | { type: 'exchange-code'; code: string }
+  | { type: 'none' }
+
+/**
+ * Decide how to handle a parsed auth callback. PopDict is configured for the
+ * PKCE flow (flowType: 'pkce'), so the ONLY session-establishing path is a
+ * `code` redeemed against the locally-held verifier. Raw access/refresh tokens
+ * arriving in a deep link are deliberately ignored: a `popdict://` URL can be
+ * launched by ANY app or web page, so honoring bearer tokens directly is a
+ * session-fixation vector.
+ */
+export function planAuthAction(params: AuthCallbackParams): AuthAction {
+  if (params.error) return { type: 'error', message: params.error }
+  if (params.code) return { type: 'exchange-code', code: params.code }
+  return { type: 'none' }
+}
