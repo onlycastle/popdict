@@ -23,31 +23,65 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://popdict.app'
+// Canonical origin. Set NEXT_PUBLIC_SITE_URL in Vercel to the domain you own
+// (popdict.space). The fallback must also be a domain we control — NEVER
+// popdict.app, which is an unrelated product and would hand our SEO to a stranger.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://popdict.space'
+
+const TITLE = 'PopDict — a macOS dictionary one keystroke away'
+const DESCRIPTION =
+  'A menu-bar dictionary for English learners. Look up any word or idiom, hear it pronounced, and save it to review — without leaving what you are reading.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'PopDict — a macOS dictionary one keystroke away',
-  description:
-    'A menu-bar dictionary for English learners. Look up any word or idiom, hear it pronounced, and save it to review — without leaving what you are reading.',
-  icons: {
-    icon: '/popdict-logo.png',
-    apple: '/popdict-logo.png',
+  title: {
+    default: TITLE,
+    template: '%s · PopDict',
   },
+  description: DESCRIPTION,
+  applicationName: 'PopDict',
+  authors: [{ name: 'Sungman Cho' }],
+  creator: 'Sungman Cho',
+  publisher: 'PopDict',
+  category: 'productivity',
+  keywords: [
+    'macOS dictionary',
+    'menu bar dictionary',
+    'pop-up dictionary',
+    'English learners',
+    'idioms',
+    'pronunciation',
+    'vocabulary',
+    'look up words',
+    'Mac app',
+  ],
+  alternates: {
+    canonical: '/',
+  },
+  // og:image and twitter:image come from app/opengraph-image.tsx and
+  // app/twitter-image.tsx (file conventions) — no hand-written image strings.
   openGraph: {
-    title: 'PopDict — a macOS dictionary one keystroke away',
-    description:
-      'Look up any word or idiom, hear it pronounced, and save it to review — without leaving what you are reading.',
+    title: TITLE,
+    description: DESCRIPTION,
     url: SITE_URL,
     siteName: 'PopDict',
+    locale: 'en_US',
     type: 'website',
-    images: ['/popdict-logo.png'],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PopDict — a macOS dictionary one keystroke away',
+    title: TITLE,
     description: 'A macOS menu-bar dictionary for English learners.',
-    images: ['/popdict-logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 
