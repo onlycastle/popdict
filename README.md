@@ -41,7 +41,7 @@ Root app environment:
 | --- | --- |
 | `VITE_SUPABASE_URL` | Supabase project URL for auth, saved words, and Edge Functions. |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key safe to ship in the renderer bundle. |
-| `VITE_SUPABASE_AUTH_REDIRECT_URL` | OAuth callback URL. Defaults to `https://popdict.app/auth/callback`, which forwards into the desktop app. |
+| `VITE_SUPABASE_AUTH_REDIRECT_URL` | OAuth callback URL. Defaults to `https://popdict.space/auth/callback`, which forwards into the desktop app. |
 | `POPDICT_GITHUB_REPO` | `owner/repo` used at release build time for auto-updates and GitHub Issues feedback links. |
 | `POPDICT_MAC_SIGNING_IDENTITY` | Developer ID signing identity. Required only for signed release builds. |
 | `POPDICT_NOTARY_PROFILE` | `notarytool` keychain profile. Required only for signed release builds. |
@@ -56,7 +56,7 @@ Site environment:
 ## Supabase Setup
 
 1. Enable Google sign-in in Supabase Auth.
-2. Add `https://popdict.app/auth/callback` to Supabase Auth redirect URLs.
+2. Add `https://popdict.space/auth/callback` to Supabase Auth redirect URLs.
    If you override `VITE_SUPABASE_AUTH_REDIRECT_URL`, add that exact URL instead.
 3. Apply migrations:
    ```bash
