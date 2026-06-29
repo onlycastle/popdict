@@ -11,6 +11,7 @@ vi.mock('electron', () => {
   class FakeWin {
     destroyed = false
     shown = false
+    shownInactive = false
     focused = false
     position: [number, number] | null = null
     loadURL = vi.fn()
@@ -31,6 +32,10 @@ vi.mock('electron', () => {
     }
     show() {
       this.shown = true
+    }
+    showInactive() {
+      this.shown = true
+      this.shownInactive = true
     }
     getBounds() {
       return { x: 0, y: 0, width: 800, height: 128 }
@@ -122,6 +127,28 @@ describe('WindowManager', () => {
     expect(win.shown).toBe(true)
     expect(win.focused).toBe(true)
     expect(win.position).not.toBeNull()
+    expect(win.webContents.send).toHaveBeenCalledWith('focus-search')
+  })
+
+  it('showSearch({ activate: false }) reveals the window without taking focus', () => {
+    const wm = manager()
+    wm.open('search')
+    wm.showSearch({ activate: false })
+    const win = instances[0]
+    expect(win.shown).toBe(true)
+    expect(win.shownInactive).toBe(true)
+    expect(win.focused).toBe(false)
+    expect(win.position).not.toBeNull()
+    expect(win.webContents.send).not.toHaveBeenCalledWith('focus-search')
+  })
+
+  it('activateSearch focuses an already-visible search window', () => {
+    const wm = manager()
+    wm.open('search')
+    wm.showSearch({ activate: false })
+    wm.activateSearch()
+    const win = instances[0]
+    expect(win.focused).toBe(true)
     expect(win.webContents.send).toHaveBeenCalledWith('focus-search')
   })
 })

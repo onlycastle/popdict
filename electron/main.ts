@@ -48,13 +48,23 @@ async function onHotkey() {
     search.hide()
     return
   }
-  // Capture the selection BEFORE showing our window, while the other app still
-  // has focus. Skipped (instant) when the feature is off or unsupported.
-  let seed: string | null = null
-  if (store.getConfig().lookupSelection) {
-    seed = await captureSelection()
-  }
-  windows.showSearch()
+
+  const lookup = store.getConfig().lookupSelection
+
+  // Pop the bar up IMMEDIATELY. With select-to-lookup on we show it *inactive*
+  // so the user's current app keeps keyboard focus — the ⌘C we synthesize next
+  // has to reach THAT app, not our freshly-opened window.
+  windows.showSearch({ activate: !lookup })
+
+  if (!lookup) return
+
+  // Capture runs with the bar already on screen, so the osascript spawn +
+  // clipboard poll no longer gate the pop-up. Take focus + seed once it lands.
+  const seed = await captureSelection()
+  // Bail if the bar was dismissed (a second hotkey press) while we were
+  // capturing — don't resurrect a window the user just hid.
+  if (search.isDestroyed() || !search.isVisible()) return
+  windows.activateSearch()
   if (seed) search.webContents.send('seed-search', seed)
 }
 

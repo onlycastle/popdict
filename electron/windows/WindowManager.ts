@@ -43,8 +43,15 @@ export class WindowManager {
     return win && !win.isDestroyed() ? win : null
   }
 
-  /** Position the search window on the active display, then show + focus it. */
-  showSearch(): void {
+  /**
+   * Position the search window on the active display, then reveal it.
+   *
+   * `activate: false` shows it *without* taking keyboard focus (showInactive).
+   * The hotkey uses this when select-to-lookup is on so the user's current app
+   * keeps focus — the ⌘C we synthesize next must land there, not in our
+   * just-opened window. Focus is taken afterwards via `activateSearch()`.
+   */
+  showSearch({ activate = true }: { activate?: boolean } = {}): void {
     const win = this.get('search')
     if (!win) return
     const cursorPoint = screen.getCursorScreenPoint()
@@ -56,6 +63,20 @@ export class WindowManager {
       displayX + Math.round((screenWidth - bounds.width) / 2),
       displayY + SEARCH_WINDOW_TOP_OFFSET
     )
+    if (activate) {
+      this.activate(win)
+    } else {
+      win.showInactive()
+    }
+  }
+
+  /** Focus an already-visible search window and put the cursor in its input. */
+  activateSearch(): void {
+    const win = this.get('search')
+    if (win) this.activate(win)
+  }
+
+  private activate(win: BrowserWindow): void {
     win.show()
     win.focus()
     win.webContents.send('focus-search')
