@@ -102,6 +102,7 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
       throw new Error('Only HTTPS URLs can be opened externally')
     }
     broker.setTarget(BrowserWindow.fromWebContents(event.sender))
+    broker.markAuthInitiated()
     await shell.openExternal(url)
     log.event('external url opened', describeExternalAuthUrl(url))
   })
