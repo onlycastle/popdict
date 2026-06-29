@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const DEFAULT_AUTH_REDIRECT_URL = 'https://popdict.app/auth/callback'
+const DEFAULT_AUTH_REDIRECT_URL = 'https://popdict.space/auth/callback'
 
 export const SUPABASE_AUTH_REDIRECT_URL =
   import.meta.env.VITE_SUPABASE_AUTH_REDIRECT_URL?.trim() || DEFAULT_AUTH_REDIRECT_URL
