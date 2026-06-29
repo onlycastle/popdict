@@ -6,7 +6,7 @@ import type { AuthCallbackBroker } from '../auth/AuthCallbackBroker'
 import type { HotkeyManager } from '../hotkey/HotkeyManager'
 import type { TrayMenu } from '../tray/TrayMenu'
 import { createLogger } from '../../shared/logger'
-import { describeExternalAuthUrl } from '../../shared/authUrl'
+import { describeExternalAuthUrl, isAllowedExternalAuthUrl } from '../../shared/authUrl'
 
 const log = createLogger('Auth')
 
@@ -96,10 +96,9 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
 
   router.handle('open-external-url', async (event, url: string) => {
     log.event('renderer requested external url', describeExternalAuthUrl(url))
-    const parsed = new URL(url)
-    if (parsed.protocol !== 'https:') {
-      log.event('blocked non-https external url', describeExternalAuthUrl(url))
-      throw new Error('Only HTTPS URLs can be opened externally')
+    if (!isAllowedExternalAuthUrl(url)) {
+      log.event('blocked external url', describeExternalAuthUrl(url))
+      throw new Error('Only the Supabase auth host can be opened externally')
     }
     broker.setTarget(BrowserWindow.fromWebContents(event.sender))
     broker.markAuthInitiated()

@@ -111,3 +111,18 @@ export function planAuthAction(params: AuthCallbackParams): AuthAction {
   if (params.code) return { type: 'exchange-code', code: params.code }
   return { type: 'none' }
 }
+
+/**
+ * Whether the renderer may hand this URL to the system browser. The only
+ * legitimate external open is the Supabase OAuth authorize URL, so restrict to
+ * https Supabase hosts. (Self-hosters on a custom Supabase domain must widen
+ * this allowlist.)
+ */
+export function isAllowedExternalAuthUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl)
+    return url.protocol === 'https:' && url.hostname.endsWith('.supabase.co')
+  } catch {
+    return false
+  }
+}
