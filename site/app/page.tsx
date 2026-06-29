@@ -225,7 +225,7 @@ export default function Home() {
             <a href="/terms">Terms</a>
             {issuesUrl ? <a href={issuesUrl}>GitHub Issues</a> : null}
           </div>
-          <div className="copyright">© {new Date().getFullYear()} Sungman Cho</div>
+          <div className="copyright">© {new Date().getFullYear()} OriginLayer, Inc.</div>
         </div>
       </footer>
     </main>
