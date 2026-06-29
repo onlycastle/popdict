@@ -40,8 +40,8 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   applicationName: 'PopDict',
-  authors: [{ name: 'Sungman Cho' }],
-  creator: 'Sungman Cho',
+  authors: [{ name: 'OriginLayer, Inc.' }],
+  creator: 'OriginLayer, Inc.',
   publisher: 'PopDict',
   category: 'productivity',
   keywords: [
