@@ -39,6 +39,11 @@ export class AuthCallbackBroker {
       this.log.event('ignore non-auth callback url', describeAuthUrl(url))
       return
     }
+    // Intentional security gate: drop callbacks that arrive without a recent
+    // in-process markAuthInitiated(). This deliberately drops cold-start /
+    // app-not-running callbacks as well. Do NOT weaken this gate to "fix" the
+    // cold-start case — receiving a deep-link before the user explicitly signed
+    // in is a confused-deputy attack surface.
     if (this.now() - this.initiatedAt > AUTH_INITIATION_WINDOW_MS) {
       this.log.event('ignore callback without recent auth initiation', describeAuthUrl(url))
       return
@@ -69,6 +74,7 @@ export class AuthCallbackBroker {
     this.pending = null
     this.delivered = null
     this.target = null
+    this.initiatedAt = 0
     return callbackUrl
   }
 

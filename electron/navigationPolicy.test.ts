@@ -25,4 +25,21 @@ describe('shouldAllowNavigation', () => {
     expect(shouldAllowNavigation('https://evil.example.com', { packagedIndexFileUrl: PACKAGED })).toBe(false)
     expect(shouldAllowNavigation('not a url', { packagedIndexFileUrl: PACKAGED })).toBe(false)
   })
+
+  it('blocks a file: URL served from a different host (UNC/SMB vector)', () => {
+    expect(
+      shouldAllowNavigation('file://evil-host' + new URL(PACKAGED).pathname, {
+        packagedIndexFileUrl: PACKAGED,
+      })
+    ).toBe(false)
+  })
+
+  it('blocks a dev-server URL that is a superset of the allowed origin (prefix attack)', () => {
+    expect(
+      shouldAllowNavigation('http://localhost:5173.evil.com/#/x', {
+        devServerUrl: 'http://localhost:5173',
+        packagedIndexFileUrl: PACKAGED,
+      })
+    ).toBe(false)
+  })
 })
