@@ -3,6 +3,7 @@ import {
   describeAuthUrl,
   describeExternalAuthUrl,
   isAuthCallbackUrl,
+  planAuthAction,
   readAuthCallbackParams,
 } from './authUrl'
 
@@ -67,5 +68,29 @@ describe('describeExternalAuthUrl', () => {
   it('handles a missing redirect_to', () => {
     const d = describeExternalAuthUrl('https://x.supabase.co/auth/v1/authorize')
     expect(d.redirectTo).toBeNull()
+  })
+})
+
+describe('planAuthAction', () => {
+  it('plans a code exchange when a PKCE code is present', () => {
+    const params = readAuthCallbackParams('popdict://auth/callback?code=xyz')
+    expect(planAuthAction(params)).toEqual({ type: 'exchange-code', code: 'xyz' })
+  })
+
+  it('returns the error when the callback carries one', () => {
+    const params = readAuthCallbackParams('popdict://auth/callback?error=access_denied')
+    expect(planAuthAction(params)).toEqual({ type: 'error', message: 'access_denied' })
+  })
+
+  it('ignores raw access/refresh tokens so a forged deep link cannot establish a session', () => {
+    const params = readAuthCallbackParams(
+      'popdict://auth/callback#access_token=ATTACKER&refresh_token=ATTACKER'
+    )
+    expect(planAuthAction(params)).toEqual({ type: 'none' })
+  })
+
+  it('returns none for a callback with no actionable material', () => {
+    const params = readAuthCallbackParams('popdict://auth/callback')
+    expect(planAuthAction(params)).toEqual({ type: 'none' })
   })
 })
