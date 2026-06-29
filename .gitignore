@@ -64,3 +64,4 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+.superpowers/
