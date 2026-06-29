@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   describeAuthUrl,
   describeExternalAuthUrl,
+  isAllowedExternalAuthUrl,
   isAuthCallbackUrl,
   planAuthAction,
   readAuthCallbackParams,
@@ -78,6 +79,21 @@ describe('describeExternalAuthUrl', () => {
   it('handles a missing redirect_to', () => {
     const d = describeExternalAuthUrl('https://x.supabase.co/auth/v1/authorize')
     expect(d.redirectTo).toBeNull()
+  })
+})
+
+describe('isAllowedExternalAuthUrl', () => {
+  it('allows the Supabase auth host over https', () => {
+    expect(
+      isAllowedExternalAuthUrl('https://abc.supabase.co/auth/v1/authorize?provider=google')
+    ).toBe(true)
+  })
+
+  it('rejects non-https and non-Supabase hosts', () => {
+    expect(isAllowedExternalAuthUrl('http://abc.supabase.co/auth/v1/authorize')).toBe(false)
+    expect(isAllowedExternalAuthUrl('https://evil.example.com/phish')).toBe(false)
+    expect(isAllowedExternalAuthUrl('https://abc.supabase.co.evil.com/phish')).toBe(false)
+    expect(isAllowedExternalAuthUrl('not a url')).toBe(false)
   })
 })
 
