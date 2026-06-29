@@ -17,6 +17,16 @@ describe('isAuthCallbackUrl', () => {
     expect(isAuthCallbackUrl('popdict://other/callback')).toBe(false)
     expect(isAuthCallbackUrl('not a url')).toBe(false)
   })
+
+  it('rejects popdict://auth paths other than /callback', () => {
+    expect(isAuthCallbackUrl('popdict://auth/evil')).toBe(false)
+    expect(isAuthCallbackUrl('popdict://auth')).toBe(false)
+  })
+
+  it('accepts the exact callback path with a query or hash', () => {
+    expect(isAuthCallbackUrl('popdict://auth/callback?code=abc')).toBe(true)
+    expect(isAuthCallbackUrl('popdict://auth/callback#access_token=x')).toBe(true)
+  })
 })
 
 describe('readAuthCallbackParams', () => {

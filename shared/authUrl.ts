@@ -17,11 +17,15 @@ export type AuthCallbackParams = {
   error: string | null
 }
 
-/** True only for our own `popdict://auth/...` deep links. */
+/** True only for our own `popdict://auth/callback` deep link. */
 export function isAuthCallbackUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
-    return parsed.protocol === `${AUTH_PROTOCOL}:` && parsed.hostname === 'auth'
+    return (
+      parsed.protocol === `${AUTH_PROTOCOL}:` &&
+      parsed.hostname === 'auth' &&
+      parsed.pathname === '/callback'
+    )
   } catch {
     return false
   }
