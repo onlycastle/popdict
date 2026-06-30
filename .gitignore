@@ -64,4 +64,11 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Agent / AI tooling local state — never upload to the public repo
 .superpowers/
+.claude/
+docs/superpowers/
+
+# Local-only reports (security findings, audits) — keep out of the public repo
+security_best_practices_report.md
