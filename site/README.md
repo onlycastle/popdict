@@ -22,16 +22,6 @@ npm run dev
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL, used for SEO / Open Graph metadata.       |
 | `GITHUB_REPO`          | `owner/repo` hosting PopDict releases. Powers `/download/latest` and GitHub Issues links. |
 
-## Deploy (Vercel)
-
-1. Import this `site/` directory as a Vercel project (set the root directory to `site`).
-2. Add a **custom domain** — do this early: the same URL is used for the privacy-policy
-   link in the Google OAuth consent screen and in the app, and changing it later means
-   re-editing the OAuth config.
-3. Set `NEXT_PUBLIC_SITE_URL` and `GITHUB_REPO` in the Vercel project env.
-4. Web Analytics is wired via `@vercel/analytics`; enable Analytics in the Vercel
-   dashboard for the project.
-
 ## Routes
 
 - `/` — hero, how-it-works, features, FAQ.

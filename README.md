@@ -12,15 +12,12 @@ leaving the app you are reading in.
 - Idiom and phrase lookup through a Supabase Edge Function proxy.
 - Google sign-in for saved words, backed by Supabase.
 - Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
-- GitHub release auto-update support for public macOS releases.
 
 ## Requirements
 
 - macOS for the desktop app.
 - Node.js 20 or newer.
 - A Supabase project if you want auth, saved words, or idiom lookups.
-- A public GitHub repository if you want release downloads, app feedback links, and
-  auto-updates.
 
 ## Quick Start
 
@@ -35,23 +32,11 @@ until you provide Supabase settings.
 
 ## Configuration
 
-Root app environment:
-
 | Variable | Purpose |
 | --- | --- |
 | `VITE_SUPABASE_URL` | Supabase project URL for auth, saved words, and Edge Functions. |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key safe to ship in the renderer bundle. |
 | `VITE_SUPABASE_AUTH_REDIRECT_URL` | OAuth callback URL. Defaults to `https://popdict.space/auth/callback`, which forwards into the desktop app. |
-| `POPDICT_GITHUB_REPO` | `owner/repo` used at release build time for auto-updates and GitHub Issues feedback links. |
-| `POPDICT_MAC_SIGNING_IDENTITY` | Developer ID signing identity. Required only for signed release builds. |
-| `POPDICT_NOTARY_PROFILE` | `notarytool` keychain profile. Required only for signed release builds. |
-
-Site environment:
-
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | Public URL for site metadata. |
-| `GITHUB_REPO` | `owner/repo` used by `/download/latest` and public GitHub links. |
 
 ## Supabase Setup
 
@@ -80,43 +65,15 @@ npm test           # Vitest
 npx tsc --noEmit   # TypeScript check
 ```
 
-Useful build commands:
+To build your own copy of the app from source for personal use:
 
 ```bash
-npm run package      # package the app locally
-npm run make         # create distributable artifacts; unsigned if signing env is absent
-npm run make:local   # local unsigned macOS package + DMG helper
+npm run package    # produces an unsigned app under out/
 ```
 
-## Site
-
-The Next.js site lives in `site/`.
-
-```bash
-cd site
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-`/download/latest` redirects to the newest `.dmg` asset in the GitHub repository
-configured by `GITHUB_REPO`.
-
-## Release
-
-Public macOS releases require a public GitHub repo, a Developer ID signing identity,
-and a configured notary profile:
-
-```bash
-POPDICT_GITHUB_REPO=owner/repo \
-POPDICT_MAC_SIGNING_IDENTITY="Developer ID Application: Example (TEAMID)" \
-POPDICT_NOTARY_PROFILE=notary-profile-name \
-npm run release:arm64
-```
-
-The release script runs the quality gate, builds signed macOS artifacts, verifies
-Gatekeeper/notarization, and prints the `.dmg` and `.zip` paths to upload to the
-GitHub release. The `.zip` is required for Squirrel.Mac auto-updates.
+> Official signed and notarized releases are published only by the maintainer.
+> Builds you produce from a fork are unsigned and intended for personal use, not
+> redistribution.
 
 ## Project Structure
 
@@ -125,13 +82,13 @@ electron/    Electron main process, preload bridge, local store, updater
 src/         React renderer, hooks, services, styles, and shared types
 supabase/    Database migrations and the idiom Edge Function
 site/        Public Next.js landing and legal pages
-scripts/     Release and notarization helpers
+scripts/     Build and notarization helpers
 ```
 
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Product bugs
-and feature requests should go through GitHub Issues on the configured public repo.
+and feature requests should go through GitHub Issues.
 
 ## Security
 
