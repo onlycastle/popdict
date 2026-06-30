@@ -2,7 +2,6 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type AppSettings = {
   hotkey: string
-  lookupSelection: boolean
   launchAtLogin: boolean
 }
 
@@ -27,8 +26,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openSettings: () => ipcRenderer.send('open-settings'),
   openSavedWords: () => ipcRenderer.send('open-saved-words'),
   finishOnboarding: () => ipcRenderer.send('finish-onboarding'),
-  isAccessibilityTrusted: () => ipcRenderer.invoke('is-accessibility-trusted'),
-  requestAccessibility: () => ipcRenderer.invoke('request-accessibility'),
   lookupWord: (word: string) => ipcRenderer.send('lookup-word', word),
   onSeedSearch: (callback: (word: string) => void) => {
     const listener = (_event: IpcRendererEvent, word: string) => callback(word)

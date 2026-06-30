@@ -106,22 +106,6 @@ export default function SettingsView() {
         <span className="text-sm text-white/80">Launch at login</span>
       </label>
 
-      <label className="flex items-start gap-2">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={settings.lookupSelection}
-          onChange={(e) => update({ lookupSelection: e.target.checked })}
-        />
-        <span className="text-sm text-white/80">
-          Look up selected text
-          <span className="block text-xs text-white/50">
-            When you press the hotkey, search the text selected in the frontmost app.
-            Requires Accessibility permission.
-          </span>
-        </span>
-      </label>
-
       <div className="flex items-center justify-between pt-2">
         <button
           onClick={() => window.electronAPI.clearHistory().then(() => setStatus('History cleared'))}

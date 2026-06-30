@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, systemPreferences } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import type { IpcRouter } from './IpcRouter'
 import type { Store } from '../store'
 import type { WindowManager } from '../windows/WindowManager'
@@ -24,7 +24,6 @@ function settingsPayload(store: Store) {
   const cfg = store.getConfig()
   return {
     hotkey: cfg.hotkey,
-    lookupSelection: cfg.lookupSelection,
     launchAtLogin: app.getLoginItemSettings().openAtLogin,
   }
 }
@@ -47,11 +46,6 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     const { launchAtLogin, hotkey: _ignoredHotkey, ...storable } = partial ?? {}
     if (typeof launchAtLogin === 'boolean') {
       app.setLoginItemSettings({ openAtLogin: launchAtLogin })
-    }
-    // Prompt for Accessibility when the user opts into select-to-lookup; the
-    // hotkey path only ever checks (never prompts).
-    if (storable.lookupSelection === true && process.platform === 'darwin') {
-      systemPreferences.isTrustedAccessibilityClient(true)
     }
     store.patch(storable)
     tray.rebuild()
@@ -82,15 +76,6 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     store.patch({ onboardingDone: true })
     windows.get('onboarding')?.close()
   })
-
-  // Accessibility permission drives select-to-lookup. Check (no prompt) vs.
-  // request (prompts + opens System Settings on first ask). Non-macOS is N/A.
-  router.handle('is-accessibility-trusted', () =>
-    process.platform === 'darwin' ? systemPreferences.isTrustedAccessibilityClient(false) : true
-  )
-  router.handle('request-accessibility', () =>
-    process.platform === 'darwin' ? systemPreferences.isTrustedAccessibilityClient(true) : true
-  )
 
   router.handle('consume-auth-callback', () => broker.consume())
 
