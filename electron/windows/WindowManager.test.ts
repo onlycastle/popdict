@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // loadRenderer reads this build-time global; provide it so open() takes the
 // dev-server branch instead of throwing a ReferenceError.
@@ -150,5 +150,34 @@ describe('WindowManager', () => {
     const win = instances[0]
     expect(win.focused).toBe(true)
     expect(win.webContents.send).toHaveBeenCalledWith('focus-search')
+  })
+})
+
+// The packaged build takes the `loadFile` branch (no dev-server URL). It was
+// previously untested, which is how the `#settings` vs `#/settings` hash
+// mismatch shipped: every secondary window fell back to the search view.
+describe('WindowManager (packaged build)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('MAIN_WINDOW_VITE_DEV_SERVER_URL', undefined)
+    vi.stubGlobal('MAIN_WINDOW_VITE_NAME', 'main_window')
+  })
+  afterEach(() => {
+    // Restore the dev-server stub the rest of the suite relies on.
+    vi.stubGlobal('MAIN_WINDOW_VITE_DEV_SERVER_URL', 'http://localhost:5173')
+  })
+
+  it('loads the packaged file with a leading-slash hash so it matches the Router', () => {
+    manager().open('settings')
+    expect(instances[0].loadFile).toHaveBeenCalledWith(expect.stringContaining('index.html'), {
+      hash: '/settings',
+    })
+  })
+
+  it('loads the packaged search window with no hash', () => {
+    manager().open('search')
+    expect(instances[0].loadFile).toHaveBeenCalledWith(
+      expect.stringContaining('index.html'),
+      undefined
+    )
   })
 })

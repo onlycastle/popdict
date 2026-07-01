@@ -2,7 +2,6 @@ import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 import { createStore } from './store'
 import { initAutoUpdates } from './updater'
-import { captureSelection } from './captureSelection'
 import { registerWebContentsHardening } from './security'
 import { openFeedback } from './feedback'
 import { WindowManager } from './windows/WindowManager'
@@ -41,31 +40,15 @@ const windows = new WindowManager()
 const broker = new AuthCallbackBroker(windows, log)
 windows.setSpecs(buildWindowSpecs(() => broker.dispatch()))
 
-async function onHotkey() {
+function onHotkey() {
   const search = windows.get('search')
   if (!search) return
   if (search.isVisible()) {
     search.hide()
     return
   }
-
-  const lookup = store.getConfig().lookupSelection
-
-  // Pop the bar up IMMEDIATELY. With select-to-lookup on we show it *inactive*
-  // so the user's current app keeps keyboard focus — the ⌘C we synthesize next
-  // has to reach THAT app, not our freshly-opened window.
-  windows.showSearch({ activate: !lookup })
-
-  if (!lookup) return
-
-  // Capture runs with the bar already on screen, so the osascript spawn +
-  // clipboard poll no longer gate the pop-up. Take focus + seed once it lands.
-  const seed = await captureSelection()
-  // Bail if the bar was dismissed (a second hotkey press) while we were
-  // capturing — don't resurrect a window the user just hid.
-  if (search.isDestroyed() || !search.isVisible()) return
-  windows.activateSearch()
-  if (seed) search.webContents.send('seed-search', seed)
+  // Pop the search bar up, focused and ready to type.
+  windows.showSearch()
 }
 
 const hotkey = new HotkeyManager(() => void onHotkey())

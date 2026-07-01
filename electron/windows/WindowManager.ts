@@ -90,7 +90,10 @@ export class WindowManager {
       )
     } else {
       const indexPath = path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
-      win.loadFile(indexPath, hash ? { hash } : undefined)
+      // Match the dev-server form (`#/<hash>`): `loadFile`'s hash option emits
+      // `#<hash>` for a bare name, so prefix the slash. The Router tolerates
+      // both, but keeping the two loaders identical avoids silent drift.
+      win.loadFile(indexPath, hash ? { hash: `/${hash}` } : undefined)
     }
   }
 }
