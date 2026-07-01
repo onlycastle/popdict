@@ -64,6 +64,15 @@ function trayIconPath(): string {
 
 if (hasSingleInstanceLock) {
   app.whenReady().then(() => {
+    // Hide the Dock icon BEFORE any window opens so the menu-bar app never
+    // flashes a Dock tile on first launch. The packaged build also sets
+    // LSUIElement=true (forge.config.ts), which makes this redundant there;
+    // keeping the call preserves the no-Dock behavior in dev (`npm start`),
+    // where the app runs from the plain Electron binary with no Info.plist.
+    if (process.platform === 'darwin' && app.dock) {
+      app.dock.hide()
+    }
+
     registerAuthProtocol(log)
 
     store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
@@ -78,10 +87,6 @@ if (hasSingleInstanceLock) {
 
     if (!store.getConfig().onboardingDone) {
       windows.open('onboarding')
-    }
-
-    if (process.platform === 'darwin' && app.dock) {
-      app.dock.hide()
     }
 
     const startupHotkey = store.getConfig().hotkey

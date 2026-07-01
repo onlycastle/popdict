@@ -33,6 +33,14 @@ const config: ForgeConfig = {
     appCategoryType: 'public.app-category.reference',
     icon: './icon', // Custom app icon (auto-detects .icns on macOS)
     extraResource: ['./assets'],
+    // Menu-bar (agent) app: no Dock tile, ever. Setting LSUIElement in the
+    // packaged Info.plist means macOS launches PopDict as an accessory from the
+    // start — there is no Dock icon to flash before the runtime app.dock.hide()
+    // can run. Windows (search popup, Settings, Saved Words, onboarding) still
+    // open and take keyboard focus normally.
+    extendInfo: {
+      LSUIElement: true,
+    },
     protocols: [
       {
         name: 'PopDict Auth',
