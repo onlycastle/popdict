@@ -42,12 +42,13 @@ async function handleRecord(req: Request): Promise<Response> {
     return json({ error: 'unauthorized' }, 401)
   }
   const body = await req.json().catch(() => ({}))
-  await admin().from('download_events').insert({
+  const { error } = await admin().from('download_events').insert({
     version: body.version ?? null,
     asset: body.asset ?? null,
     referrer_host: referrerHost(body.referrer ?? null),
     country: body.country ?? null,
   })
+  if (error) return json({ error: 'record failed' }, 500)
   return new Response(null, { status: 204 })
 }
 
@@ -76,32 +77,37 @@ function authorizedRead(req: Request): boolean {
 
 async function handleStats(): Promise<Response> {
   const db = admin()
-  const { data: latest } = await db
+  const { data: latest, error: e1 } = await db
     .from('github_snapshots').select('captured_on')
     .order('captured_on', { ascending: false }).limit(1)
+  if (e1) return json({ error: 'stats failed' }, 500)
   const asOf = latest?.[0]?.captured_on ?? null
   let github = { total: 0, byAsset: {} as Record<string, number>, asOf }
   if (asOf) {
-    const { data: snap } = await db
+    const { data: snap, error: e2 } = await db
       .from('github_snapshots').select('asset,download_count').eq('captured_on', asOf)
+    if (e2) return json({ error: 'stats failed' }, 500)
     github = { ...sumSnapshot(snap ?? []), asOf }
   }
-  const { count } = await db
+  const { count, error: e3 } = await db
     .from('download_events').select('*', { count: 'exact', head: true })
+  if (e3) return json({ error: 'stats failed' }, 500)
   const website = count ?? 0
   return json({ combined: github.total + website, github, website: { total: website } })
 }
 
 async function handleTimeseries(): Promise<Response> {
   const db = admin()
-  const { data: ghRows } = await db.from('github_snapshots').select('captured_on,download_count')
+  const { data: ghRows, error: te1 } = await db.from('github_snapshots').select('captured_on,download_count')
+  if (te1) return json({ error: 'timeseries failed' }, 500)
   const ghMap = new Map<string, number>()
   for (const r of ghRows ?? []) ghMap.set(r.captured_on, (ghMap.get(r.captured_on) ?? 0) + r.download_count)
   const githubDaily = [...ghMap.entries()]
     .map(([date, total]) => ({ date, total }))
     .sort((a, b) => (a.date < b.date ? -1 : 1))
 
-  const { data: evRows } = await db.from('download_events').select('occurred_at')
+  const { data: evRows, error: te2 } = await db.from('download_events').select('occurred_at')
+  if (te2) return json({ error: 'timeseries failed' }, 500)
   const webMap = new Map<string, number>()
   for (const r of evRows ?? []) {
     const d = String(r.occurred_at).slice(0, 10)
