@@ -3,15 +3,20 @@
 ## Deploy
 
 1. Push the migration:      `supabase db push`
-2. Deploy the function:     `supabase functions deploy downloads`
+2. Deploy the function:     `supabase functions deploy downloads --no-verify-jwt`
+   (The function does its OWN token checks; callers send no Supabase JWT, so the
+    gateway JWT check must be disabled or every request 401s at the gateway.)
 3. Set function secrets (values NOT in this repo):
    `supabase secrets set GITHUB_REPO=onlycastle/popdict DOWNLOADS_RECORD_TOKEN=<rec> DOWNLOADS_STATS_TOKEN=<admin>`
    (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are provided to functions automatically.)
 4. Set Vercel (site) env for Production:
-   `DOWNLOADS_FN_URL` = https://<project>.functions.supabase.co/downloads
+   `DOWNLOADS_FN_URL`      = https://<project>.functions.supabase.co/downloads
    `DOWNLOADS_RECORD_TOKEN` = <rec>   (same value as the function's)
    `DOWNLOADS_STATS_TOKEN`  = <admin> (same value as the function's)
-   `CRON_SECRET` is auto-provided by Vercel Cron; set it in project env if running the route manually.
+   `CRON_SECRET`            = <secret> MUST be set in the Vercel project env — Vercel attaches
+                               `Authorization: Bearer $CRON_SECRET` to scheduled cron requests;
+                               without it the daily snapshot route 401s and the GitHub count never advances.
+   `GITHUB_REPO`            = onlycastle/popdict
 5. Deploy the site (Vercel) so `/download/latest` and `/api/cron/snapshot` ship.
 
 ## Seed the first GitHub number

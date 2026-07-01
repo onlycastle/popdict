@@ -58,7 +58,9 @@ async function handleSnapshot(req: Request): Promise<Response> {
   }
   const repo = Deno.env.get('GITHUB_REPO')
   if (!repo) return json({ error: 'GITHUB_REPO not set' }, 503)
-  const res = await fetch(`https://api.github.com/repos/${repo}/releases`, {
+  // per_page=100 avoids silent undercounting once releases exceed the default 30.
+  // The repo has ~3 releases; no further pagination needed.
+  const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=100`, {
     headers: { Accept: 'application/vnd.github+json' },
   })
   if (!res.ok) return json({ error: 'github fetch failed' }, 502)
@@ -137,6 +139,7 @@ Deno.serve(async (req: Request) => {
     }
     return json({ error: 'method not allowed' }, 405)
   } catch (e) {
-    return json({ error: String(e) }, 500)
+    console.error(e)
+    return json({ error: 'internal error' }, 500)
   }
 })
