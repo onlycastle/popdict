@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
+import HotkeyField from '../components/HotkeyField'
 
 export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -20,30 +21,6 @@ export default function SettingsView() {
     auth.user?.user_metadata?.name ??
     auth.user?.email ??
     'Signed in'
-
-  const recordHotkey = (e: React.KeyboardEvent) => {
-    e.preventDefault()
-    if (['Meta', 'Control', 'Shift', 'Alt'].includes(e.key)) return
-    if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-      setStatus('Hotkey must include ⌘, Ctrl, or Alt')
-      return
-    }
-    const parts: string[] = []
-    if (e.metaKey || e.ctrlKey) parts.push('CommandOrControl')
-    if (e.shiftKey) parts.push('Shift')
-    if (e.altKey) parts.push('Alt')
-    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key
-    parts.push(key === ' ' ? 'Space' : key)
-    const accelerator = parts.join('+')
-    window.electronAPI.changeHotkey(accelerator).then((ok) => {
-      if (ok) {
-        setSettings({ ...settings, hotkey: accelerator })
-        setStatus('Hotkey updated')
-      } else {
-        setStatus('That shortcut is unavailable — try another')
-      }
-    })
-  }
 
   return (
     <div className="window h-screen overflow-y-auto p-6 space-y-5">
@@ -86,16 +63,10 @@ export default function SettingsView() {
         )}
       </section>
 
-      <label className="block space-y-1">
-        <span className="text-sm text-white/80">Global hotkey</span>
-        <input
-          readOnly
-          value={settings.hotkey}
-          onKeyDown={recordHotkey}
-          className="search-input"
-          placeholder="Click and press a shortcut"
-        />
-      </label>
+      <HotkeyField
+        value={settings.hotkey}
+        onChange={(hotkey) => setSettings((s) => (s ? { ...s, hotkey } : s))}
+      />
 
       <label className="flex items-center gap-2">
         <input

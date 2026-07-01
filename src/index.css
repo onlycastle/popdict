@@ -399,3 +399,26 @@ input[type='checkbox'] {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Amber pulse on the hotkey field while recording a new shortcut. */
+.hotkey-recording {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 10px 14px;
+  border: 1px solid rgb(var(--accent) / 0.6);
+  border-radius: 10px;
+  background: rgb(var(--accent) / 0.08);
+  animation: hotkey-pulse 1.2s ease-in-out infinite;
+}
+@keyframes hotkey-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--accent) / 0);
+    border-color: rgb(var(--accent) / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+    border-color: rgb(var(--accent) / 0.7);
+  }
+}
