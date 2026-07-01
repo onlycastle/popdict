@@ -1,7 +1,8 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { DEFAULT_HOTKEY } from '../shared/hotkey'
 
-export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+Space'
+export { DEFAULT_HOTKEY }
 const HISTORY_CAP = 12
 
 export type StoredConfig = {
