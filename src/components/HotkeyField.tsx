@@ -24,13 +24,18 @@ export default function HotkeyField({ value, onChange }: Props) {
     }
   }
 
+  function cancel() {
+    setFeedback(null)
+    setRecording(false)
+  }
+
   useEffect(() => {
     if (!recording) return
     const onKeyDown = (e: KeyboardEvent) => {
       e.preventDefault()
       e.stopPropagation()
       if (e.key === 'Escape') {
-        setRecording(false)
+        cancel()
         return
       }
       const result = eventToAccelerator(e)
@@ -43,6 +48,10 @@ export default function HotkeyField({ value, onChange }: Props) {
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
+    // Deps intentionally [recording] only: the handler closes over stable setState
+    // fns and a functional-update onChange, so there is no stale-closure hazard.
+    // (No eslint-disable here — react-hooks isn't installed and ESLint 8 errors on
+    // a disable directive for an unknown rule.)
   }, [recording])
 
   function startRecording() {
@@ -67,7 +76,7 @@ export default function HotkeyField({ value, onChange }: Props) {
         )}
 
         {recording ? (
-          <button className="btn-ghost text-sm" onClick={() => setRecording(false)}>
+          <button className="btn-ghost text-sm" onClick={cancel}>
             Cancel
           </button>
         ) : (
