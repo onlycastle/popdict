@@ -76,3 +76,6 @@ security_best_practices_report.md
 # Deno lockfile from edge-function tests — regenerated locally; the deployed
 # functions resolve imports at deploy time (matches the lockfile-free `idioms` fn)
 deno.lock
+
+# Local demo recordings — keep large binaries out of the public repo
+*.mp4
