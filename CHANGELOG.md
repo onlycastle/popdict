@@ -3,6 +3,16 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-07-02
+
+### Added
+- Private download tracking through the website download redirect, backed by a
+  token-gated Supabase Edge Function and daily GitHub release snapshots.
+
+### Fixed
+- macOS menu-bar tray icon now uses the colored PopDict tray asset in packaged
+  builds instead of a template icon that macOS flattens to monochrome.
+
 ## [1.0.0] — 2026-06-23
 
 First public release. A macOS menu-bar dictionary for English learners.
