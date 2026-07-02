@@ -193,87 +193,79 @@ input[type='checkbox'] {
   height: 15px;
 }
 
-/* Custom component styles */
+/* Boxed text field — used by the secondary windows (Saved Words filter,
+   Settings). The popup's own field is the unboxed .search-field in App.css. */
 .search-input {
   width: 100%;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   color: white;
-  font-size: 16px;
+  font-size: 14px;
   outline: none;
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   -webkit-app-region: no-drag;
 }
 
 .search-input:focus {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgb(var(--accent) / 0.6);
-  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgb(var(--accent) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.18);
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Only the main popup's search box carries the leading magnifier glyph; the
-   bare .search-input is reused unadorned in Settings and Saved Words, so the
-   icon clearance lives on this modifier rather than the base class. */
-.search-input--with-icon {
-  padding-left: 42px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .results-container {
   flex: 1;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 16px 0 18px;
   scroll-behavior: smooth;
   -webkit-app-region: no-drag;
 }
 
-.meaning-section {
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+/* One part-of-speech group. No card, no fill: a hairline rule between groups
+   is all the structure a dictionary entry needs. */
+.sense-group {
+  padding: 14px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.definition-item {
-  padding-left: 12px;
-  border-left: 2px solid rgba(255, 255, 255, 0.25);
+.sense-group:first-child {
+  border-top: none;
+  padding-top: 0;
 }
 
+/* Quiet, borderless save action — amber text on glass. */
 .save-word-button {
   flex: 0 0 auto;
-  min-width: 64px;
-  min-height: 34px;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.92);
+  min-height: 30px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: rgb(var(--accent) / 0.95);
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
-  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
   -webkit-app-region: no-drag;
 }
 
 .save-word-button:hover:not(:disabled) {
-  background: rgb(var(--accent) / 0.16);
-  border-color: rgb(var(--accent) / 0.45);
+  background: rgb(var(--accent) / 0.14);
 }
 
 .save-word-button:focus-visible {
   outline: none;
-  border-color: rgb(var(--accent) / 0.6);
-  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.3);
 }
 
 .save-word-button:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .login-modal-backdrop {
@@ -290,11 +282,13 @@ input[type='checkbox'] {
 
 .login-modal {
   width: min(360px, 100%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  background: rgba(24, 24, 27, 0.96);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
-  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(28, 23, 17, 0.94);
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 20px;
   -webkit-app-region: no-drag;
 }
 
@@ -338,7 +332,7 @@ input[type='checkbox'] {
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.45);
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease,
     box-shadow 0.2s ease;
   -webkit-app-region: no-drag;
@@ -384,8 +378,7 @@ input[type='checkbox'] {
 }
 
 .results-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  background: transparent;
 }
 
 .results-container::-webkit-scrollbar-thumb {

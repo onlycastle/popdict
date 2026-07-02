@@ -7,6 +7,8 @@ interface SearchInputProps {
   loading?: boolean
 }
 
+// The unboxed, Spotlight-style field: magnifier, serif input, spinner slot.
+// Layout (row height, gaps) belongs to .search-row in the parent.
 const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ({ value, onChange, onSearch, loading }, ref) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -16,12 +18,10 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     }
 
     return (
-      <div className="relative">
-        {/* Decorative affordance only — aria-hidden + pointer-events:none so it
-            never steals focus/clicks or interferes with the drag region. */}
+      <>
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white/45"
+          className="search-row__icon"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -38,16 +38,18 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search for words, phrases, or idioms..."
-          className="search-input search-input--with-icon"
+          placeholder="Look up a word or idiom…"
+          className="search-field"
+          aria-label="Look up a word or idiom"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
           autoFocus
         />
         {loading && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">
-            <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white/80 rounded-full" />
-          </div>
+          <div className="animate-spin h-4 w-4 shrink-0 border-2 border-white/25 border-t-white/70 rounded-full" />
         )}
-      </div>
+      </>
     )
   }
 )

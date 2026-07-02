@@ -1,5 +1,6 @@
-// Slim chrome rail for the main popup. The window is frameless, so this is the
-// only in-app place to reach Saved Words / Settings and to close the popup.
+// The popup's only chrome: two quiet icons at the right end of the search row.
+// No wordmark (the popup doesn't need to announce itself) and no close button —
+// Esc and clicking away both dismiss, like every macOS floating panel.
 // Each control routes through the existing electronAPI bridge — no new IPC.
 
 const ICON_PROPS = {
@@ -30,48 +31,27 @@ function SettingsIcon() {
   )
 }
 
-function CloseIcon() {
-  return (
-    <svg {...ICON_PROPS} aria-hidden="true">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  )
-}
-
 function WindowControls() {
   return (
-    <div className="header-rail">
-      <span className="header-wordmark">popdict</span>
-      <div className="header-controls">
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Saved words"
-          title="Saved words"
-          onClick={() => window.electronAPI?.openSavedWords()}
-        >
-          <BookmarkIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Settings"
-          title="Settings"
-          onClick={() => window.electronAPI?.openSettings()}
-        >
-          <SettingsIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Close"
-          title="Close (Esc)"
-          onClick={() => window.electronAPI?.hideWindow()}
-        >
-          <CloseIcon />
-        </button>
-      </div>
+    <div className="chrome-controls">
+      <button
+        type="button"
+        className="icon-button"
+        aria-label="Saved words"
+        title="Saved words"
+        onClick={() => window.electronAPI?.openSavedWords()}
+      >
+        <BookmarkIcon />
+      </button>
+      <button
+        type="button"
+        className="icon-button"
+        aria-label="Settings"
+        title="Settings"
+        onClick={() => window.electronAPI?.openSettings()}
+      >
+        <SettingsIcon />
+      </button>
     </div>
   )
 }

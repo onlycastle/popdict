@@ -43,8 +43,8 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
       singleton: true,
       options: {
         width: 800,
-        height: 128,
-        minHeight: 128,
+        height: 64,
+        minHeight: 64,
         maxHeight: 600,
         transparent: true,
         frame: false,
