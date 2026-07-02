@@ -21,6 +21,12 @@ npm run dev
 | ---------------------- | ------------------------------------------------------------- |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL, used for SEO / Open Graph metadata.       |
 | `GITHUB_REPO`          | `owner/repo` hosting PopDict releases. Powers `/download/latest` and GitHub Issues links. |
+| `DOWNLOADS_FN_URL`     | Supabase `downloads` function URL for recording and stats.    |
+| `DOWNLOADS_RECORD_TOKEN` | Server-side token used by `/download/latest` to record clicks. |
+| `DOWNLOADS_STATS_TOKEN` | Server-side token used by cron and the private dashboard.     |
+| `DOWNLOADS_DASHBOARD_USER` | Basic Auth username for `/admin/downloads`.                |
+| `DOWNLOADS_DASHBOARD_PASSWORD` | Basic Auth password for `/admin/downloads`.          |
+| `CRON_SECRET`          | Vercel Cron bearer secret for `/api/cron/snapshot`.           |
 
 ## Routes
 
@@ -30,3 +36,4 @@ npm run dev
 - `/privacy` — privacy policy (link this in the Google OAuth consent screen).
 - `/terms` — terms of use.
 - `/download/latest` — 302 redirect to the latest release's `.dmg` asset.
+- `/admin/downloads` — private Basic Auth dashboard for download totals.

@@ -13,6 +13,8 @@
    `DOWNLOADS_FN_URL`      = https://<project>.functions.supabase.co/downloads
    `DOWNLOADS_RECORD_TOKEN` = <rec>   (same value as the function's)
    `DOWNLOADS_STATS_TOKEN`  = <admin> (same value as the function's)
+   `DOWNLOADS_DASHBOARD_USER` = <user> for `/admin/downloads` Basic Auth
+   `DOWNLOADS_DASHBOARD_PASSWORD` = <password> for `/admin/downloads` Basic Auth
    `CRON_SECRET`            = <secret> MUST be set in the Vercel project env — Vercel attaches
                                `Authorization: Bearer $CRON_SECRET` to scheduled cron requests;
                                without it the daily snapshot route 401s and the GitHub count never advances.
@@ -33,6 +35,13 @@ the first daily cron fires:
     source .env.local           # exports DOWNLOADS_FN_URL + DOWNLOADS_STATS_TOKEN
     ./scripts/download-stats.sh              # current totals
     ./scripts/download-stats.sh timeseries   # per-day cumulative series
+
+Or open the private dashboard:
+
+    https://popdict.space/admin/downloads
+
+It is protected by HTTP Basic Auth with `DOWNLOADS_DASHBOARD_USER` and
+`DOWNLOADS_DASHBOARD_PASSWORD`.
 
 ## Notes
 
