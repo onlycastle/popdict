@@ -72,3 +72,6 @@ docs/superpowers/
 
 # Local-only reports (security findings, audits) — keep out of the public repo
 security_best_practices_report.md
+
+# Local demo recordings — keep large binaries out of the public repo
+*.mp4
