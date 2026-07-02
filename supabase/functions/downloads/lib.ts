@@ -5,6 +5,20 @@ export type ReleaseAsset = { name: string; download_count: number }
 export type Release = { tag_name: string; assets: ReleaseAsset[] }
 export type SnapshotRow = { tag: string; asset: string; download_count: number }
 export type DayPoint = { date: string; github: number; website: number; combined: number }
+export type DownloadNotificationRecord = {
+  version: string | null
+  asset: string | null
+  referrer_host: string | null
+  country: string | null
+}
+export type SlackWebhookPayload = {
+  text: string
+  blocks: {
+    type: string
+    text?: { type: string; text: string }
+    fields?: { type: string; text: string }[]
+  }[]
+}
 
 // Reduce a Referer header to its host, dropping path/query. null when absent/unparseable.
 export function referrerHost(referer: string | null): string | null {
@@ -13,6 +27,38 @@ export function referrerHost(referer: string | null): string | null {
     return new URL(referer).host || null
   } catch {
     return null
+  }
+}
+
+function slackEscape(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
+
+function slackValue(value: string | null, fallback = 'unknown'): string {
+  return value ? slackEscape(value) : fallback
+}
+
+// Format a compact incoming-webhook payload for a successful website download record.
+export function buildSlackDownloadPayload(record: DownloadNotificationRecord): SlackWebhookPayload {
+  const version = slackValue(record.version)
+  const asset = slackValue(record.asset)
+  const referrer = slackValue(record.referrer_host, 'direct/unknown')
+  const country = slackValue(record.country)
+
+  return {
+    text: `New PopDict download: ${asset}`,
+    blocks: [
+      { type: 'section', text: { type: 'mrkdwn', text: '*New PopDict download*' } },
+      {
+        type: 'section',
+        fields: [
+          { type: 'mrkdwn', text: `*Version*\n${version}` },
+          { type: 'mrkdwn', text: `*Asset*\n${asset}` },
+          { type: 'mrkdwn', text: `*Referrer*\n${referrer}` },
+          { type: 'mrkdwn', text: `*Country*\n${country}` },
+        ],
+      },
+    ],
   }
 }
 

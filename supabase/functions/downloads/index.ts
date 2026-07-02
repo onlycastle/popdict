@@ -9,10 +9,18 @@
 // Deploy:  supabase functions deploy downloads
 // Secrets: supabase secrets set GITHUB_REPO=onlycastle/popdict \
 //            DOWNLOADS_RECORD_TOKEN=... DOWNLOADS_STATS_TOKEN=...
+// Optional Slack: supabase secrets set SLACK_DOWNLOAD_WEBHOOK_URL=...
 
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { buildTimeseries, referrerHost, releasesToSnapshotRows, sumSnapshot } from './lib.ts'
+import {
+  buildSlackDownloadPayload,
+  buildTimeseries,
+  referrerHost,
+  releasesToSnapshotRows,
+  sumSnapshot,
+  type DownloadNotificationRecord,
+} from './lib.ts'
 
 declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void
@@ -37,18 +45,45 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+async function postSlackDownloadNotification(record: DownloadNotificationRecord): Promise<void> {
+  const webhookUrl = Deno.env.get('SLACK_DOWNLOAD_WEBHOOK_URL')
+  if (!webhookUrl) return
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 2000)
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(buildSlackDownloadPayload(record)),
+      signal: controller.signal,
+    })
+    if (!res.ok) console.error(`slack download notification failed: ${res.status}`)
+  } catch (e) {
+    console.error('slack download notification failed', e)
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function handleRecord(req: Request): Promise<Response> {
   if (req.headers.get('x-record-token') !== Deno.env.get('DOWNLOADS_RECORD_TOKEN')) {
     return json({ error: 'unauthorized' }, 401)
   }
   const body = await req.json().catch(() => ({}))
-  const { error } = await admin().from('download_events').insert({
-    version: body.version ?? null,
-    asset: body.asset ?? null,
-    referrer_host: referrerHost(body.referrer ?? null),
-    country: body.country ?? null,
-  })
+  const record = {
+    version: textOrNull(body.version),
+    asset: textOrNull(body.asset),
+    referrer_host: referrerHost(textOrNull(body.referrer)),
+    country: textOrNull(body.country),
+  }
+  const { error } = await admin().from('download_events').insert(record)
   if (error) return json({ error: 'record failed' }, 500)
+  await postSlackDownloadNotification(record)
   return new Response(null, { status: 204 })
 }
 

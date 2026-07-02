@@ -11,6 +11,42 @@ function buildAppCallbackUrl() {
   return payload ? `${APP_AUTH_CALLBACK_URL}${payload}` : null
 }
 
+function authCallbackSummary() {
+  const search = new URLSearchParams(window.location.search)
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  return {
+    hasCode: search.has('code'),
+    hasAccessToken: hash.has('access_token'),
+    error: search.get('error') || hash.get('error'),
+  }
+}
+
+function notifySignupOnce() {
+  try {
+    const payload = authCallbackSummary()
+    if (payload.error || (!payload.hasCode && !payload.hasAccessToken)) return
+
+    const key = `popdict-signup-notified:${window.location.search}:${window.location.hash}`
+    if (window.sessionStorage.getItem(key)) return
+    window.sessionStorage.setItem(key, '1')
+
+    const body = JSON.stringify(payload)
+    const url = '/api/slack/signup'
+    const blob = new Blob([body], { type: 'application/json' })
+
+    if (navigator.sendBeacon?.(url, blob)) return
+
+    void fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => undefined)
+  } catch {
+    // Best-effort only. Never block the auth handoff to the desktop app.
+  }
+}
+
 export default function AuthCallbackPage() {
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null)
   const [state, setState] = useState<HandoffState>('opening')
@@ -23,6 +59,8 @@ export default function AuthCallbackPage() {
       setState('missing')
       return
     }
+
+    notifySignupOnce()
 
     const settleTimer = window.setTimeout(() => {
       // Chrome can keep the tab spinner active while the external protocol
