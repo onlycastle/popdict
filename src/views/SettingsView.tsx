@@ -14,7 +14,13 @@ export default function SettingsView() {
     window.electronAPI.getAppVersion().then(setVersion)
   }, [])
 
-  if (!settings) return <div className="window min-h-screen p-6 text-white/80">Loading…</div>
+  if (!settings)
+    return (
+      <div className="window flex h-screen flex-col">
+        <div className="titlebar-drag" />
+        <p className="px-6 text-white/80">Loading…</p>
+      </div>
+    )
 
   const update = (patch: Partial<AppSettings>) =>
     window.electronAPI.setSettings(patch).then(setSettings)
@@ -25,8 +31,10 @@ export default function SettingsView() {
     'Signed in'
 
   return (
-    <div className="window h-screen overflow-y-auto p-6 space-y-5">
-      <h1 className="view-title text-lg">Settings</h1>
+    <div className="window flex h-screen flex-col">
+      <div className="titlebar-drag" />
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+        <h1 className="view-title text-lg">Settings</h1>
 
       <section className="space-y-3 border-b border-white/10 pb-5">
         <div>
@@ -94,8 +102,9 @@ export default function SettingsView() {
         </button>
       </div>
 
-      {status && <p className="text-xs text-white/60">{status}</p>}
-      {version && <p className="pt-2 text-xs text-white/40">PopDict v{version}</p>}
+        {status && <p className="text-xs text-white/60">{status}</p>}
+        {version && <p className="pt-2 text-xs text-white/40">PopDict v{version}</p>}
+      </div>
     </div>
   )
 }

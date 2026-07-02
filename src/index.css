@@ -86,11 +86,21 @@ body {
   color: #fff;
 }
 
-/* Opaque secondary windows share the popup's warm-dark temperature. */
+/* Secondary windows: a translucent warm wash over the window's native
+   under-window vibrancy (set in windowSpecs.ts), so they read as the same
+   material family as the popup rather than opaque panels. */
 .window {
-  background: var(--surface);
+  background: rgba(22, 18, 13, 0.72);
   color: rgba(255, 255, 255, 0.92);
   font-family: var(--font-sans);
+}
+
+/* With titleBarStyle: 'hiddenInset' the traffic lights float over our content.
+   This strip reserves their space and doubles as the window's drag handle. */
+.titlebar-drag {
+  flex: 0 0 auto;
+  height: 40px;
+  -webkit-app-region: drag;
 }
 
 /* Keycap, matching the site's <kbd>. */
