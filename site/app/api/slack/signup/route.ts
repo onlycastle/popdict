@@ -7,7 +7,11 @@ type SignupNotificationPayload = {
 }
 
 function field(title: string, value: string | null | undefined) {
-  return value ? { type: 'mrkdwn', text: `*${title}:*\n${value}` } : null
+  return value ? { type: 'mrkdwn', text: `*${title}:*\n${slackEscape(value)}` } : null
+}
+
+function slackEscape(value: string) {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
 function userAgentName(userAgent: string | null) {
