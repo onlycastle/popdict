@@ -57,9 +57,12 @@ installDeepLinkHandlers({ broker, windows, log, hasSingleInstanceLock })
 registerWebContentsHardening()
 
 function trayIconPath(): string {
+  // Colored (non-template) icon: the filename must NOT end in `Template`, or
+  // macOS flattens it to a monochrome alpha mask and discards the brand colors.
+  // Electron auto-loads the `@2x` sibling for Retina menu bars.
   return app.isPackaged
-    ? path.join(process.resourcesPath, 'assets', 'trayTemplate.png')
-    : path.join(__dirname, '../../assets/trayTemplate.png')
+    ? path.join(process.resourcesPath, 'assets', 'trayIcon.png')
+    : path.join(__dirname, '../../assets/trayIcon.png')
 }
 
 if (hasSingleInstanceLock) {
