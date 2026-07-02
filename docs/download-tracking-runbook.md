@@ -8,6 +8,8 @@
     gateway JWT check must be disabled or every request 401s at the gateway.)
 3. Set function secrets (values NOT in this repo):
    `supabase secrets set GITHUB_REPO=onlycastle/popdict DOWNLOADS_RECORD_TOKEN=<rec> DOWNLOADS_STATS_TOKEN=<admin>`
+   Optional Slack notifications for each successful website download record:
+   `supabase secrets set SLACK_DOWNLOAD_WEBHOOK_URL=https://hooks.slack.com/services/...`
    (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are provided to functions automatically.)
 4. Set Vercel (site) env for Production:
    `DOWNLOADS_FN_URL`      = https://<project>.functions.supabase.co/downloads
@@ -48,3 +50,6 @@ It is protected by HTTP Basic Auth with `DOWNLOADS_DASHBOARD_USER` and
 - `stats` is ≤24h stale by design (reads the latest daily snapshot, not live GitHub).
 - The cron runs daily at 06:00 UTC (`vercel.json` → crons). Hobby plan allows daily.
 - `record` is best-effort; a site outage loses events but never breaks downloads.
+- Slack download notifications are opt-in via the `SLACK_DOWNLOAD_WEBHOOK_URL`
+  function secret. Notification failures are logged and ignored after the event is
+  stored, so Slack outages do not break download tracking.

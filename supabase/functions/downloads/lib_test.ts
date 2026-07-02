@@ -4,6 +4,7 @@ import {
   releasesToSnapshotRows,
   sumSnapshot,
   buildTimeseries,
+  buildSlackDownloadPayload,
 } from './lib.ts'
 
 Deno.test('referrerHost strips path and query, tolerates junk', () => {
@@ -11,6 +12,22 @@ Deno.test('referrerHost strips path and query, tolerates junk', () => {
   assertEquals(referrerHost('https://popdict.space/'), 'popdict.space')
   assertEquals(referrerHost(null), null)
   assertEquals(referrerHost('not a url'), null)
+})
+
+Deno.test('buildSlackDownloadPayload formats a safe Slack notice', () => {
+  const payload = buildSlackDownloadPayload({
+    version: 'v1.1.2',
+    asset: 'PopDict-<arm64>.dmg',
+    referrer_host: 'news.ycombinator.com',
+    country: 'US',
+  })
+  assertEquals(payload.text, 'New PopDict download: PopDict-&lt;arm64&gt;.dmg')
+  assertEquals(payload.blocks[1].fields, [
+    { type: 'mrkdwn', text: '*Version*\nv1.1.2' },
+    { type: 'mrkdwn', text: '*Asset*\nPopDict-&lt;arm64&gt;.dmg' },
+    { type: 'mrkdwn', text: '*Referrer*\nnews.ycombinator.com' },
+    { type: 'mrkdwn', text: '*Country*\nUS' },
+  ])
 })
 
 Deno.test('releasesToSnapshotRows flattens every asset', () => {
