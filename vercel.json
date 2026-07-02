@@ -3,5 +3,6 @@
   "framework": "nextjs",
   "installCommand": "cd site && npm install",
   "buildCommand": "cd site && npm run build",
-  "outputDirectory": "site/.next"
+  "outputDirectory": "site/.next",
+  "crons": [{ "path": "/api/cron/snapshot", "schedule": "0 6 * * *" }]
 }
