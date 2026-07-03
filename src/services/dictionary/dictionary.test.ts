@@ -282,6 +282,18 @@ describe('EnKoTranslationSource', () => {
   it('returns [] when supabase is not configured', async () => {
     expect(await new EnKoTranslationSource(null).lookup('apple')).toEqual([])
   })
+
+  it('resolves [] when the query hangs past the timeout (never delays the main lookup)', async () => {
+    vi.useFakeTimers()
+    try {
+      maybeSingle.mockReturnValue(new Promise(() => undefined)) // never settles
+      const lookup = new EnKoTranslationSource().lookup('apple')
+      await vi.advanceTimersByTimeAsync(1500)
+      await expect(lookup).resolves.toEqual([])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('DictionaryError', () => {
