@@ -12,6 +12,12 @@
 // protected by a durable per-IP counter in Postgres (see the krdict_usage
 // migration), called with the service role key so public clients cannot
 // bypass it — same pattern as the idioms function.
+//
+// Contract: only a well-formed <channel> response (including a genuinely
+// empty result set) is cached as { results }. Upstream failures — non-2xx
+// status, an <error> root element, or a network exception — always return
+// uncached 503 { results: [], error }, so a transient krdict outage can
+// never be mistaken for "word not found" and never poisons the cache.
 
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -106,12 +112,18 @@ Deno.serve(async (req: Request) => {
 
   try {
     const upstream = await fetch(url.toString())
-    if (!upstream.ok) return json({ results: [] })
     const xml = await upstream.text()
+    // krdict signals errors two ways: a non-2xx status, or an HTTP 200 body
+    // whose root is <error> (e.g. rate-limit/auth failures upstream). Both
+    // parse to an empty result set, which would otherwise be cached for 24h
+    // as a false "not found" — surface them as an uncached 503 instead.
+    if (!upstream.ok || xml.includes('<error')) {
+      return json({ results: [], error: 'upstream_error' }, 503)
+    }
     const results = parseKrdictXml(xml)
     cache.set(word, { at: Date.now(), results })
     return json({ results })
   } catch {
-    return json({ results: [] })
+    return json({ results: [], error: 'upstream_unreachable' }, 503)
   }
 })
