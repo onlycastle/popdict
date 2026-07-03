@@ -12,7 +12,8 @@ const LOCAL_ONLY_PREFIXES = [
 ]
 
 function isLocalOnly(target) {
-  if (target.startsWith('.claude/')) return !target.startsWith('.claude/skills/')
+  if (target === '.claude/skills' || target.startsWith('.claude/skills/')) return false
+  if (target.startsWith('.claude/')) return true
   return LOCAL_ONLY_PREFIXES.some((p) => target === p.replace(/\/$/, '') || target.startsWith(p))
 }
 

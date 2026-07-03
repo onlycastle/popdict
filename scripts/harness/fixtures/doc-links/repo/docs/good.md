@@ -5,3 +5,4 @@
 - [mail](mailto:someone@example.com)
 - [same-page anchor](#section)
 - [tracked skill](../.claude/skills/foo/SKILL.md)
+- [skills dir itself](../.claude/skills/)

@@ -67,7 +67,11 @@ supabase/.temp/
 
 # Agent / AI tooling local state — never upload to the public repo
 .superpowers/
-.claude/
+# .claude is local state EXCEPT skills, which are tracked so agents and
+# contributors share the same specialist playbooks (git cannot re-include
+# below an excluded directory, hence the /* form).
+.claude/*
+!.claude/skills/
 docs/superpowers/
 
 # Local-only reports (security findings, audits) — keep out of the public repo
