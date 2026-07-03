@@ -1,4 +1,5 @@
 import { DictionaryResult } from '../types/dictionary'
+import { containsHangul } from './lang'
 
 /**
  * Returns the first usable audio URL from a dictionary result's phonetics,
@@ -14,7 +15,7 @@ function speak(word: string): void {
   try {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(word)
-    utterance.lang = 'en-US'
+    utterance.lang = containsHangul(word) ? 'ko-KR' : 'en-US'
     window.speechSynthesis.speak(utterance)
   } catch {
     // ignore TTS failures

@@ -14,7 +14,7 @@
 
   /* Type roles, matching the site: a dictionary serif (headwords, examples), a
      utility mono (IPA, labels, keycaps), and the native sans for body/UI. */
-  --font-serif: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --font-serif: 'Fraunces Variable', 'Iowan Old Style', Georgia, 'Apple SD Gothic Neo', serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif;

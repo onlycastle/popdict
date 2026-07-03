@@ -79,3 +79,6 @@ deno.lock
 
 # Local demo recordings — keep large binaries out of the public repo
 *.mp4
+
+# ETL build artifacts
+out-data/
