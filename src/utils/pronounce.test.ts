@@ -67,4 +67,49 @@ describe('pronounce', () => {
     pronounce('kick')
     expect(speak).toHaveBeenCalledOnce()
   })
+
+  describe('TTS language selection', () => {
+    it('speaks Korean words with a ko-KR voice', () => {
+      const spoken: SpeechSynthesisUtterance[] = []
+      vi.stubGlobal('window', {
+        speechSynthesis: {
+          cancel: vi.fn(),
+          speak: (u: SpeechSynthesisUtterance) => spoken.push(u),
+        },
+      })
+      vi.stubGlobal(
+        'SpeechSynthesisUtterance',
+        class {
+          lang = ''
+          constructor(public text: string) {}
+        }
+      )
+
+      pronounce('사과')
+
+      expect(spoken).toHaveLength(1)
+      expect(spoken[0].lang).toBe('ko-KR')
+    })
+
+    it('keeps en-US for Latin words', () => {
+      const spoken: SpeechSynthesisUtterance[] = []
+      vi.stubGlobal('window', {
+        speechSynthesis: {
+          cancel: vi.fn(),
+          speak: (u: SpeechSynthesisUtterance) => spoken.push(u),
+        },
+      })
+      vi.stubGlobal(
+        'SpeechSynthesisUtterance',
+        class {
+          lang = ''
+          constructor(public text: string) {}
+        }
+      )
+
+      pronounce('apple')
+
+      expect(spoken[0].lang).toBe('en-US')
+    })
+  })
 })
