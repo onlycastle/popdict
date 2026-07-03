@@ -44,11 +44,12 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   }, [])
 
   const enableQuizEmails = useCallback(async () => {
+    setQuizPromptOpen(false)
     if (!user) return
     try {
       await quizPreferences.setEnabled(user, true)
-    } finally {
-      setQuizPromptOpen(false)
+    } catch {
+      // best-effort — a failed write can be redone from Settings; never blocks UI
     }
   }, [user])
 
