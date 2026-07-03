@@ -7,9 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-node_modules/
-site/node_modules/
+# Dependencies — slash-free so the pattern also matches the worktree
+# node_modules *symlink* (L-009); a trailing-slash pattern is directory-only.
+**/node_modules
 
 # Build output and generated caches
 build/

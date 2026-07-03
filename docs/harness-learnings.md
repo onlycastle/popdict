@@ -52,3 +52,9 @@ anything security-sensitive stay local-only.
 - Class: build-artifact
 - Guard: (none — revert the file manually after site builds; never commit the rewrite)
 - Context: Building the site locally rewrites a tracked type-declaration file. The diff is noise and must not be committed.
+
+## L-009: Worktree node_modules symlink slips past a directory-only ignore
+- Status: Closed
+- Class: repo-hygiene
+- Guard: script:.gitignore::**/node_modules
+- Context: Worktree sessions symlink node_modules to the main checkout, and a trailing-slash ignore pattern (`node_modules/`) matches directories only — so `git add -A` staged the symlink, whose target is a machine-local absolute path that must not land in this public repo. The ignore pattern is now slash-free (`**/node_modules`), which matches the symlink too; reverting it reopens this learning.
