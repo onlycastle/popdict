@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "fast-xml-parser": "npm:fast-xml-parser@5"
+  }
+}
