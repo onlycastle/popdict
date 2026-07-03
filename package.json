@@ -62,7 +62,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "5.9.3",
     "vite": "^5.4.21",
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.6"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.2.9",
