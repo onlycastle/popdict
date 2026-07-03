@@ -1,14 +1,35 @@
 # PopDict
 
+[![CI](https://github.com/onlycastle/popdict/actions/workflows/ci.yml/badge.svg)](https://github.com/onlycastle/popdict/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/onlycastle/popdict)](https://github.com/onlycastle/popdict/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/onlycastle/popdict)](LICENSE)
+![Platform: macOS (Apple Silicon)](https://img.shields.io/badge/platform-macOS%20%28Apple%20Silicon%29-black)
+
 PopDict is a macOS menu-bar dictionary for English learners. Press one hotkey to
 look up a word or idiom, hear pronunciation, and save words for later without
 leaving the app you are reading in.
+
+![PopDict demo: press the hotkey, type a word, read the definition](docs/demo.gif)
+
+## Install
+
+[**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest) —
+signed, notarized, and auto-updating.
+
+Or with Homebrew:
+
+```bash
+brew install --cask onlycastle/tap/popdict
+```
 
 ## Features
 
 - Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
 - Optional select-to-lookup for highlighted text on macOS.
 - Free Dictionary API definitions with audio playback and text-to-speech fallback.
+- Korean ↔ English: Hangul lookups through the National Institute of Korean
+  Language's Basic Korean Dictionary (krdict), plus Korean translations alongside
+  English definitions.
 - Idiom and phrase lookup through a Supabase Edge Function proxy.
 - Google sign-in for saved words, backed by Supabase.
 - Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
