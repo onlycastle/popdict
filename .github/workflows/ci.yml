@@ -25,3 +25,13 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
+      - name: Harness gates
+        run: npm run harness:validate
+      - name: Site install
+        run: npm ci --prefix site
+      # Site lint is dead (Next 16 removed `next lint`) — the site gates are
+      # typecheck + Vitest, matching `npm run test:ci` (learning L-007).
+      - name: Site typecheck
+        run: cd site && npx tsc --noEmit
+      - name: Site test
+        run: cd site && npx vitest run

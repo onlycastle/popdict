@@ -15,5 +15,13 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true
   },
-  "exclude": ["node_modules", "out", "dist", ".vite", "supabase/functions", "site"]
+  "exclude": [
+    "node_modules",
+    "out",
+    "dist",
+    ".vite",
+    "supabase/functions",
+    "site",
+    "scripts/harness/fixtures"
+  ]
 }
