@@ -12,6 +12,7 @@ export default function SettingsView() {
 
   const [quizEnabled, setQuizEnabled] = useState<boolean | null>(null)
   const [quizError, setQuizError] = useState('')
+  const [quizSaving, setQuizSaving] = useState(false)
 
   useEffect(() => {
     if (!auth.user) {
@@ -33,7 +34,8 @@ export default function SettingsView() {
   }, [auth.user])
 
   const toggleQuiz = async (enabled: boolean) => {
-    if (!auth.user) return
+    if (!auth.user || quizSaving) return
+    setQuizSaving(true)
     setQuizEnabled(enabled) // optimistic
     setQuizError('')
     try {
@@ -41,6 +43,8 @@ export default function SettingsView() {
     } catch (e) {
       setQuizEnabled(!enabled)
       setQuizError(e instanceof Error ? e.message : 'Could not update quiz emails')
+    } finally {
+      setQuizSaving(false)
     }
   }
 
@@ -115,6 +119,7 @@ export default function SettingsView() {
             <input
               type="checkbox"
               checked={quizEnabled}
+              disabled={quizSaving}
               onChange={(e) => void toggleQuiz(e.target.checked)}
             />
             <span className="text-sm text-white/80">Weekly quiz email on your saved words</span>
