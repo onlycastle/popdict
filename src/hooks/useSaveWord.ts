@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { savedWords } from '../services/SavedWordsRepository'
+import { quizPreferences } from '../services/QuizPreferencesRepository'
 import type { SearchResponse } from '../types/dictionary'
 
 /** The word a Save action targets: the canonical headword, else the raw query. */
 export function getWordToSave(response: SearchResponse | null, fallback: string): string {
   return (response?.dictionaryResults?.[0]?.word ?? response?.idiomResult?.term ?? fallback).trim()
+}
+
+/** Prompt exactly once, at the 5th save, unless the user already has a preference row. */
+export function shouldPromptQuizOptIn(count: number, hasPreferences: boolean): boolean {
+  return count === 5 && !hasPreferences
 }
 
 interface UseSaveWordArgs {
@@ -26,21 +32,42 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   const [saveError, setSaveError] = useState('')
   const [savedWord, setSavedWord] = useState('')
   const [saving, setSaving] = useState(false)
+  const [quizPromptOpen, setQuizPromptOpen] = useState(false)
+
+  const maybePromptQuizOptIn = useCallback(async (u: User) => {
+    try {
+      const [count, prefs] = await Promise.all([savedWords.count(u), quizPreferences.get(u)])
+      if (shouldPromptQuizOptIn(count, prefs !== null)) setQuizPromptOpen(true)
+    } catch {
+      // best-effort — never block or fail a save over the prompt
+    }
+  }, [])
+
+  const enableQuizEmails = useCallback(async () => {
+    if (!user) return
+    try {
+      await quizPreferences.setEnabled(user, true)
+    } finally {
+      setQuizPromptOpen(false)
+    }
+  }, [user])
 
   const wordToSave = getWordToSave(response, searchedTerm || query)
 
   const saveCurrentWord = useCallback(
     async (word: string) => {
       if (!user || !response) return
+      const savingUser = user
 
       setSaving(true)
       setSaveError('')
 
       try {
-        await savedWords.save({ source: response.source, user, word })
+        await savedWords.save({ source: response.source, user: savingUser, word })
         setSavedWord(word)
         setPendingSaveWord('')
         setLoginPromptOpen(false)
+        void maybePromptQuizOptIn(savingUser)
       } catch (saveWordError) {
         setSaveError(saveWordError instanceof Error ? saveWordError.message : 'Could not save word')
         setPendingSaveWord('')
@@ -48,7 +75,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
         setSaving(false)
       }
     },
-    [user, response]
+    [user, response, maybePromptQuizOptIn]
   )
 
   const handleSaveClick = useCallback(() => {
@@ -110,5 +137,8 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
     loginPromptOpen,
     setLoginPromptOpen,
     handleSaveClick,
+    quizPromptOpen,
+    setQuizPromptOpen,
+    enableQuizEmails,
   }
 }

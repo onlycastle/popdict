@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import LoginModal from '../components/LoginModal'
+import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import WindowControls from '../components/WindowControls'
@@ -32,6 +33,9 @@ export default function SearchView() {
     loginPromptOpen,
     setLoginPromptOpen,
     handleSaveClick,
+    quizPromptOpen,
+    setQuizPromptOpen,
+    enableQuizEmails,
   } = useSaveWord({ user: auth.user, response, searchedTerm, query })
 
   useEffect(() => {
@@ -69,6 +73,10 @@ export default function SearchView() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (quizPromptOpen) {
+          setQuizPromptOpen(false)
+          return
+        }
         if (loginPromptOpen) {
           setLoginPromptOpen(false)
           return
@@ -81,7 +89,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [loginPromptOpen, setLoginPromptOpen])
+  }, [loginPromptOpen, setLoginPromptOpen, quizPromptOpen, setQuizPromptOpen])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -89,15 +97,19 @@ export default function SearchView() {
 
   // Size the window to the glass panel's real rendered height. The panel is
   // content-sized (capped by its CSS max-height), independent of the window's
-  // current height, so this never feeds back on itself. The login modal is
-  // absolutely positioned (no layout height), hence the explicit floor.
+  // current height, so this never feeds back on itself. The login modal (and
+  // the quiz opt-in prompt, which shares its markup) is absolutely positioned
+  // (no layout height), hence the explicit floor.
   const loginOpenRef = useRef(loginPromptOpen)
   loginOpenRef.current = loginPromptOpen
+  const quizOpenRef = useRef(quizPromptOpen)
+  quizOpenRef.current = quizPromptOpen
   const applyWindowHeight = useCallback(() => {
     const el = glassRef.current
     if (!el || !window.electronAPI?.setWindowHeight) return
     const measured = Math.ceil(el.getBoundingClientRect().height)
-    const height = loginOpenRef.current ? Math.max(measured, LOGIN_MODAL_HEIGHT) : measured
+    const dialogOpen = loginOpenRef.current || quizOpenRef.current
+    const height = dialogOpen ? Math.max(measured, LOGIN_MODAL_HEIGHT) : measured
     window.electronAPI.setWindowHeight(height)
   }, [])
 
@@ -110,7 +122,7 @@ export default function SearchView() {
     return () => observer.disconnect()
   }, [applyWindowHeight])
 
-  useEffect(applyWindowHeight, [applyWindowHeight, loginPromptOpen])
+  useEffect(applyWindowHeight, [applyWindowHeight, loginPromptOpen, quizPromptOpen])
 
   const hasRecent = !query && history.length > 0
   const showContent = Boolean(query) || hasRecent
@@ -215,6 +227,12 @@ export default function SearchView() {
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
             word={pendingSaveWord || wordToSave}
+          />
+
+          <QuizOptInPrompt
+            open={quizPromptOpen}
+            onEnable={() => void enableQuizEmails()}
+            onDismiss={() => setQuizPromptOpen(false)}
           />
         </motion.div>
       </div>
