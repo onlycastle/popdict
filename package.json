@@ -25,7 +25,10 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "harness:validate": "node scripts/harness/validate.mjs",
+    "harness:test": "vitest run scripts/harness",
+    "test:ci": "tsc --noEmit && npm run lint && npm test && npm run harness:validate && cd site && npx tsc --noEmit && npx vitest run"
   },
   "keywords": [],
   "author": "PopDict contributors",
