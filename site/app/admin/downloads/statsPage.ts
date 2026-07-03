@@ -74,9 +74,11 @@ export async function fetchDashboardData(): Promise<DownloadDashboardData> {
 
 export function renderDashboardPage(data: DownloadDashboardData, generatedAt = new Date()): string {
   const { stats, timeseries } = data
+  const orderedTimeseries = [...timeseries].sort((a, b) => a.date.localeCompare(b.date))
   const assets = Object.entries(stats.github.byAsset)
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-  const maxCombined = Math.max(1, ...timeseries.map((point) => point.combined))
+  const maxCombined = Math.max(1, ...orderedTimeseries.map((point) => point.combined))
+  const recent = downloadDelta(orderedTimeseries, 7)
 
   return `<!doctype html>
 <html lang="en">
@@ -142,6 +144,82 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
     }
     .metric {
       padding: 16px;
+    }
+    .chart-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .chart-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .chart-head h2 {
+      margin: 0 0 3px;
+    }
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .legend-item {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      white-space: nowrap;
+    }
+    .legend-swatch {
+      width: 18px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--swatch);
+    }
+    .chart {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 220px;
+    }
+    .axis-label {
+      fill: var(--muted);
+      font: 12px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .empty-chart {
+      display: grid;
+      min-height: 220px;
+      place-items: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+    }
+    .delta-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .delta-item {
+      padding: 13px 14px 0 0;
+      min-width: 0;
+    }
+    .delta-value {
+      margin-top: 3px;
+      color: var(--charcoal);
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
     }
     .label {
       color: var(--muted);
@@ -211,6 +289,9 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       header { align-items: flex-start; flex-direction: column; }
       .actions { justify-content: flex-start; }
       .grid { grid-template-columns: 1fr; }
+      .chart-head { align-items: flex-start; flex-direction: column; }
+      .legend { justify-content: flex-start; }
+      .delta-strip { grid-template-columns: 1fr; gap: 10px; }
       th.optional, td.optional { display: none; }
     }
   </style>
@@ -232,6 +313,24 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       ${metric('Combined', stats.combined)}
       ${metric('GitHub', stats.github.total)}
       ${metric('Website', stats.website.total)}
+    </section>
+
+    <section>
+      <div class="chart-panel">
+        <div class="chart-head">
+          <div>
+            <h2>Download Curve</h2>
+            <div class="muted small">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
+          </div>
+          <div class="legend" aria-label="Chart legend">
+            ${legendItem('Combined', '#d9862f')}
+            ${legendItem('GitHub', '#303036')}
+            ${legendItem('Website', '#7b735f')}
+          </div>
+        </div>
+        ${renderDownloadCurve(orderedTimeseries)}
+        ${recent ? renderDeltaStrip(recent) : ''}
+      </div>
     </section>
 
     <section>
@@ -257,7 +356,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
           </tr>
         </thead>
         <tbody>
-          ${timeseries.map((point) => dayRow(point, maxCombined)).join('')}
+          ${orderedTimeseries.map((point) => dayRow(point, maxCombined)).join('')}
         </tbody>
       </table>
     </section>
@@ -286,6 +385,132 @@ export function renderErrorPage(message: string, status: number): string {
 
 function metric(label: string, value: number): string {
   return `<div class="metric"><div class="label">${escapeHtml(label)}</div><div class="value">${formatNumber(value)}</div></div>`
+}
+
+function legendItem(label: string, color: string): string {
+  return `<span class="legend-item"><span class="legend-swatch" style="--swatch:${color}"></span>${escapeHtml(label)}</span>`
+}
+
+type DownloadDelta = {
+  combined: number
+  github: number
+  website: number
+  to: string
+}
+
+function downloadDelta(points: DownloadDayPoint[], days: number): DownloadDelta | null {
+  if (points.length === 0) return null
+
+  const latest = points[points.length - 1]
+  const latestTime = dayTime(latest.date)
+  const cutoff = Number.isFinite(latestTime) ? latestTime - (days - 1) * 24 * 60 * 60 * 1000 : null
+  let baseline: DownloadDayPoint | null = null
+
+  if (cutoff !== null) {
+    for (const point of points) {
+      const pointTime = dayTime(point.date)
+      if (Number.isFinite(pointTime) && pointTime < cutoff) baseline = point
+    }
+  }
+
+  return {
+    combined: Math.max(0, latest.combined - (baseline?.combined ?? 0)),
+    github: Math.max(0, latest.github - (baseline?.github ?? 0)),
+    website: Math.max(0, latest.website - (baseline?.website ?? 0)),
+    to: latest.date,
+  }
+}
+
+function renderDeltaStrip(delta: DownloadDelta): string {
+  return `<div class="delta-strip" aria-label="Last 7 days download changes">
+    ${deltaItem('Combined', delta.combined)}
+    ${deltaItem('GitHub', delta.github)}
+    ${deltaItem('Website', delta.website)}
+  </div>`
+}
+
+function deltaItem(label: string, value: number): string {
+  return `<div class="delta-item"><div class="label">${escapeHtml(label)} / 7 days</div><div class="delta-value">${formatDelta(value)}</div></div>`
+}
+
+function renderDownloadCurve(points: DownloadDayPoint[]): string {
+  if (points.length === 0) {
+    return '<div class="empty-chart">No daily download data yet.</div>'
+  }
+
+  const width = 760
+  const height = 260
+  const left = 54
+  const right = 22
+  const top = 20
+  const bottom = 42
+  const plotWidth = width - left - right
+  const plotHeight = height - top - bottom
+  const maxValue = Math.max(1, ...points.map((point) => point.combined))
+  const yBase = top + plotHeight
+  const combined = chartPoints(points, 'combined', left, top, plotWidth, plotHeight, maxValue)
+  const github = chartPoints(points, 'github', left, top, plotWidth, plotHeight, maxValue)
+  const website = chartPoints(points, 'website', left, top, plotWidth, plotHeight, maxValue)
+  const areaPath = `M ${left} ${yBase} L ${combined.map((point) => `${point.x} ${point.y}`).join(' L ')} L ${left + plotWidth} ${yBase} Z`
+  const grid = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+    const y = round(top + plotHeight - ratio * plotHeight)
+    const label = formatNumber(Math.round(maxValue * ratio))
+    return `<g>
+      <line x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="#eee8df" stroke-width="1" />
+      <text class="axis-label" x="${left - 10}" y="${y + 4}" text-anchor="end">${label}</text>
+    </g>`
+  }).join('')
+  const ticks = axisTicks(points, left, yBase, plotWidth)
+  const lastCombined = combined[combined.length - 1]
+
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily cumulative download curve">
+    <rect x="0" y="0" width="${width}" height="${height}" fill="#fff" rx="8" />
+    ${grid}
+    <path d="${areaPath}" fill="#fff2df" />
+    ${polyline(combined, '#d9862f', 4)}
+    ${polyline(github, '#303036', 2.5)}
+    ${polyline(website, '#7b735f', 2.5)}
+    <circle cx="${lastCombined.x}" cy="${lastCombined.y}" r="4.5" fill="#d9862f" />
+    ${ticks}
+  </svg>`
+}
+
+type ChartMetric = 'combined' | 'github' | 'website'
+
+type ChartPoint = {
+  x: number
+  y: number
+}
+
+function chartPoints(
+  points: DownloadDayPoint[],
+  metric: ChartMetric,
+  left: number,
+  top: number,
+  plotWidth: number,
+  plotHeight: number,
+  maxValue: number,
+): ChartPoint[] {
+  return points.map((point, index) => {
+    const x = points.length === 1 ? left + plotWidth : left + (index / (points.length - 1)) * plotWidth
+    const y = top + plotHeight - (point[metric] / maxValue) * plotHeight
+    return { x: round(x), y: round(y) }
+  })
+}
+
+function axisTicks(points: DownloadDayPoint[], left: number, y: number, plotWidth: number): string {
+  const indices = points.length === 1
+    ? [0]
+    : Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
+
+  return indices.map((index) => {
+    const x = points.length === 1 ? left + plotWidth : round(left + (index / (points.length - 1)) * plotWidth)
+    return `<text class="axis-label" x="${x}" y="${y + 26}" text-anchor="${index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}">${escapeHtml(points[index].date)}</text>`
+  }).join('')
+}
+
+function polyline(points: ChartPoint[], color: string, width: number): string {
+  return `<polyline points="${points.map((point) => `${point.x},${point.y}`).join(' ')}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" />`
 }
 
 function dayRow(point: DownloadDayPoint, maxCombined: number): string {
@@ -317,4 +542,16 @@ function escapeHtml(value: string): string {
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value)
+}
+
+function formatDelta(value: number): string {
+  return `+${formatNumber(value)}`
+}
+
+function dayTime(date: string): number {
+  return Date.parse(`${date}T00:00:00Z`)
+}
+
+function round(value: number): number {
+  return Math.round(value * 10) / 10
 }
