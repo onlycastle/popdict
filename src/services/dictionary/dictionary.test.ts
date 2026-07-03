@@ -1,17 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { DictionaryResult } from '../../types/dictionary'
 
-const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }))
-vi.mock('../supabaseClient', () => ({ supabase: { functions: { invoke } } }))
+const { invoke, maybeSingle, mockFrom } = vi.hoisted(() => {
+  const maybeSingle = vi.fn()
+  const mockFrom = vi.fn(() => ({
+    select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })),
+  }))
+  return { invoke: vi.fn(), maybeSingle, mockFrom }
+})
+vi.mock('../supabaseClient', () => ({ supabase: { functions: { invoke }, from: mockFrom } }))
 
 import { FreeDictionarySource } from './FreeDictionarySource'
 import { IdiomSource } from './IdiomSource'
 import { KrdictSource } from './KrdictSource'
 import { DictionaryService } from './DictionaryService'
 import { DictionaryError } from './DictionaryError'
+import { EnKoTranslationSource } from './EnKoTranslationSource'
 
 beforeEach(() => {
   invoke.mockReset()
+  maybeSingle.mockReset()
+  mockFrom.mockClear()
 })
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -145,6 +154,36 @@ describe('DictionaryService.search', () => {
 
     expect(res.source).toBe('both')
     expect(res.idiomResult?.term).toBe('break the ice')
+  })
+})
+
+describe('EnKoTranslationSource', () => {
+  it('returns the Korean translations for a word, lowercased for lookup', async () => {
+    maybeSingle.mockResolvedValue({ data: { ko: ['사과', '사죄'] }, error: null })
+
+    const result = await new EnKoTranslationSource().lookup('Apple')
+
+    expect(result).toEqual(['사과', '사죄'])
+    expect(mockFrom).toHaveBeenCalledWith('en_ko_translations')
+  })
+
+  it('returns [] on a miss', async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: null })
+    expect(await new EnKoTranslationSource().lookup('zzzz')).toEqual([])
+  })
+
+  it('returns [] on a query error (augmentation is optional)', async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: new Error('boom') })
+    expect(await new EnKoTranslationSource().lookup('apple')).toEqual([])
+  })
+
+  it('returns [] when the client rejects unexpectedly', async () => {
+    maybeSingle.mockRejectedValue(new Error('network'))
+    expect(await new EnKoTranslationSource().lookup('apple')).toEqual([])
+  })
+
+  it('returns [] when supabase is not configured', async () => {
+    expect(await new EnKoTranslationSource(null).lookup('apple')).toEqual([])
   })
 })
 
