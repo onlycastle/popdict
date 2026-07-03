@@ -95,7 +95,7 @@ describe('update-downloaded', () => {
     manager.init()
     updater.emit('update-downloaded', null, 'notes', 'v1.2.0')
     expect(manager.updateReadyVersion).toBe('1.2.0')
-    expect(onUpdateReady).toHaveBeenCalledWith('1.2.0')
+    expect(onUpdateReady).toHaveBeenCalledWith('1.2.0', { manual: false })
   })
 
   it('tolerates a missing release name', () => {
@@ -103,7 +103,18 @@ describe('update-downloaded', () => {
     manager.init()
     updater.emit('update-downloaded', null, null, undefined)
     expect(manager.updateReadyVersion).toBe('')
-    expect(onUpdateReady).toHaveBeenCalledWith('')
+    expect(onUpdateReady).toHaveBeenCalledWith('', { manual: false })
+  })
+
+  it('reports manual:true when the download lands during a manual check, and resets the pending flag', () => {
+    const { manager, updater, onUpdateReady, onManualCheckResult } = makeManager()
+    manager.init()
+    manager.checkNow()
+    updater.emit('update-downloaded', null, null, 'v1.2.0')
+    expect(onUpdateReady).toHaveBeenCalledWith('1.2.0', { manual: true })
+    // the download answered the manual check — a later background outcome is not misattributed
+    updater.emit('update-not-available')
+    expect(onManualCheckResult).not.toHaveBeenCalled()
   })
 })
 
@@ -162,14 +173,14 @@ describe('manual vs background check outcomes', () => {
     expect(onManualCheckResult).not.toHaveBeenCalled()
   })
 
-  it('manual check with an update already staged re-fires onUpdateReady instead of re-checking', () => {
+  it('manual check with an update already staged re-fires onUpdateReady (manual) instead of re-checking', () => {
     const { manager, updater, onUpdateReady } = makeManager()
     manager.init()
     updater.emit('update-downloaded', null, null, 'v1.2.0')
     updater.checkForUpdates.mockClear()
     onUpdateReady.mockClear()
     manager.checkNow()
-    expect(onUpdateReady).toHaveBeenCalledWith('1.2.0')
+    expect(onUpdateReady).toHaveBeenCalledWith('1.2.0', { manual: true })
     expect(updater.checkForUpdates).not.toHaveBeenCalled()
   })
 

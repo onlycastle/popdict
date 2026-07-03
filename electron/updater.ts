@@ -26,8 +26,12 @@ export interface AutoUpdaterLike {
 export type ManualCheckResult = 'up-to-date' | 'error'
 
 export interface UpdateManagerHooks {
-  /** An update finished downloading — tell the user (notification + tray item). */
-  onUpdateReady: (version: string) => void
+  /**
+   * An update finished downloading — tell the user. `manual: true` means it
+   * answers a user-initiated check (show a dialog); false means background
+   * (non-interruptive notification + tray item).
+   */
+  onUpdateReady: (version: string, opts: { manual: boolean }) => void
   /** Outcome of a user-initiated check; background outcomes never reach this. */
   onManualCheckResult: (result: ManualCheckResult) => void
 }
@@ -80,8 +84,9 @@ export class UpdateManager {
       // update.electronjs.org names releases by tag ("v1.2.0") — strip the v
       // so UI labels can add their own prefix without doubling it.
       this.readyVersion = String(releaseName ?? '').replace(/^v/i, '')
+      const manual = this.manualCheckPending // the download answers a pending manual check
       this.manualCheckPending = false
-      this.deps.onUpdateReady(this.readyVersion)
+      this.deps.onUpdateReady(this.readyVersion, { manual })
     })
 
     updater.on('update-not-available', () => {
@@ -112,7 +117,7 @@ export class UpdateManager {
     if (this.readyVersion !== null) {
       // Already staged; re-surface the prompt rather than re-checking (Squirrel
       // won't re-download a staged update anyway).
-      this.deps.onUpdateReady(this.readyVersion)
+      this.deps.onUpdateReady(this.readyVersion, { manual: true })
       return
     }
     this.manualCheckPending = true

@@ -2,7 +2,11 @@ import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 import { createStore } from './store'
 import { createUpdateManager } from './updater'
-import { notifyUpdateReady, notifyManualCheckResult } from './updateNotifications'
+import {
+  notifyUpdateReady,
+  showManualCheckResultDialog,
+  showUpdateReadyDialog,
+} from './updateNotifications'
 import { registerWebContentsHardening } from './security'
 import { openFeedback } from './feedback'
 import { WindowManager } from './windows/WindowManager'
@@ -86,11 +90,12 @@ if (hasSingleInstanceLock) {
     let tray: TrayMenu | null = null
 
     const updater = createUpdateManager({
-      onUpdateReady: (version) => {
+      onUpdateReady: (version, { manual }) => {
         tray?.setUpdateReady(version)
-        notifyUpdateReady(version, () => updater.installUpdate())
+        if (manual) void showUpdateReadyDialog(version, () => updater.installUpdate())
+        else notifyUpdateReady(version, () => updater.installUpdate())
       },
-      onManualCheckResult: (result) => notifyManualCheckResult(result, app.getVersion()),
+      onManualCheckResult: (result) => void showManualCheckResultDialog(result, app.getVersion()),
     })
     const updatesEnabled = updater.init()
 
