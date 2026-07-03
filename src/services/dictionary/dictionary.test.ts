@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { DictionaryResult } from '../../types/dictionary'
+import type { DictionarySource } from './DictionarySource'
 
 const { invoke, maybeSingle, mockFrom } = vi.hoisted(() => {
   const maybeSingle = vi.fn()
@@ -109,7 +110,19 @@ describe('FreeDictionarySource error kinds', () => {
 })
 
 describe('DictionaryService.search', () => {
-  const service = () => new DictionaryService(new FreeDictionarySource(), new IdiomSource())
+  const fakeKrdict = (impl: () => Promise<DictionaryResult[]>): DictionarySource<DictionaryResult[]> => ({
+    name: 'krdict',
+    lookup: vi.fn(impl),
+  })
+  const fakeEnKo = (impl: () => Promise<string[]>): DictionarySource<string[]> => ({
+    name: 'en-ko',
+    lookup: vi.fn(impl),
+  })
+
+  const service = (
+    krdict = fakeKrdict(() => Promise.reject(new DictionaryError('not-found'))),
+    enko = fakeEnKo(() => Promise.resolve([]))
+  ) => new DictionaryService(new FreeDictionarySource(), new IdiomSource(), krdict, enko)
 
   it('rejects an empty query', async () => {
     await expect(service().search('   ')).rejects.toThrow(/empty/i)
@@ -124,6 +137,7 @@ describe('DictionaryService.search', () => {
     expect(res.source).toBe('free-dictionary')
     expect(res.dictionaryResults).toEqual(entries)
     expect(res.idiomResult).toBeNull()
+    expect(res.koTranslations).toBeNull()
   })
 
   it('maps a single-word network failure to a connection message', async () => {
@@ -154,6 +168,89 @@ describe('DictionaryService.search', () => {
 
     expect(res.source).toBe('both')
     expect(res.idiomResult?.term).toBe('break the ice')
+    expect(res.koTranslations).toBeNull()
+  })
+
+  it('routes Hangul queries to krdict only', async () => {
+    const entries: DictionaryResult[] = [{ word: '사과', meanings: [] }]
+    const krdict = fakeKrdict(() => Promise.resolve(entries))
+    const enko = fakeEnKo(() => Promise.resolve(['unused']))
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const res = await service(krdict, enko).search('사과')
+
+    expect(res).toEqual({ dictionaryResults: entries, idiomResult: null, koTranslations: null, source: 'krdict' })
+    expect(fetchSpy).not.toHaveBeenCalled() // free dictionary skipped
+    expect(enko.lookup).not.toHaveBeenCalled()
+    expect(invoke).not.toHaveBeenCalled() // idiom source skipped
+  })
+
+  it('routes multi-word Hangul to krdict, skipping idioms', async () => {
+    const krdict = fakeKrdict(() => Promise.resolve([{ word: '사과하다', meanings: [] }]))
+    const res = await service(krdict).search('사과 하다')
+    expect(res.source).toBe('krdict')
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it('maps a Hangul not-found to the standard message', async () => {
+    await expect(service().search('없는말')).rejects.toThrow(/not found/i)
+  })
+
+  it('maps a Hangul network failure to a connection message', async () => {
+    const krdict = fakeKrdict(() => Promise.reject(new DictionaryError('network')))
+    await expect(service(krdict).search('사과')).rejects.toThrow(/connection/i)
+  })
+
+  it('attaches koTranslations to a single-word English result', async () => {
+    const entries: DictionaryResult[] = [{ word: 'apple', meanings: [] }]
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => entries }))
+    const enko = fakeEnKo(() => Promise.resolve(['사과']))
+
+    const res = await service(undefined, enko).search('apple')
+
+    expect(res.koTranslations).toEqual(['사과'])
+    expect(res.dictionaryResults).toEqual(entries)
+    expect(res.source).toBe('free-dictionary')
+  })
+
+  it('normalizes an empty en→ko result to null', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<DictionaryResult[]> => [{ word: 'apple', meanings: [] }],
+      })
+    )
+    const res = await service().search('apple')
+    expect(res.koTranslations).toBeNull()
+  })
+
+  it('still fails an English lookup when only en→ko succeeds', async () => {
+    // v1 scope (documented in the spec): translations without a dictionary
+    // entry do not rescue a not-found result.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
+    const enko = fakeEnKo(() => Promise.resolve(['사과']))
+    await expect(service(undefined, enko).search('apple')).rejects.toThrow(/not found/i)
+  })
+
+  it('attaches koTranslations to multi-word results without disturbing the merge', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<DictionaryResult[]> => [{ word: 'break the ice', meanings: [] }],
+      })
+    )
+    invoke.mockResolvedValue({ data: { result: { term: 'break the ice', explanation: 'x' } }, error: null })
+    const enko = fakeEnKo(() => Promise.resolve([]))
+
+    const res = await service(undefined, enko).search('break the ice')
+
+    expect(res.source).toBe('both')
+    expect(res.koTranslations).toBeNull()
   })
 })
 
