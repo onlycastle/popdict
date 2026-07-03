@@ -29,62 +29,61 @@ export default function Home() {
 
       <div className="page" id="top">
         {/* HERO — the page opens as a dictionary entry for the word "popdict",
-            and a live demo shows the highlight-a-word → glass-popup gesture. */}
+            set like a product page: centered, quiet, one type moment. */}
         <header className="hero">
-          <div className="hero-entry">
-            <div className="hero-brand">
-              <img className="hero-logo" src="/popdict-logo.png" alt="" />
-              <p className="eyebrow">macOS · menu-bar dictionary</p>
-            </div>
-            <h1 className="headword">
-              pop<span className="headword-mid">·</span>dict
-            </h1>
-            <p className="pronunciation">
-              <span className="ipa">/pɒp ˈdɪkt/</span>
-              <em className="pos">noun</em>
-            </p>
-            <p className="definition">
-              <span className="sense-num">1.</span> a dictionary that{' '}
-              <mark className="mark">appears</mark> one keystroke away — so you can
-              look up any word or idiom, hear it, and save it without leaving what
-              you’re reading.
-            </p>
-            <div className="hero-cta">
-              <div className="hero-cta-actions">
-                <a className="btn" href="/download/latest">
-                  Download for macOS
-                </a>
-                <a
-                  className="btn btn-ghost"
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
+          <img className="hero-logo" src="/popdict-logo.png" alt="" />
+          <p className="eyebrow">macOS · menu-bar dictionary</p>
+          <h1 className="headword">
+            pop<span className="headword-mid">·</span>dict
+          </h1>
+          <p className="pronunciation">
+            <span className="ipa">/pɒp ˈdɪkt/</span>
+            <em className="pos">noun</em>
+          </p>
+          <p className="definition">
+            <span className="sense-num">1.</span> a dictionary that{' '}
+            <mark className="mark">appears</mark> one keystroke away — look up
+            any word or idiom, hear it, and save it without leaving what
+            you’re reading.
+          </p>
+          <div className="hero-cta">
+            <div className="hero-cta-actions">
+              <a className="btn" href="/download/latest">
+                Download for macOS
+              </a>
+              <a
+                className="btn btn-ghost"
+                href={githubUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <svg
+                  className="gh-mark"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  <svg
-                    className="gh-mark"
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-                  </svg>
-                  View source
-                </a>
-              </div>
-              <p className="cta-note">Free · Apple Silicon · open source</p>
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+                View source
+              </a>
             </div>
+            <p className="cta-note">Free · Apple Silicon · open source</p>
           </div>
+        </header>
 
-          {/* The signature: a real reading surface with a highlighted idiom and the
-              actual glass popup blooming over it. This scene is the product. */}
-          <div className="demo" aria-hidden="true">
+        {/* THE STAGE — the signature scene, on its own full-width stage: a real
+            reading surface whose sentence ends in a highlighted idiom, and the
+            glass popup floating beside it as the consequence. Text and popup
+            never overlap. This scene is the product. */}
+        <section className="stage" aria-hidden="true">
+          <div className="demo">
             <div className="reading">
               <p className="reading-meta">the morning thread · 8:41</p>
               <p className="reading-body">
-                By Thursday, half the team was{' '}
-                <span className="reading-mark">under the weather</span> — the
-                standup had become a chorus of coughs, apologetic mutes, and
-                people quietly typing “brb, tea” into the channel.
+                The standup had become a chorus of coughs, apologetic mutes,
+                and quiet “brb, tea” messages — by Thursday, half the team was{' '}
+                <span className="reading-mark">under the weather</span>.
               </p>
             </div>
 
@@ -123,7 +122,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </header>
+        </section>
 
         {/* USAGE — a genuine sequence (you must press the key first), shown as one
             connected flow with keycaps rather than decorative numbered cards. */}

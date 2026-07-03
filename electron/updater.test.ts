@@ -1,4 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+vi.mock('electron', () => ({
+  app: {
+    isPackaged: true,
+    getVersion: () => '1.1.2',
+  },
+  autoUpdater: {
+    setFeedURL: vi.fn(),
+    checkForUpdates: vi.fn(),
+    quitAndInstall: vi.fn(),
+    on: vi.fn(),
+  },
+}))
+
 import { UpdateManager, type AutoUpdaterLike } from './updater'
 
 type Listener = (...args: unknown[]) => void
