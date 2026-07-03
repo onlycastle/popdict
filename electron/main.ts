@@ -1,7 +1,12 @@
 import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 import { createStore } from './store'
-import { initAutoUpdates } from './updater'
+import { createUpdateManager } from './updater'
+import {
+  notifyUpdateReady,
+  showManualCheckResultDialog,
+  showUpdateReadyDialog,
+} from './updateNotifications'
 import { registerWebContentsHardening } from './security'
 import { openFeedback } from './feedback'
 import { WindowManager } from './windows/WindowManager'
@@ -80,13 +85,34 @@ if (hasSingleInstanceLock) {
 
     store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
 
-    const tray = new TrayMenu({ store, windows, openFeedback, iconPath: trayIconPath() })
+    // tray is referenced from the updater hooks, which only fire after both
+    // exist — declare first so the closures capture the binding.
+    let tray: TrayMenu | null = null
+
+    const updater = createUpdateManager({
+      onUpdateReady: (version, { manual }) => {
+        tray?.setUpdateReady(version)
+        if (manual) void showUpdateReadyDialog(version, () => updater.installUpdate())
+        else notifyUpdateReady(version, () => updater.installUpdate())
+      },
+      onManualCheckResult: (result) => void showManualCheckResultDialog(result, app.getVersion()),
+    })
+    const updatesEnabled = updater.init()
+
+    tray = new TrayMenu({
+      store,
+      windows,
+      openFeedback,
+      iconPath: trayIconPath(),
+      updates: updatesEnabled
+        ? { checkNow: () => updater.checkNow(), installUpdate: () => updater.installUpdate() }
+        : null,
+    })
     tray.init()
 
     registerIpcHandlers(new IpcRouter(), { store, windows, broker, hotkey, tray, openFeedback })
 
     windows.open('search')
-    initAutoUpdates()
 
     if (!store.getConfig().onboardingDone) {
       windows.open('onboarding')

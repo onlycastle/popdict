@@ -6,10 +6,12 @@ import HotkeyField from '../components/HotkeyField'
 export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [status, setStatus] = useState('')
+  const [version, setVersion] = useState('')
   const auth = useSupabaseAuth()
 
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
+    window.electronAPI.getAppVersion().then(setVersion)
   }, [])
 
   if (!settings) return <div className="window min-h-screen p-6 text-white/80">Loading…</div>
@@ -93,6 +95,7 @@ export default function SettingsView() {
       </div>
 
       {status && <p className="text-xs text-white/60">{status}</p>}
+      {version && <p className="pt-2 text-xs text-white/40">PopDict v{version}</p>}
     </div>
   )
 }
