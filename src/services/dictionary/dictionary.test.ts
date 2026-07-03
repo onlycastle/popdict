@@ -6,6 +6,7 @@ vi.mock('../supabaseClient', () => ({ supabase: { functions: { invoke } } }))
 
 import { FreeDictionarySource } from './FreeDictionarySource'
 import { IdiomSource } from './IdiomSource'
+import { KrdictSource } from './KrdictSource'
 import { DictionaryService } from './DictionaryService'
 import { DictionaryError } from './DictionaryError'
 
@@ -41,6 +42,41 @@ describe('IdiomSource', () => {
 
   it('throws when supabase is not configured', async () => {
     await expect(new IdiomSource(null).lookup('x')).rejects.toThrow(/not configured/i)
+  })
+})
+
+describe('KrdictSource', () => {
+  it('returns mapped entries from the edge function', async () => {
+    const entries = [{ word: '사과', meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'apple' }] }] }]
+    invoke.mockResolvedValue({ data: { results: entries }, error: null })
+
+    const results = await new KrdictSource().lookup('사과')
+
+    expect(results).toEqual(entries)
+    expect(invoke).toHaveBeenCalledWith('krdict', { body: { word: '사과' } })
+  })
+
+  it('maps an empty result set to not-found', async () => {
+    invoke.mockResolvedValue({ data: { results: [] }, error: null })
+    await expect(new KrdictSource().lookup('없는말')).rejects.toMatchObject({ kind: 'not-found' })
+  })
+
+  it('maps a fetch-level failure to a network error', async () => {
+    const err = new Error('fetch failed')
+    err.name = 'FunctionsFetchError'
+    invoke.mockResolvedValue({ data: null, error: err })
+    await expect(new KrdictSource().lookup('사과')).rejects.toMatchObject({ kind: 'network' })
+  })
+
+  it('maps other invoke errors to a service error', async () => {
+    const err = new Error('500')
+    err.name = 'FunctionsHttpError'
+    invoke.mockResolvedValue({ data: null, error: err })
+    await expect(new KrdictSource().lookup('사과')).rejects.toMatchObject({ kind: 'service' })
+  })
+
+  it('reports service error when supabase is not configured', async () => {
+    await expect(new KrdictSource(null).lookup('사과')).rejects.toMatchObject({ kind: 'service' })
   })
 })
 
