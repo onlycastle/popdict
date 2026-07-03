@@ -181,7 +181,7 @@ const SearchResults = ({
                 </span>
 
                 <div className="space-y-4">
-                  {meaning.definitions.slice(0, 3).map((def, defIndex) => (
+                  {(response.source === 'krdict' ? meaning.definitions : meaning.definitions.slice(0, 3)).map((def, defIndex) => (
                     <div key={defIndex} className="definition-item">
                       <p className="text-white/90 text-sm leading-relaxed">
                         <span className="dict-sense-num mr-1.5">{defIndex + 1}.</span>

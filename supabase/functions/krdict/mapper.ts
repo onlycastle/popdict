@@ -35,6 +35,7 @@ const POS_EN: Record<string, string> = {
   '보조 동사': 'auxiliary verb',
   '보조 형용사': 'auxiliary adjective',
   어미: 'ending',
+  '품사 없음': 'phrase',
 }
 
 /** fast-xml-parser yields an object for one child and an array for many. */

@@ -131,4 +131,13 @@ describe('parseKrdictXml', () => {
     expect(parseKrdictXml('<error><error_code>020</error_code></error>')).toEqual([])
     expect(parseKrdictXml('not xml at all')).toEqual([])
   })
+
+  it('maps 품사 없음 (expressions) to phrase', () => {
+    const xml = `<channel><total>1</total><item><word>안녕하세요</word><pos>품사 없음</pos>
+      <sense><definition>인사말.</definition>
+        <translation><trans_lang>영어</trans_lang><trans_word>hello</trans_word></translation>
+      </sense>
+    </item></channel>`
+    expect(parseKrdictXml(xml)[0].meanings[0].partOfSpeech).toBe('phrase')
+  })
 })
