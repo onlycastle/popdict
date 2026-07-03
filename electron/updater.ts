@@ -128,6 +128,12 @@ export class UpdateManager {
       this.deps.updater.checkForUpdates()
     } catch (error) {
       console.error('autoUpdater.checkForUpdates failed:', error)
+      // A synchronous throw never reaches the 'error' event listener — resolve
+      // a pending manual check here so the user's click always gets an answer.
+      if (this.manualCheckPending) {
+        this.manualCheckPending = false
+        this.deps.onManualCheckResult('error')
+      }
     }
   }
 }

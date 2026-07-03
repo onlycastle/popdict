@@ -13,7 +13,6 @@ function fakeAutoUpdater() {
       listeners.set(event, [...(listeners.get(event) ?? []), listener])
       return this
     },
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     emit(event: string, ...args: unknown[]) {
       for (const fn of listeners.get(event) ?? []) fn(...args)
     },
@@ -146,6 +145,20 @@ describe('manual vs background check outcomes', () => {
     updater.checkForUpdates.mockClear()
     manager.checkNow()
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(1)
+  })
+
+  it('manual check reports an error when checkForUpdates throws synchronously', () => {
+    const { manager, updater, onManualCheckResult } = makeManager()
+    manager.init()
+    updater.checkForUpdates.mockImplementation(() => {
+      throw new Error('boom')
+    })
+    manager.checkNow()
+    expect(onManualCheckResult).toHaveBeenCalledWith('error')
+    // and a later background event is NOT misattributed to the manual check
+    onManualCheckResult.mockClear()
+    updater.emit('update-not-available')
+    expect(onManualCheckResult).not.toHaveBeenCalled()
   })
 
   it('manual check with an update already staged re-fires onUpdateReady instead of re-checking', () => {
