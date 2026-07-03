@@ -52,6 +52,18 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
     }
   }, [user])
 
+  // Persist a decline as an enabled=false row so the prompt never re-nags —
+  // e.g. re-saving an existing word while the count is still exactly 5.
+  const dismissQuizPrompt = useCallback(async () => {
+    setQuizPromptOpen(false)
+    if (!user) return
+    try {
+      await quizPreferences.setEnabled(user, false)
+    } catch {
+      // best-effort — a failed write may re-show the prompt later, never blocks UI
+    }
+  }, [user])
+
   const wordToSave = getWordToSave(response, searchedTerm || query)
 
   const saveCurrentWord = useCallback(
@@ -140,5 +152,6 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
     quizPromptOpen,
     setQuizPromptOpen,
     enableQuizEmails,
+    dismissQuizPrompt,
   }
 }

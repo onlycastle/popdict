@@ -34,8 +34,8 @@ export default function SearchView() {
     setLoginPromptOpen,
     handleSaveClick,
     quizPromptOpen,
-    setQuizPromptOpen,
     enableQuizEmails,
+    dismissQuizPrompt,
   } = useSaveWord({ user: auth.user, response, searchedTerm, query })
 
   useEffect(() => {
@@ -74,7 +74,8 @@ export default function SearchView() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (quizPromptOpen) {
-          setQuizPromptOpen(false)
+          // Escape is a dismissal too — persist the decline like "Not now".
+          void dismissQuizPrompt()
           return
         }
         if (loginPromptOpen) {
@@ -89,7 +90,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [loginPromptOpen, setLoginPromptOpen, quizPromptOpen, setQuizPromptOpen])
+  }, [loginPromptOpen, setLoginPromptOpen, quizPromptOpen, dismissQuizPrompt])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -232,7 +233,7 @@ export default function SearchView() {
           <QuizOptInPrompt
             open={quizPromptOpen}
             onEnable={() => void enableQuizEmails()}
-            onDismiss={() => setQuizPromptOpen(false)}
+            onDismiss={() => void dismissQuizPrompt()}
           />
         </motion.div>
       </div>
