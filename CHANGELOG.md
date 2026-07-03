@@ -3,6 +3,20 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-07-03
+
+### Added
+- Korean to English lookup through the krdict Supabase Edge Function.
+- English to Korean translations from the bundled dictionary dataset.
+- Visible auto-update notifications, manual update checks, and install prompts.
+
+### Changed
+- Refreshed the landing page hero and product demo presentation.
+
+### Fixed
+- Arm64 auto-update feed configuration now points at the correct update channel.
+- Updater tests now run in CI without requiring the Electron binary download.
+
 ## [1.1.2] - 2026-07-02
 
 ### Added
