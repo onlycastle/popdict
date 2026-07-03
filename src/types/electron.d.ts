@@ -1,3 +1,5 @@
+import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
+
 export type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
@@ -21,7 +23,7 @@ export interface ElectronAPI {
   finishOnboarding: () => void
   lookupWord: (word: string) => void
   onSeedSearch: (cb: (word: string) => void) => () => void
-  sendFeedback: () => void
+  sendFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult>
   changeHotkey: (accelerator: string) => Promise<boolean>
   openExternalUrl: (url: string) => Promise<void>
 }
