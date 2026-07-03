@@ -27,6 +27,7 @@ function makeManager(overrides: Partial<ConstructorParameters<typeof UpdateManag
     updater,
     isPackaged: true,
     platform: 'darwin',
+    arch: 'arm64',
     version: '1.1.2',
     repo: 'onlycastle/popdict',
     onUpdateReady,
@@ -66,7 +67,7 @@ describe('UpdateManager.init', () => {
     const { manager, updater } = makeManager()
     expect(manager.init()).toBe(true)
     expect(updater.setFeedURL).toHaveBeenCalledWith({
-      url: 'https://update.electronjs.org/onlycastle/popdict/darwin/1.1.2',
+      url: 'https://update.electronjs.org/onlycastle/popdict/darwin-arm64/1.1.2',
     })
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(1)
   })

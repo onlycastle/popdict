@@ -8,7 +8,9 @@ import { app, autoUpdater } from 'electron'
 //   1. The GitHub repo must be PUBLIC.
 //   2. Releases must include a macOS .zip asset (added via MakerZIP in
 //      forge.config.ts) whose name carries the arch, e.g.
-//      `PopDict-darwin-arm64-<version>.zip`, so the service serves the right one.
+//      `PopDict-darwin-arm64-<version>.zip`. The feed path must be
+//      `<platform>-<arch>` (plain `darwin` means x64 and 404s for arm64-only
+//      releases), so the service serves the right binary.
 //   3. Build with POPDICT_GITHUB_REPO=owner/repo (baked in via vite.main.config).
 // Until that env var is set at build time, auto-update is disabled (safe no-op).
 
@@ -34,6 +36,7 @@ export interface UpdateManagerDeps extends UpdateManagerHooks {
   updater: AutoUpdaterLike
   isPackaged: boolean
   platform: NodeJS.Platform
+  arch: string
   version: string
   repo: string
   intervalMs?: number
@@ -59,13 +62,15 @@ export class UpdateManager {
 
   /** Wire the feed and listeners, then start checking. False = disabled (dev, non-mac, unconfigured). */
   init(): boolean {
-    const { updater, isPackaged, platform, version, repo } = this.deps
+    const { updater, isPackaged, platform, arch, version, repo } = this.deps
     if (!isPackaged) return false // never check in dev
     if (platform !== 'darwin') return false // wired for the macOS release only
     if (!repo) return false // not configured yet
 
     try {
-      updater.setFeedURL({ url: `https://update.electronjs.org/${repo}/${platform}/${version}` })
+      updater.setFeedURL({
+        url: `https://update.electronjs.org/${repo}/${platform}-${arch}/${version}`,
+      })
     } catch (error) {
       console.error('autoUpdater.setFeedURL failed:', error)
       return false
@@ -144,6 +149,7 @@ export function createUpdateManager(hooks: UpdateManagerHooks): UpdateManager {
     updater: autoUpdater,
     isPackaged: app.isPackaged,
     platform: process.platform,
+    arch: process.arch,
     version: app.getVersion(),
     repo: process.env.POPDICT_GITHUB_REPO || '',
     ...hooks,
