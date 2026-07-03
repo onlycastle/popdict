@@ -292,6 +292,10 @@ input[type='checkbox'] {
   -webkit-app-region: no-drag;
 }
 
+.feedback-modal {
+  width: min(440px, 100%);
+}
+
 .modal-icon-button {
   flex: 0 0 30px;
   width: 30px;
@@ -316,6 +320,79 @@ input[type='checkbox'] {
   color: white;
   border-color: rgb(var(--accent) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent) / 0.22);
+}
+
+.feedback-segments {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.feedback-segment {
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.feedback-segment:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.feedback-segment[aria-selected='true'] {
+  color: #1a1714;
+  background: rgb(var(--accent));
+  border-color: rgb(var(--accent) / 0.55);
+}
+
+.feedback-segment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.24);
+}
+
+.feedback-textarea,
+.feedback-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feedback-textarea {
+  min-height: 116px;
+  max-height: 180px;
+  resize: vertical;
+  padding: 10px 12px;
+}
+
+.feedback-input {
+  height: 40px;
+  padding: 0 12px;
+}
+
+.feedback-textarea:focus,
+.feedback-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgb(var(--accent) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.18);
+}
+
+.feedback-textarea::placeholder,
+.feedback-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* Ghost icon button for window chrome (Saved · Settings · Close). Transparent at
