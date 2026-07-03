@@ -156,10 +156,11 @@ async function handleSend(req: Request): Promise<Response> {
         continue
       }
 
-      await db
+      const { error: markError } = await db
         .from('quiz_preferences')
         .update({ last_sent_at: now.toISOString(), updated_at: now.toISOString() })
         .eq('user_id', pref.user_id)
+      if (markError) console.error('CRITICAL: quiz sent but last_sent_at not marked — duplicate risk', pref.user_id, markError)
       sent++
     } catch (e) {
       console.error('quiz user failed', pref.user_id, e)
@@ -171,7 +172,8 @@ async function handleSend(req: Request): Promise<Response> {
 
 async function handleAnswer(url: URL): Promise<Response> {
   const q = url.searchParams.get('q') ?? ''
-  const c = Number(url.searchParams.get('c'))
+  const cRaw = url.searchParams.get('c')
+  const c = cRaw === null || cRaw.trim() === '' ? NaN : Number(cRaw)
   if (!UUID_RE.test(q) || !Number.isInteger(c) || c < 0 || c > 3) {
     return json({ error: 'bad_request' }, 400)
   }
@@ -232,7 +234,7 @@ async function handleAnswer(url: URL): Promise<Response> {
       .limit(1)
       .maybeSingle()
     streak = nextStreak(prev ? Boolean(prev.answered_at) : null, streak)
-    await db.from('quiz_preferences').update({ streak }).eq('user_id', question.user_id)
+    await db.from('quiz_preferences').update({ streak, updated_at: now.toISOString() }).eq('user_id', question.user_id)
   }
 
   return json({
