@@ -9,7 +9,7 @@ export default function Privacy() {
   return (
     <main className="container prose">
       <h1>Privacy Policy</h1>
-      <p className="updated">Last updated: June 23, 2026</p>
+      <p className="updated">Last updated: July 3, 2026</p>
 
       <p>
         PopDict is a macOS dictionary app. This policy explains what data it handles and
@@ -31,6 +31,15 @@ export default function Privacy() {
         <li>Your email address and Google account identifier, to authenticate you.</li>
         <li>The words you choose to save, so they sync to your account.</li>
       </ul>
+
+      <h2>Quiz emails (optional)</h2>
+      <p>
+        If you turn on quiz emails, we use your saved words to generate a periodic
+        vocabulary quiz and send it to your account email through Resend, our email
+        delivery provider. Your answers are stored to schedule which words repeat.
+        Every quiz email contains an unsubscribe link that takes effect immediately;
+        you can also toggle quiz emails off in the app’s settings.
+      </p>
 
       <h2>Dictionary lookups</h2>
       <p>
