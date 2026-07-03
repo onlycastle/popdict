@@ -22,6 +22,15 @@ const sharedWebPreferences: BrowserWindowConstructorOptions['webPreferences'] = 
   nodeIntegration: false,
 }
 
+// Native macOS material for the secondary windows (Settings / Saved /
+// Onboarding): traffic lights inset into the content (no stock title bar) over
+// an under-window vibrancy the renderer tints with a translucent warm wash
+// (`.window` in index.css). The views reserve drag space via `.titlebar-drag`.
+const secondaryWindowChrome: Partial<BrowserWindowConstructorOptions> = {
+  titleBarStyle: 'hiddenInset',
+  vibrancy: 'under-window',
+}
+
 /**
  * Declarative definitions for every app window. `onAuthReady` is attached (via
  * afterCreate) to the windows that can receive an OAuth deep-link callback —
@@ -34,8 +43,8 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
       singleton: true,
       options: {
         width: 800,
-        height: 128,
-        minHeight: 128,
+        height: 64,
+        minHeight: 64,
         maxHeight: 600,
         transparent: true,
         frame: false,
@@ -94,6 +103,7 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
         height: 560,
         resizable: false,
         title: 'PopDict Settings',
+        ...secondaryWindowChrome,
         webPreferences: sharedWebPreferences,
       },
       afterCreate: (win) => {
@@ -111,6 +121,7 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
         minWidth: 360,
         minHeight: 400,
         title: 'PopDict — Saved Words',
+        ...secondaryWindowChrome,
         webPreferences: sharedWebPreferences,
       },
     },
@@ -123,6 +134,7 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
         height: 560,
         resizable: false,
         title: 'Welcome to PopDict',
+        ...secondaryWindowChrome,
         webPreferences: sharedWebPreferences,
       },
     },

@@ -22,7 +22,8 @@ export default function OnboardingView() {
   const hotkey = settings ? prettyHotkey(settings.hotkey) : '⌘ ⇧ Space'
 
   return (
-    <div className="window flex h-screen flex-col p-7">
+    <div className="window flex h-screen flex-col p-7 pt-0">
+      <div className="titlebar-drag" />
       <p className="dict-label mb-2">macOS · menu-bar dictionary</p>
       <h1 className="view-title text-3xl">Welcome to PopDict</h1>
       <p className="mt-1.5 text-sm text-white/60">A dictionary one keystroke away.</p>

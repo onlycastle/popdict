@@ -48,7 +48,8 @@ export default function SavedWordsView() {
 
   return (
     <div className="window flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-white/10 p-6 pb-4">
+      <div className="titlebar-drag" />
+      <header className="flex items-center justify-between border-b border-white/10 px-6 pb-4">
         <h1 className="view-title text-lg">Saved Words</h1>
         {auth.user && words.length > 0 && (
           <span className="dict-label">{words.length} saved</span>

@@ -100,7 +100,7 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     const win = windows.get('search')
     if (win) {
       const bounds = win.getBounds()
-      const newHeight = Math.min(Math.max(height, 128), 600) // Min 128px (chrome rail + input), max 600px
+      const newHeight = Math.min(Math.max(height, 64), 600) // Min 64px (the bare search bar), max 600px
       win.setBounds({ ...bounds, height: newHeight })
     }
   })
