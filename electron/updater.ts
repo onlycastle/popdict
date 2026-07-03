@@ -11,36 +11,141 @@ import { app, autoUpdater } from 'electron'
 //      `PopDict-darwin-arm64-<version>.zip`, so the service serves the right one.
 //   3. Build with POPDICT_GITHUB_REPO=owner/repo (baked in via vite.main.config).
 // Until that env var is set at build time, auto-update is disabled (safe no-op).
-const GITHUB_REPO = process.env.POPDICT_GITHUB_REPO || ''
+
+/** The subset of Electron's autoUpdater this manager uses — injectable for tests. */
+export interface AutoUpdaterLike {
+  setFeedURL(options: { url: string }): void
+  checkForUpdates(): void
+  quitAndInstall(): void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: string, listener: (...args: any[]) => void): unknown
+}
+
+export type ManualCheckResult = 'up-to-date' | 'error'
+
+export interface UpdateManagerHooks {
+  /** An update finished downloading — tell the user (notification + tray item). */
+  onUpdateReady: (version: string) => void
+  /** Outcome of a user-initiated check; background outcomes never reach this. */
+  onManualCheckResult: (result: ManualCheckResult) => void
+}
+
+export interface UpdateManagerDeps extends UpdateManagerHooks {
+  updater: AutoUpdaterLike
+  isPackaged: boolean
+  platform: NodeJS.Platform
+  version: string
+  repo: string
+  intervalMs?: number
+}
 
 const SIX_HOURS = 1000 * 60 * 60 * 6
 
-export function initAutoUpdates(): void {
-  if (!app.isPackaged) return // never check in dev
-  if (process.platform !== 'darwin') return // wired for the macOS release only
-  if (!GITHUB_REPO) return // not configured yet
+/**
+ * Owns the auto-update lifecycle: silent background checks stay silent, and a
+ * manual "Check for Updates…" routes exactly one outcome back to the user.
+ */
+export class UpdateManager {
+  private readyVersion: string | null = null
+  private manualCheckPending = false
+  private enabled = false
 
-  const feedURL = `https://update.electronjs.org/${GITHUB_REPO}/${process.platform}/${app.getVersion()}`
+  constructor(private deps: UpdateManagerDeps) {}
 
-  try {
-    autoUpdater.setFeedURL({ url: feedURL })
-  } catch (error) {
-    console.error('autoUpdater.setFeedURL failed:', error)
-    return
+  /** Version of a fully-downloaded update, '' if its name was unknown, null if none. */
+  get updateReadyVersion(): string | null {
+    return this.readyVersion
   }
 
-  autoUpdater.on('error', (error) => {
-    console.error('autoUpdater error:', error)
-  })
+  /** Wire the feed and listeners, then start checking. False = disabled (dev, non-mac, unconfigured). */
+  init(): boolean {
+    const { updater, isPackaged, platform, version, repo } = this.deps
+    if (!isPackaged) return false // never check in dev
+    if (platform !== 'darwin') return false // wired for the macOS release only
+    if (!repo) return false // not configured yet
 
-  const check = () => {
     try {
-      autoUpdater.checkForUpdates()
+      updater.setFeedURL({ url: `https://update.electronjs.org/${repo}/${platform}/${version}` })
+    } catch (error) {
+      console.error('autoUpdater.setFeedURL failed:', error)
+      return false
+    }
+
+    updater.on('update-downloaded', (_event: unknown, _notes: unknown, releaseName: unknown) => {
+      // update.electronjs.org names releases by tag ("v1.2.0") — strip the v
+      // so UI labels can add their own prefix without doubling it.
+      this.readyVersion = String(releaseName ?? '').replace(/^v/i, '')
+      this.manualCheckPending = false
+      this.deps.onUpdateReady(this.readyVersion)
+    })
+
+    updater.on('update-not-available', () => {
+      if (!this.manualCheckPending) return
+      this.manualCheckPending = false
+      this.deps.onManualCheckResult('up-to-date')
+    })
+
+    updater.on('error', (error: unknown) => {
+      console.error('autoUpdater error:', error)
+      if (!this.manualCheckPending) return
+      this.manualCheckPending = false
+      this.deps.onManualCheckResult('error')
+    })
+
+    this.enabled = true
+    this.check()
+    setInterval(() => this.check(), this.deps.intervalMs ?? SIX_HOURS)
+    return true
+  }
+
+  /** Tray "Check for Updates…" — unlike background checks, its outcome is surfaced. */
+  checkNow(): void {
+    if (!this.enabled) {
+      this.deps.onManualCheckResult('error')
+      return
+    }
+    if (this.readyVersion !== null) {
+      // Already staged; re-surface the prompt rather than re-checking (Squirrel
+      // won't re-download a staged update anyway).
+      this.deps.onUpdateReady(this.readyVersion)
+      return
+    }
+    this.manualCheckPending = true
+    this.check()
+  }
+
+  /** Restart onto the downloaded update. */
+  installUpdate(): void {
+    try {
+      this.deps.updater.quitAndInstall()
+    } catch (error) {
+      console.error('autoUpdater.quitAndInstall failed:', error)
+    }
+  }
+
+  private check(): void {
+    try {
+      this.deps.updater.checkForUpdates()
     } catch (error) {
       console.error('autoUpdater.checkForUpdates failed:', error)
     }
   }
+}
 
-  check()
-  setInterval(check, SIX_HOURS)
+/** App-wide instance wired to the real Electron autoUpdater. */
+export function createUpdateManager(hooks: UpdateManagerHooks): UpdateManager {
+  return new UpdateManager({
+    updater: autoUpdater,
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    version: app.getVersion(),
+    repo: process.env.POPDICT_GITHUB_REPO || '',
+    ...hooks,
+  })
+}
+
+/** TEMPORARY back-compat shim so main.ts keeps compiling until Task 2 rewires it. */
+export function initAutoUpdates(): void {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  createUpdateManager({ onUpdateReady: () => {}, onManualCheckResult: () => {} }).init()
 }
