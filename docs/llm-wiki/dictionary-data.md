@@ -6,8 +6,9 @@ last-verified: 2026-07-03
 # Dictionary data
 
 Lookup flows from `src/views/SearchView.tsx` through
-[DictionaryService.ts](../../src/services/dictionary/DictionaryService.ts),
-which routes by script and merges sources (interface:
+[DictionaryService.ts](../../src/services/dictionary/DictionaryService.ts):
+single words hit the free dictionary alone; multi-word queries also try the
+idiom source in parallel and merge whatever succeeds (interface:
 [DictionarySource.ts](../../src/services/dictionary/DictionarySource.ts)).
 
 ## Sources
@@ -15,26 +16,25 @@ which routes by script and merges sources (interface:
 | Source | Handles | Backed by |
 |---|---|---|
 | [FreeDictionarySource.ts](../../src/services/dictionary/FreeDictionarySource.ts) | English definitions | free dictionary API |
-| [KrdictSource.ts](../../src/services/dictionary/KrdictSource.ts) | Hangul lookups | `krdict` edge function (mapper: [krdictMapper.test.ts](../../src/services/dictionary/krdictMapper.test.ts) documents the shape) |
-| [EnKoTranslationSource.ts](../../src/services/dictionary/EnKoTranslationSource.ts) | English→Korean glosses | `en_ko_translations` table |
 | [IdiomSource.ts](../../src/services/dictionary/IdiomSource.ts) | Idioms | `idioms` edge function |
 
-Script detection / EN↔KO helpers: [shared/enko.ts](../../shared/enko.ts).
-Known v1 gap: conjugated/inflected Korean forms don't match krdict headwords.
+Korean support (krdict lookups, en→ko glosses) was removed 2026-07-03 —
+PopDict is an English-medium product. The DB teardown is
+[20260703230000_remove_korean_support.sql](../../supabase/migrations/20260703230000_remove_korean_support.sql);
+the earlier Korean-era migrations stay in place because applied migrations
+are immutable.
 
 ## Supabase
 
-- Edge functions: [krdict](../../supabase/functions/krdict/index.ts),
-  [idioms](../../supabase/functions/idioms/index.ts),
+- Edge functions: [idioms](../../supabase/functions/idioms/index.ts),
   [downloads](../../supabase/functions/downloads/index.ts). All read their
   secrets (service-role key, upstream API keys, endpoint tokens) via
   `Deno.env.get` — the `supabase-boundary` gate enforces the boundary
   (learning L-006). Functions using custom token auth deploy with
   `--no-verify-jwt`.
 - Migrations: [supabase/migrations/](../../supabase/migrations/) — saved
-  words, idiom usage, download tracking, krdict usage, `en_ko_translations`.
-- ETL: [scripts/build-en-ko-dataset.ts](../../scripts/build-en-ko-dataset.ts)
-  builds the EN→KO dataset CSV for loading into `en_ko_translations`.
+  words, idiom usage, download tracking, and the Korean-era create/teardown
+  pairs noted above.
 
 ## Saved words
 

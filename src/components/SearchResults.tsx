@@ -135,12 +135,6 @@ const SearchResults = ({
                   </svg>
                 </button>
               </div>
-              {response.koTranslations && response.koTranslations.length > 0 && (
-                <p className="mt-1.5 text-sm text-white/80">
-                  <span className="dict-label mr-1.5">한국어</span>
-                  {response.koTranslations.slice(0, 5).join(' · ')}
-                </p>
-              )}
               {saveFeedback && (
                 <p
                   className={`mt-2 text-xs ${saveFeedbackTone === 'error' ? 'text-red-300' : 'text-emerald-300'}`}
@@ -169,7 +163,7 @@ const SearchResults = ({
                 <span className="dict-pos mb-2.5 inline-block">{meaning.partOfSpeech}</span>
 
                 <div className="space-y-3.5">
-                  {(response.source === 'krdict' ? meaning.definitions : meaning.definitions.slice(0, 3)).map((def, defIndex) => (
+                  {meaning.definitions.slice(0, 3).map((def, defIndex) => (
                     <div key={defIndex} className="flex gap-2.5">
                       <span className="dict-sense-num w-4 shrink-0 text-right leading-relaxed text-sm">
                         {defIndex + 1}

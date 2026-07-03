@@ -17,7 +17,7 @@ days fail validation.
 | Page | Covers |
 |---|---|
 | [desktop-runtime](desktop-runtime.md) | Electron main process: windows, hotkey, tray, IPC, updater, auth callback, security |
-| [dictionary-data](dictionary-data.md) | Lookup routing, dictionary sources, Supabase functions, migrations, ETL |
+| [dictionary-data](dictionary-data.md) | Lookup routing, dictionary sources, Supabase functions, migrations |
 | [site-downloads](site-downloads.md) | Next.js site, download redirect, tracking, cron, admin dashboard |
 | [release-ops](release-ops.md) | Cutting a release: build, sign, notarize, publish, update feed |
 | [harness](harness.md) | Quality gates, learnings ledger, routing |

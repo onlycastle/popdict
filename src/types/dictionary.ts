@@ -27,12 +27,10 @@ export interface IdiomResult {
   example?: string
 }
 
-export type SearchSource = 'free-dictionary' | 'phrases-api' | 'both' | 'krdict' | 'en-ko'
+export type SearchSource = 'free-dictionary' | 'phrases-api' | 'both'
 
 export interface SearchResponse {
   dictionaryResults: DictionaryResult[] | null
   idiomResult: IdiomResult | null
-  /** Korean equivalents of an English query — augmentation, null when absent. */
-  koTranslations: string[] | null
   source: SearchSource
 }

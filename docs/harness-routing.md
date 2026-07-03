@@ -8,7 +8,7 @@ every tracked skill needs a row, every row needs a tracked skill.
 |---|---|---|---|
 | popdict-foreman | Work spans several domains, or you're unsure which specialist applies | [wiki index](llm-wiki/index.md) | all |
 | desktop-runtime | Electron main process: windows, IPC, hotkey, tray, updater, auth deep links, security policy | [desktop-runtime](llm-wiki/desktop-runtime.md) | electron-invariants |
-| dictionary-data | Lookup routing, dictionary sources, edge functions, migrations, EN↔KO ETL, saved words | [dictionary-data](llm-wiki/dictionary-data.md) | supabase-boundary |
+| dictionary-data | Lookup routing, dictionary sources, edge functions, migrations, saved words | [dictionary-data](llm-wiki/dictionary-data.md) | supabase-boundary |
 | site-downloads | Next.js site, download redirect/tracking, admin stats, cron, OAuth handoff page | [site-downloads](llm-wiki/site-downloads.md) | secret-scan |
 | deploy-popdict | Cutting/publishing a release, stale website DMG, auto-update not arriving | [release-ops](llm-wiki/release-ops.md) | electron-invariants |
 | privacy-security | Secrets, auth flows, renderer security, anything that could leak into the public repo | [harness](llm-wiki/harness.md) | secret-scan, supabase-boundary |

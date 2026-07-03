@@ -3,6 +3,13 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Removed
+- Korean support: Korean→English lookups (krdict), English→Korean gloss
+  augmentation, and Korean text-to-speech. PopDict is an English-medium
+  product.
+
 ## [1.2.0] - 2026-07-03
 
 ### Added
