@@ -2,12 +2,47 @@ import { useEffect, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
 import HotkeyField from '../components/HotkeyField'
+import { quizPreferences } from '../services/QuizPreferencesRepository'
 
 export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [status, setStatus] = useState('')
   const [version, setVersion] = useState('')
   const auth = useSupabaseAuth()
+
+  const [quizEnabled, setQuizEnabled] = useState<boolean | null>(null)
+  const [quizError, setQuizError] = useState('')
+
+  useEffect(() => {
+    if (!auth.user) {
+      setQuizEnabled(null)
+      return
+    }
+    let cancelled = false
+    quizPreferences
+      .get(auth.user)
+      .then((prefs) => {
+        if (!cancelled) setQuizEnabled(prefs?.enabled ?? false)
+      })
+      .catch(() => {
+        if (!cancelled) setQuizEnabled(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [auth.user])
+
+  const toggleQuiz = async (enabled: boolean) => {
+    if (!auth.user) return
+    setQuizEnabled(enabled) // optimistic
+    setQuizError('')
+    try {
+      await quizPreferences.setEnabled(auth.user, enabled)
+    } catch (e) {
+      setQuizEnabled(!enabled)
+      setQuizError(e instanceof Error ? e.message : 'Could not update quiz emails')
+    }
+  }
 
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
@@ -72,6 +107,21 @@ export default function SettingsView() {
           </p>
         )}
       </section>
+
+      {auth.user && quizEnabled !== null && (
+        <section className="space-y-2 border-b border-white/10 pb-5">
+          <h2 className="dict-label mb-1.5">Word quiz</h2>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={quizEnabled}
+              onChange={(e) => void toggleQuiz(e.target.checked)}
+            />
+            <span className="text-sm text-white/80">Weekly quiz email on your saved words</span>
+          </label>
+          {quizError && <p className="text-xs text-red-300">{quizError}</p>}
+        </section>
+      )}
 
       <HotkeyField
         value={settings.hotkey}
