@@ -149,9 +149,3 @@ export function createUpdateManager(hooks: UpdateManagerHooks): UpdateManager {
     ...hooks,
   })
 }
-
-/** TEMPORARY back-compat shim so main.ts keeps compiling until Task 2 rewires it. */
-export function initAutoUpdates(): void {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  createUpdateManager({ onUpdateReady: () => {}, onManualCheckResult: () => {} }).init()
-}
