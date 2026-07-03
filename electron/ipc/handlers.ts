@@ -41,6 +41,7 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
   const { store, windows, broker, hotkey, tray, openFeedback } = deps
 
   router.handle('get-settings', () => settingsPayload(store))
+  router.handle('get-app-version', () => app.getVersion())
 
   router.handle('set-settings', (_e, partial) => {
     const { launchAtLogin, hotkey: _ignoredHotkey, ...storable } = partial ?? {}

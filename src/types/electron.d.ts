@@ -9,6 +9,7 @@ export interface ElectronAPI {
   onFocusSearch: (cb: () => void) => void
   onAuthCallback: (cb: (url: string) => void) => () => void
   consumeAuthCallback: () => Promise<string | null>
+  getAppVersion: () => Promise<string>
   getSettings: () => Promise<AppSettings>
   setSettings: (partial: Partial<AppSettings>) => Promise<AppSettings>
   getHistory: () => Promise<string[]>
