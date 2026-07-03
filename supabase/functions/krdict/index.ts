@@ -89,7 +89,8 @@ Deno.serve(async (req: Request) => {
   }
   if (!word || word.length > MAX_WORD_LEN) return json({ results: [] })
 
-  const cached = cache.get(word)
+  const key = word.toLowerCase()
+  const cached = cache.get(key)
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
     return json({ results: cached.results }) // cache hits don't count against the limit
   }
@@ -121,7 +122,7 @@ Deno.serve(async (req: Request) => {
       return json({ results: [], error: 'upstream_error' }, 503)
     }
     const results = parseKrdictXml(xml)
-    cache.set(word, { at: Date.now(), results })
+    cache.set(key, { at: Date.now(), results })
     return json({ results })
   } catch {
     return json({ results: [], error: 'upstream_unreachable' }, 503)

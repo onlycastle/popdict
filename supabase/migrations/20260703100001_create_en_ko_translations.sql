@@ -14,3 +14,5 @@ create policy "en_ko_translations are publicly readable"
   for select
   to anon, authenticated
   using (true);
+
+grant select on public.en_ko_translations to anon, authenticated;
