@@ -4,6 +4,7 @@ export default function Home() {
   const githubRepo = process.env.GITHUB_REPO || 'onlycastle/popdict'
   const githubUrl = `https://github.com/${githubRepo}`
   const issuesUrl = `${githubUrl}/issues`
+  const homebrewCommand = 'brew install --cask onlycastle/tap/popdict'
 
   return (
     <main>
@@ -67,6 +68,10 @@ export default function Home() {
                 </svg>
                 View source
               </a>
+            </div>
+            <div className="install-command">
+              <span className="install-command-label">Homebrew</span>
+              <code>{homebrewCommand}</code>
             </div>
             <p className="cta-note">Free · Apple Silicon · open source</p>
           </div>
@@ -230,6 +235,10 @@ export default function Home() {
           <a className="btn" href="/download/latest">
             Download for macOS
           </a>
+          <div className="install-command install-command-closing">
+            <span className="install-command-label">Homebrew</span>
+            <code>{homebrewCommand}</code>
+          </div>
           <p className="cta-note">Free · Apple Silicon · open source</p>
         </section>
       </div>
