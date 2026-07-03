@@ -8,7 +8,7 @@ import path from 'node:path'
  *   files: git-tracked paths relative to root, POSIX separators.
  *          Pass { files } explicitly in tests to avoid needing git.
  */
-export function makeContext(root, { files, gateIds } = {}) {
+export function makeContext(root, { files, gateIds, now } = {}) {
   const tracked =
     files ??
     execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
@@ -18,6 +18,7 @@ export function makeContext(root, { files, gateIds } = {}) {
     root,
     files: tracked,
     gateIds: gateIds ?? [],
+    now: now ?? Date.now(),
     read: (relPath) => readFileSync(path.join(root, relPath), 'utf8'),
   }
 }
