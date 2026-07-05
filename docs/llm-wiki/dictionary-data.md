@@ -1,6 +1,6 @@
 ---
 title: Dictionary data & lookup
-last-verified: 2026-07-03
+last-verified: 2026-07-05
 ---
 
 # Dictionary data
@@ -42,3 +42,35 @@ are immutable.
 the `saved_words` table (anon key via
 [supabaseClient.ts](../../src/services/supabaseClient.ts)); UI in
 `src/views/SavedWordsView.tsx`.
+
+## Study digest
+
+Weekly quiz emails turn saved words into spaced-repetition exercises. One
+edge function owns the whole loop:
+[quiz/index.ts](../../supabase/functions/quiz/index.ts).
+
+| Action | Trigger | Does |
+|---|---|---|
+| `send` | Vercel Cron via [site/app/api/cron/quiz/quiz.ts](../../site/app/api/cron/quiz/quiz.ts) (`x-quiz-token`) | Builds each due user's digest from saved words + Leitner state, emails it through Resend. |
+| `answer` | Email link, proxied by [site/app/quiz/answer/route.ts](../../site/app/quiz/answer/route.ts) | Records the choice, advances the Leitner box, updates streak. |
+| `review` | Fetched by [site/app/quiz/result/page.tsx](../../site/app/quiz/result/page.tsx) | Returns the study material + outcome to render the full study card. |
+| `unsubscribe` | Proxied by [site/app/quiz/unsubscribe/route.ts](../../site/app/quiz/unsubscribe/route.ts) → [unsubscribed page](../../site/app/quiz/unsubscribed/page.tsx) | Flips `quiz_preferences.enabled` off. |
+
+Study material (definition, examples, similar expressions, quiz distractors)
+is generated once per word by
+[materials.ts](../../supabase/functions/quiz/materials.ts) via the Anthropic
+API — secret read through `Deno.env.get('ANTHROPIC_API_KEY')`, same boundary
+as the other functions — and cached forever in
+[word_study_materials](../../supabase/migrations/20260705120000_create_word_study_materials.sql),
+never regenerated once cached.
+
+Spaced repetition (Leitner boxes 1-5) lives in `word_reviews`, created in
+[20260703130000_create_quiz_schema.sql](../../supabase/migrations/20260703130000_create_quiz_schema.sql)
+alongside `quiz_preferences`/`quizzes`/`quiz_questions`; the box math is in
+[lib.ts](../../supabase/functions/quiz/lib.ts).
+
+In the app,
+[QuizPreferencesRepository.ts](../../src/services/QuizPreferencesRepository.ts)
+reads/writes `quiz_preferences`;
+[useSaveWord.ts](../../src/hooks/useSaveWord.ts) prompts opt-in once, on a
+user's 5th saved word.
