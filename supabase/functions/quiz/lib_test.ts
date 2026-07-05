@@ -1,11 +1,10 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import {
-  buildQuestions,
-  buildQuizEmailHtml,
+  blankWord,
+  buildExercise,
   escapeHtml,
   leitnerNext,
   nextStreak,
-  pickDistinct,
   selectDueWords,
 } from './lib.ts'
 
@@ -59,47 +58,43 @@ Deno.test('nextStreak: continues on answered-previous or first quiz, resets on s
   assertEquals(nextStreak(false, 3), 1)  // previous quiz ignored
 })
 
-Deno.test('pickDistinct returns unique values even from a pool with duplicates', () => {
-  const picked = pickDistinct(['a', 'a', 'b', 'c', 'b', 'd'], 3, seededRng())
-  assertEquals(new Set(picked).size, 3)
-})
 
-Deno.test('buildQuestions: 4 shuffled options containing the first ko translation, correct_index accurate', () => {
-  const candidates = [{ word: 'Apple', normalized_word: 'apple', created_at: '2026-06-01T00:00:00Z' }]
-  const translations = new Map([['apple', ['사과', '애플']]])
-  const pool = ['바나나', '포도', '수박', '사과', '애플'] // own translations must be excluded as distractors
-  const [q] = buildQuestions(candidates, translations, pool, seededRng())
+Deno.test('box 1-2 builds a recognition question with the definition as the answer', () => {
+  const material = {
+    definition: 'great pleasure or satisfaction',
+    examples: ['The garden was a delight.'],
+    similar: [{ phrase: 'joy', nuance: 'stronger' }, { phrase: 'pleasure', nuance: 'broader' }],
+    recognition_distractors: ['a sudden fear', 'a type of contract', 'a light source'],
+    cloze: { sentence: 'Watching the sunset was a pure Delight for us.', distractors: ['burden', 'schedule', 'debate'] },
+  }
+  const saved = { word: 'Delight', normalized_word: 'delight', created_at: '2026-07-01T00:00:00Z' }
+  const q = buildExercise(saved, material, 1, seededRng())
+  assertEquals(q.kind, 'recognition')
   assertEquals(q.options.length, 4)
-  assertEquals(q.options[q.correct_index], '사과')
-  assert(!q.options.filter((_, i) => i !== q.correct_index).includes('사과'))
-  assert(!q.options.includes('애플') || q.options[q.correct_index] === '애플')
+  assertEquals(q.options[q.correct_index], material.definition)
+  assertEquals(q.prompt, 'Delight')
 })
 
-Deno.test('buildQuestions: skips words without translations or with too few distractors', () => {
-  const candidates = [
-    { word: 'apple', normalized_word: 'apple', created_at: '2026-06-01T00:00:00Z' },
-    { word: 'zzz', normalized_word: 'zzz', created_at: '2026-06-01T00:00:00Z' },
-  ]
-  const translations = new Map([['apple', ['사과']]])
-  assertEquals(buildQuestions(candidates, translations, ['바나나', '포도', '수박'], seededRng()).length, 1)
-  assertEquals(buildQuestions(candidates, translations, ['바나나'], seededRng()).length, 0)
+Deno.test('box 3+ builds a cloze with the word as the answer and a blanked prompt', () => {
+  const material = {
+    definition: 'great pleasure or satisfaction',
+    examples: ['The garden was a delight.'],
+    similar: [{ phrase: 'joy', nuance: 'stronger' }, { phrase: 'pleasure', nuance: 'broader' }],
+    recognition_distractors: ['a sudden fear', 'a type of contract', 'a light source'],
+    cloze: { sentence: 'Watching the sunset was a pure Delight for us.', distractors: ['burden', 'schedule', 'debate'] },
+  }
+  const saved = { word: 'Delight', normalized_word: 'delight', created_at: '2026-07-01T00:00:00Z' }
+  const q = buildExercise(saved, material, 3, seededRng())
+  assertEquals(q.kind, 'cloze')
+  assertEquals(q.options[q.correct_index], 'Delight')
+  assert(q.prompt.includes('____'))
+  assert(!q.prompt.toLowerCase().includes('delight'))
+})
+
+Deno.test('blankWord blanks case-insensitively and only whole words', () => {
+  assertEquals(blankWord('A Delight, delightful day of delight.', 'delight'), 'A ____, delightful day of ____.')
 })
 
 Deno.test('escapeHtml covers the five specials', () => {
   assertEquals(escapeHtml(`<a href="x">&'`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;')
-})
-
-Deno.test('buildQuizEmailHtml: one answer link per option plus unsubscribe, content escaped', () => {
-  const html = buildQuizEmailHtml({
-    questions: [{
-      id: 'q-1', word: '<b>tricky</b>', normalized_word: 'tricky',
-      options: ['하나', '둘', '셋', '넷'], correct_index: 0,
-    }],
-    linkBase: 'https://popdict.space',
-    unsubscribeUrl: 'https://popdict.space/quiz/unsubscribe?u=tok',
-  })
-  for (const c of [0, 1, 2, 3]) assert(html.includes(`https://popdict.space/quiz/answer?q=q-1&amp;c=${c}`))
-  assert(html.includes('https://popdict.space/quiz/unsubscribe?u=tok'))
-  assert(html.includes('&lt;b&gt;tricky&lt;/b&gt;'))
-  assert(!html.includes('<b>tricky</b>'))
 })

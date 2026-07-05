@@ -2,11 +2,20 @@
 // transitions, question building, streaks, and the email template. No I/O so
 // everything is testable with `deno test`.
 
+import type { StudyMaterial } from './materials.ts'
+
 export const LEITNER_INTERVAL_DAYS = [1, 3, 7, 14, 30]
 
 export type SavedWordRow = { word: string; normalized_word: string; created_at: string }
 export type ReviewRow = { normalized_word: string; box: number; next_due_at: string }
-export type Question = { word: string; normalized_word: string; options: string[]; correct_index: number }
+export type Question = {
+  word: string
+  normalized_word: string
+  kind: 'recognition' | 'cloze'
+  prompt: string
+  options: string[]
+  correct_index: number
+}
 export type QuestionWithId = Question & { id: string }
 
 /** Words due for review: no review row means due since the word was saved. */
@@ -47,36 +56,43 @@ export function shuffle<T>(items: T[], rng: () => number): T[] {
   return out
 }
 
-export function pickDistinct(pool: string[], count: number, rng: () => number): string[] {
-  const unique = shuffle([...new Set(pool)], rng)
-  return unique.slice(0, count)
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Blank whole-word, case-insensitive occurrences of `word` in a sentence. */
+export function blankWord(sentence: string, word: string): string {
+  return sentence.replace(new RegExp(`\\b${escapeRegExp(word)}\\b`, 'gi'), '____')
 }
 
-export function buildQuestions(
-  candidates: SavedWordRow[],
-  translations: Map<string, string[]>,
-  distractorPool: string[],
-  rng: () => number,
-  limit = 8
-): Question[] {
-  const questions: Question[] = []
-  for (const candidate of candidates) {
-    if (questions.length >= limit) break
-    const own = translations.get(candidate.normalized_word)
-    const correct = own?.[0]
-    if (!correct) continue
-    const banned = new Set(own)
-    const distractors = pickDistinct(distractorPool.filter((d) => !banned.has(d)), 3, rng)
-    if (distractors.length < 3) continue
-    const options = shuffle([correct, ...distractors], rng)
-    questions.push({
+/**
+ * The Leitner ladder: new-ish words (box 1-2) get recognition (pick the
+ * meaning); words in box 3+ get cloze (pick the word for the blank).
+ */
+export function buildExercise(
+  candidate: SavedWordRow,
+  material: StudyMaterial,
+  box: number,
+  rng: () => number
+): Question {
+  if (box <= 2) {
+    const options = shuffle([material.definition, ...material.recognition_distractors], rng)
+    return {
       word: candidate.word,
       normalized_word: candidate.normalized_word,
+      kind: 'recognition',
+      prompt: candidate.word,
       options,
-      correct_index: options.indexOf(correct),
-    })
+      correct_index: options.indexOf(material.definition),
+    }
   }
-  return questions
+  const options = shuffle([candidate.word, ...material.cloze.distractors], rng)
+  return {
+    word: candidate.word,
+    normalized_word: candidate.normalized_word,
+    kind: 'cloze',
+    prompt: blankWord(material.cloze.sentence, candidate.word),
+    options,
+    correct_index: options.indexOf(candidate.word),
+  }
 }
 
 export function escapeHtml(s: string): string {
