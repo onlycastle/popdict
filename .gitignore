@@ -86,3 +86,5 @@ deno.lock
 
 # ETL build artifacts
 out-data/
+.vercel
+.env*.local
