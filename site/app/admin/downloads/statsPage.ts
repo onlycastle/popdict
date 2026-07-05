@@ -427,7 +427,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
           <div>
             <h2>Download Curve</h2>
             <div class="muted small view-sub view-sub-cumulative">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
-            <div class="muted small view-sub view-sub-daily">${daily.length > 0 ? `Daily new downloads from ${escapeHtml(daily[0].date)} (first snapshot day is the baseline)` : 'Daily deltas need two snapshot days'}</div>
+            <div class="muted small view-sub view-sub-daily">${daily.length > 0 ? `Daily new downloads from ${escapeHtml(daily[0].date)} (first snapshot day is the baseline)` : 'Daily view needs at least two days of data.'}</div>
           </div>
           <div class="chart-actions-col">
             <div class="chart-switch" aria-label="Chart view">
@@ -666,8 +666,21 @@ function renderDailyBars(points: DailyPoint[]): string {
     <rect x="0" y="0" width="${width}" height="${height}" fill="#fff" rx="8" />
     ${gridLines(maxValue, left, top, plotWidth, plotHeight)}
     ${bars}
-    ${axisTicks(points, left, yBase, plotWidth)}
+    ${dailyAxisTicks(points, left, yBase, slot)}
   </svg>`
+}
+
+// Categorical ticks centered under their bars (the shared axisTicks spreads
+// labels across the plot width, which strands a single bar's date at the
+// right edge).
+function dailyAxisTicks(points: DailyPoint[], left: number, y: number, slot: number): string {
+  const indices = points.length === 1
+    ? [0]
+    : Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
+  return indices.map((index) => {
+    const x = round(left + slot * (index + 0.5))
+    return `<text class="axis-label" x="${x}" y="${y + 26}" text-anchor="middle">${escapeHtml(points[index].date)}</text>`
+  }).join('')
 }
 
 type ChartMetric = 'combined' | 'github' | 'website'

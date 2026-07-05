@@ -172,6 +172,26 @@ describe('renderDashboardPage chart toggle', () => {
     expect(html).toContain('Daily view needs at least two days of data.')
     expect(html).not.toContain('aria-label="Daily new downloads"')
   })
+
+  it('keeps the radios before the chart head and views so :checked ~ selectors reach them', () => {
+    const html = renderDashboardPage(data, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toMatch(
+      /id="view-cumulative"[\s\S]*id="view-daily"[\s\S]*class="chart-head"[\s\S]*class="chart-view chart-view-cumulative"[\s\S]*class="chart-view chart-view-daily"/,
+    )
+  })
+
+  it('centers the date tick under a single daily bar', () => {
+    const twoDays: DownloadDashboardData = {
+      ...data,
+      timeseries: [
+        { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+        { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+      ],
+    }
+    const html = renderDashboardPage(twoDays, new Date('2026-07-03T00:00:00Z'))
+    const daily = html.slice(html.indexOf('aria-label="Daily new downloads"'))
+    expect(daily.slice(0, daily.indexOf('</svg>'))).toContain('text-anchor="middle"')
+  })
 })
 
 describe('renderDashboardPage countries', () => {
@@ -215,5 +235,13 @@ describe('renderDashboardPage countries', () => {
     const html = renderDashboardPage(absent, new Date('2026-07-04T00:00:00Z'))
     expect(html).toContain('No country data yet.')
     expect(html).not.toContain('aria-label="Website downloads by country"')
+
+    const empty: DownloadDashboardData = {
+      ...base,
+      stats: { ...base.stats, website: { total: 18, byCountry: {} } },
+    }
+    const emptyHtml = renderDashboardPage(empty, new Date('2026-07-04T00:00:00Z'))
+    expect(emptyHtml).toContain('No country data yet.')
+    expect(emptyHtml).not.toContain('aria-label="Website downloads by country"')
   })
 })
