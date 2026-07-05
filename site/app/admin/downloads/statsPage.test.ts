@@ -173,3 +173,47 @@ describe('renderDashboardPage chart toggle', () => {
     expect(html).not.toContain('aria-label="Daily new downloads"')
   })
 })
+
+describe('renderDashboardPage countries', () => {
+  const base: DownloadDashboardData = {
+    stats: {
+      combined: 60,
+      github: { total: 42, byAsset: { 'PopDict.dmg': 42 }, asOf: '2026-07-04' },
+      website: { total: 18, byCountry: { KR: 11, US: 6, unknown: 1 } },
+    },
+    timeseries: [
+      { date: '2026-07-03', github: 40, website: 15, combined: 55 },
+      { date: '2026-07-04', github: 42, website: 18, combined: 60 },
+    ],
+  }
+
+  it('renders a shaded map with tooltips and a ranked list', () => {
+    const html = renderDashboardPage(base, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('aria-label="Website downloads by country"')
+    expect(html).toContain('Website downloads, all time — GitHub does not report geography.')
+    expect(html).toContain('<title>South Korea: 11</title>')
+    expect(html).toContain('fill="#d9862f"')
+    expect(html).toContain('🇰🇷')
+    expect(html).toContain('<div class="country-name">Unknown</div>')
+  })
+
+  it('escapes hostile country codes from the api', () => {
+    const hostile: DownloadDashboardData = {
+      ...base,
+      stats: { ...base.stats, website: { total: 1, byCountry: { '<img src=x>': 1 } } },
+    }
+    const html = renderDashboardPage(hostile, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('&lt;img src=x&gt;')
+    expect(html).not.toContain('<img src=x>')
+  })
+
+  it('renders the countries empty state when byCountry is absent or empty', () => {
+    const absent: DownloadDashboardData = {
+      ...base,
+      stats: { ...base.stats, website: { total: 18 } },
+    }
+    const html = renderDashboardPage(absent, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('No country data yet.')
+    expect(html).not.toContain('aria-label="Website downloads by country"')
+  })
+})

@@ -1,4 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
+import { countryDisplayName, countryShade, rankCountries, type CountryRow } from './countries'
+import { WORLD_MAP_PATHS, WORLD_MAP_VIEWBOX } from './worldMapPaths'
 
 export type DownloadStats = {
   combined: number
@@ -346,6 +348,44 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       background: var(--accent-soft);
       color: var(--ink);
     }
+    .countries-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 250px;
+      gap: 18px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .world-map { display: block; width: 100%; height: auto; }
+    .country-list {
+      align-self: stretch;
+      border-left: 1px solid var(--line);
+      padding-left: 18px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .country-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .country-row:last-child { border-bottom: 0; }
+    .country-flag { font-size: 18px; line-height: 1; }
+    .country-main { flex: 1; min-width: 0; }
+    .country-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .country-row .bar-track { min-width: 0; margin-top: 4px; height: 6px; }
+    .country-count { font-weight: 700; font-variant-numeric: tabular-nums; }
     @media (max-width: 720px) {
       header { align-items: flex-start; flex-direction: column; }
       .actions { justify-content: flex-start; }
@@ -355,6 +395,8 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       .legend { justify-content: flex-start; }
       .delta-strip { grid-template-columns: 1fr; gap: 10px; }
       th.optional, td.optional { display: none; }
+      .countries-card { grid-template-columns: 1fr; }
+      .country-list { border-left: 0; padding-left: 0; }
     }
   </style>
 </head>
@@ -404,6 +446,8 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
         ${recent ? renderDeltaStrip(recent) : ''}
       </div>
     </section>
+
+    ${renderCountriesSection(stats.website.byCountry)}
 
     <section>
       <h2>Assets</h2>
@@ -503,6 +547,53 @@ function renderDeltaStrip(delta: DownloadDelta): string {
 
 function deltaItem(label: string, value: number): string {
   return `<div class="delta-item"><div class="label">${escapeHtml(label)} / 7 days</div><div class="delta-value">${formatDelta(value)}</div></div>`
+}
+
+function renderCountriesSection(byCountry: Record<string, number> | undefined): string {
+  const rows = rankCountries(byCountry ?? {})
+  const body = rows.length === 0
+    ? '<div class="empty-chart">No country data yet.</div>'
+    : `<div class="countries-card">
+        ${renderWorldMap(rows)}
+        <div class="country-list">${rows.map((row) => countryRowHtml(row, maxCountryCount(rows))).join('')}</div>
+      </div>`
+  return `<section>
+      <h2>Countries</h2>
+      <div class="muted small">Website downloads, all time — GitHub does not report geography.</div>
+      ${body}
+    </section>`
+}
+
+// Max over real countries only: 'unknown' has no geography and must not
+// flatten the map's shading scale.
+function maxCountryCount(rows: CountryRow[]): number {
+  return Math.max(1, ...rows.filter((row) => row.code !== 'unknown').map((row) => row.count))
+}
+
+function renderWorldMap(rows: CountryRow[]): string {
+  const max = maxCountryCount(rows)
+  const byCode = new Map(rows.map((row) => [row.code, row]))
+  const paths = Object.entries(WORLD_MAP_PATHS).map(([code, d]) => {
+    const row = byCode.get(code)
+    const fill = row ? countryShade(row.count, max) : '#eee8df'
+    const tooltip = code.startsWith('_')
+      ? ''
+      : `<title>${escapeHtml(row ? `${row.name}: ${row.count}` : countryDisplayName(code))}</title>`
+    return `<path d="${d}" fill="${fill}" stroke="#ffffff" stroke-width="0.5">${tooltip}</path>`
+  }).join('')
+  return `<svg class="world-map" viewBox="${WORLD_MAP_VIEWBOX}" role="img" aria-label="Website downloads by country">${paths}</svg>`
+}
+
+function countryRowHtml(row: CountryRow, max: number): string {
+  const width = Math.min(100, Math.max(2, Math.round((row.count / max) * 100)))
+  return `<div class="country-row">
+    <span class="country-flag">${row.flag}</span>
+    <div class="country-main">
+      <div class="country-name">${escapeHtml(row.name)}</div>
+      <div class="bar-track"><div class="bar" style="width:${width}%"></div></div>
+    </div>
+    <span class="country-count">${formatNumber(row.count)}</span>
+  </div>`
 }
 
 function renderDownloadCurve(points: DownloadDayPoint[]): string {
