@@ -5,8 +5,9 @@
 // License: MIT — Copyright (c) 2020 Mustafa Omar (see that repo's LICENSE).
 // Keys are ISO 3166-1 alpha-2 codes, plus _0/_1/_2 disputed-territory
 // outlines kept so the map has no holes; they never receive download data.
-// Regenerate: curl the pinned source above and re-run the converter in
-// docs/superpowers/plans/2026-07-05-stats-countries-daily.md (Task 2).
+// Regenerate: curl the pinned raw file above, then for each KEY:{path:"..."}
+// pair emit `KEY: '...'` below (keys matching /^([A-Z]{2}|_\d+)$/ only) and
+// set the viewBox from the file's width/height fields, rounded to integers.
 export const WORLD_MAP_VIEWBOX = '0 0 900 441'
 
 export const WORLD_MAP_PATHS: Record<string, string> = {
