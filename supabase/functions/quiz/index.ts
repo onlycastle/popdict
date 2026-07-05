@@ -1,31 +1,44 @@
 // PopDict quiz emails (Supabase Edge Function, Deno runtime).
 //
 //   send        daily Vercel Cron (via site /api/cron/quiz) posts {action:'send'}
-//               with x-quiz-token; users whose weekly quiz is due get an email
-//               of multiple-choice questions built from their saved words.
+//               with x-quiz-token; users whose weekly digest is due get an
+//               email of study cards + Leitner-laddered exercises built from
+//               their saved words, using a per-word cached (or freshly
+//               generated) study material.
 //   answer      email links land on popdict.space/quiz/answer, which calls
 //               GET ?action=answer&q=<question-uuid>&c=<choice>. The uuid is the
 //               capability token. Records the answer, updates Leitner state
 //               and streak, returns the outcome for the result page.
+//   review      GET ?action=review&q=<question-uuid> returns the study
+//               material + outcome for an already-answered question, for the
+//               result page to render.
 //   unsubscribe GET ?action=unsubscribe&u=<token> — flips enabled off.
 //
 // Deploy:  supabase functions deploy quiz --no-verify-jwt
-// Secrets: supabase secrets set RESEND_API_KEY=... QUIZ_SEND_TOKEN=...
+// Secrets: supabase secrets set RESEND_API_KEY=... QUIZ_SEND_TOKEN=... ANTHROPIC_API_KEY=...
 // Optional: QUIZ_LINK_BASE (default https://popdict.space),
 //           QUIZ_FROM (default PopDict <quiz@mail.popdict.space>)
 
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
-  buildQuestions,
-  buildQuizEmailHtml,
+  buildExercise,
+  buildDigestEmailHtml,
   leitnerNext,
+  masteryBuckets,
   nextStreak,
+  type Question,
   type QuestionWithId,
   type ReviewRow,
   type SavedWordRow,
   selectDueWords,
 } from './lib.ts'
+import {
+  generateStudyMaterial,
+  STUDY_MODEL,
+  validateStudyMaterial,
+  type StudyMaterial,
+} from './materials.ts'
 
 declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void
@@ -69,6 +82,11 @@ async function sendEmail(to: string, subject: string, html: string, unsubscribeU
   if (!res.ok) throw new Error(`resend failed: ${res.status} ${await res.text()}`)
 }
 
+// Pre-insert entry: the exercise question has no db id yet.
+type PendingEntry = { question: Question; material: StudyMaterial; box: number }
+// Post-insert entry: question carries the quiz_questions row id (capability token).
+type Entry = { question: QuestionWithId; material: StudyMaterial; box: number }
+
 async function handleSend(req: Request): Promise<Response> {
   if (req.headers.get('x-quiz-token') !== Deno.env.get('QUIZ_SEND_TOKEN')) {
     return json({ error: 'unauthorized' }, 401)
@@ -79,17 +97,12 @@ async function handleSend(req: Request): Promise<Response> {
 
   const { data: duePrefs, error: prefsError } = await db
     .from('quiz_preferences')
-    .select('user_id, unsubscribe_token, last_sent_at')
+    .select('user_id, unsubscribe_token, last_sent_at, streak')
     .eq('enabled', true)
     .or(`last_sent_at.is.null,last_sent_at.lt.${cutoff}`)
     .order('last_sent_at', { ascending: true, nullsFirst: true })
     .limit(200)
   if (prefsError) return json({ error: 'prefs query failed' }, 500)
-
-  // One distractor pool per run, shared across users.
-  const { data: poolRows, error: poolError } = await db.rpc('random_en_ko', { n: 60 })
-  if (poolError) return json({ error: 'distractor pool failed' }, 500)
-  const distractorPool: string[] = (poolRows ?? []).map((r: { ko: string[] }) => r.ko[0])
 
   let sent = 0
   let skipped = 0
@@ -106,15 +119,48 @@ async function handleSend(req: Request): Promise<Response> {
       )
       if (candidates.length === 0) { skipped++; continue }
 
-      const { data: rows } = await db
-        .from('en_ko_translations')
-        .select('word, ko')
-        .in('word', candidates.map((c) => c.normalized_word))
-      const translations = new Map<string, string[]>(
-        (rows ?? []).map((r: { word: string; ko: string[] }) => [r.word, r.ko])
-      )
-      const questions = buildQuestions(candidates, translations, distractorPool, Math.random)
-      if (questions.length < 2) { skipped++; continue }
+      const reviewByWord = new Map((reviews ?? []).map((r) => [r.normalized_word, r as ReviewRow]))
+
+      // Cache lookup, then fill misses via the generator (skip word on failure).
+      const words = candidates.map((c) => c.normalized_word)
+      const { data: cached } = await db
+        .from('word_study_materials')
+        .select('word, definition, examples, similar, recognition_distractors, cloze')
+        .in('word', words)
+      const materials = new Map<string, StudyMaterial>()
+      for (const row of cached ?? []) {
+        const m = validateStudyMaterial(row.word, row)
+        if (m) materials.set(row.word, m)
+      }
+      for (const c of candidates) {
+        if (materials.has(c.normalized_word)) continue
+        const generated = await generateStudyMaterial(c.normalized_word)
+        if (!generated) continue
+        const { error: insErr } = await db.from('word_study_materials').insert({
+          word: c.normalized_word,
+          definition: generated.definition,
+          examples: generated.examples,
+          similar: generated.similar,
+          recognition_distractors: generated.recognition_distractors,
+          cloze: generated.cloze,
+          model: STUDY_MODEL,
+        })
+        // 23505 = concurrent send generated the same word first; reuse it, not an error.
+        if (insErr && insErr.code !== '23505') console.error('material cache insert failed', c.normalized_word, insErr)
+        materials.set(c.normalized_word, generated)
+      }
+
+      const entries: PendingEntry[] = candidates
+        .filter((c) => materials.has(c.normalized_word))
+        .map((c) => {
+          const box = reviewByWord.get(c.normalized_word)?.box ?? 1
+          return {
+            box,
+            material: materials.get(c.normalized_word)!,
+            question: buildExercise(c, materials.get(c.normalized_word)!, box, Math.random),
+          }
+        })
+      if (entries.length < 2) { skipped++; continue }
 
       const { data: userRes, error: userError } = await db.auth.admin.getUserById(pref.user_id)
       const email = userRes?.user?.email
@@ -126,29 +172,48 @@ async function handleSend(req: Request): Promise<Response> {
 
       const { data: inserted, error: qError } = await db
         .from('quiz_questions')
-        .insert(questions.map((q) => ({
+        .insert(entries.map((e) => ({
           quiz_id: quiz.id,
           user_id: pref.user_id,
-          word: q.word,
-          normalized_word: q.normalized_word,
-          options: q.options,
-          correct_index: q.correct_index,
+          word: e.question.word,
+          normalized_word: e.question.normalized_word,
+          options: e.question.options,
+          correct_index: e.question.correct_index,
         })))
-        .select('id, word, normalized_word, options, correct_index')
+        .select('id, normalized_word')
       if (qError || !inserted) {
         await db.from('quizzes').delete().eq('id', quiz.id)
         skipped++
         continue
       }
 
+      // Inserted rows don't carry kind/prompt — attach the returned id to
+      // each pre-insert Question instead of casting the DB rows.
+      const idByWord = new Map<string, string>(
+        (inserted as { id: string; normalized_word: string }[]).map((r) => [r.normalized_word, r.id])
+      )
+      const withIds: Entry[] = entries
+        .map((e) => {
+          const id = idByWord.get(e.question.normalized_word)
+          return id ? { ...e, question: { ...e.question, id } } : null
+        })
+        .filter((e): e is Entry => e !== null)
+      if (withIds.length < 2) {
+        await db.from('quizzes').delete().eq('id', quiz.id)
+        skipped++
+        continue
+      }
+
       const unsubscribeUrl = `${linkBase()}/quiz/unsubscribe?u=${pref.unsubscribe_token}`
-      const html = buildQuizEmailHtml({
-        questions: inserted as QuestionWithId[],
+      const html = buildDigestEmailHtml({
+        entries: withIds,
+        streak: pref.streak ?? 0,
+        buckets: masteryBuckets((reviews ?? []) as ReviewRow[]),
         linkBase: linkBase(),
         unsubscribeUrl,
       })
       try {
-        await sendEmail(email, `Your PopDict quiz — ${inserted.length} words`, html, unsubscribeUrl)
+        await sendEmail(email, `Your PopDict study digest — ${withIds.length} words`, html, unsubscribeUrl)
       } catch (e) {
         console.error('send failed', pref.user_id, e)
         await db.from('quizzes').delete().eq('id', quiz.id) // cascades to questions
@@ -246,6 +311,33 @@ async function handleAnswer(url: URL): Promise<Response> {
   })
 }
 
+async function handleReview(url: URL): Promise<Response> {
+  const q = url.searchParams.get('q') ?? ''
+  if (!UUID_RE.test(q)) return json({ error: 'bad_request' }, 400)
+  const db = admin()
+  const { data: question } = await db
+    .from('quiz_questions')
+    .select('id, user_id, word, normalized_word, options, correct_index, chosen_index, answered_at')
+    .eq('id', q)
+    .maybeSingle()
+  if (!question || !question.answered_at) return json({ error: 'not_found' }, 404)
+
+  const [{ data: material }, { data: pref }] = await Promise.all([
+    db.from('word_study_materials')
+      .select('word, definition, examples, similar, recognition_distractors, cloze')
+      .eq('word', question.normalized_word).maybeSingle(),
+    db.from('quiz_preferences').select('streak').eq('user_id', question.user_id).maybeSingle(),
+  ])
+  const m = material ? validateStudyMaterial(material.word, material) : null
+  return json({
+    word: question.word,
+    correct: question.chosen_index === question.correct_index,
+    correctAnswer: question.options[question.correct_index],
+    streak: pref?.streak ?? 0,
+    material: m ? { definition: m.definition, examples: m.examples, similar: m.similar } : null,
+  })
+}
+
 async function handleUnsubscribe(url: URL): Promise<Response> {
   const token = url.searchParams.get('u') ?? ''
   if (UUID_RE.test(token)) {
@@ -267,6 +359,7 @@ Deno.serve(async (req: Request) => {
     }
     if (req.method === 'GET') {
       if (url.searchParams.get('action') === 'answer') return await handleAnswer(url)
+      if (url.searchParams.get('action') === 'review') return await handleReview(url)
       if (url.searchParams.get('action') === 'unsubscribe') return await handleUnsubscribe(url)
       return json({ error: 'unknown action' }, 400)
     }
