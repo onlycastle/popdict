@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import type { FeedbackPayload } from '../shared/feedback'
 
 type AppSettings = {
   hotkey: string
@@ -33,7 +34,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('seed-search', listener)
     return () => ipcRenderer.removeListener('seed-search', listener)
   },
-  sendFeedback: () => ipcRenderer.send('send-feedback'),
+  sendFeedback: (payload?: FeedbackPayload) => ipcRenderer.invoke('send-feedback', payload),
   changeHotkey: (accelerator: string) => ipcRenderer.invoke('change-hotkey', accelerator),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
 })

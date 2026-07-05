@@ -2,6 +2,7 @@ import { app, Menu, Tray } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { Store } from '../store'
 import type { WindowManager } from '../windows/WindowManager'
+import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 
 export interface TrayUpdateActions {
   checkNow: () => void
@@ -11,7 +12,7 @@ export interface TrayUpdateActions {
 export interface TrayMenuDeps {
   store: Store
   windows: WindowManager
-  openFeedback: () => void
+  openFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult> | FeedbackOpenResult
   iconPath: string
   /** null when auto-update is disabled (dev builds, unconfigured repo). */
   updates: TrayUpdateActions | null
@@ -74,7 +75,7 @@ export class TrayMenu {
     }
 
     template.push(
-      { label: 'Open GitHub Issue', click: () => openFeedback() },
+      { label: 'Send Feedback...', click: () => void openFeedback() },
       { type: 'separator' },
       { label: 'Quit PopDict', click: () => app.quit() }
     )

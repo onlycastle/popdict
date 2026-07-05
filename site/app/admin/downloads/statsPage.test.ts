@@ -69,4 +69,44 @@ describe('renderDashboardPage', () => {
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;.dmg')
     expect(html).not.toContain('<script>alert(1)</script>.dmg')
   })
+
+  it('renders an inline download curve and last-7-days deltas', () => {
+    const data: DownloadDashboardData = {
+      stats: {
+        combined: 34,
+        github: { total: 30, byAsset: { 'PopDict.dmg': 30 }, asOf: '2026-07-03' },
+        website: { total: 4 },
+      },
+      timeseries: [
+        { date: '2026-07-03', github: 30, website: 4, combined: 34 },
+        { date: '2026-06-24', github: 5, website: 0, combined: 5 },
+        { date: '2026-07-01', github: 25, website: 2, combined: 27 },
+      ],
+    }
+
+    const html = renderDashboardPage(data, new Date('2026-07-03T00:00:00Z'))
+
+    expect(html).toContain('Download Curve')
+    expect(html).toContain('aria-label="Daily cumulative download curve"')
+    expect(html).toContain('Last 7 days through 2026-07-03')
+    expect(html).toContain('<div class="delta-value">+29</div>')
+    expect(html).toContain('2026-06-24')
+    expect(html).toContain('2026-07-03')
+  })
+
+  it('renders a chart empty state without daily snapshots', () => {
+    const data: DownloadDashboardData = {
+      stats: {
+        combined: 0,
+        github: { total: 0, byAsset: {}, asOf: null },
+        website: { total: 0 },
+      },
+      timeseries: [],
+    }
+
+    const html = renderDashboardPage(data, new Date('2026-07-03T00:00:00Z'))
+
+    expect(html).toContain('No daily download data yet.')
+    expect(html).not.toContain('aria-label="Daily cumulative download curve"')
+  })
 })
