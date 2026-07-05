@@ -1,9 +1,11 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import {
   blankWord,
+  buildDigestEmailHtml,
   buildExercise,
   escapeHtml,
   leitnerNext,
+  masteryBuckets,
   nextStreak,
   selectDueWords,
 } from './lib.ts'
@@ -97,4 +99,53 @@ Deno.test('blankWord blanks case-insensitively and only whole words', () => {
 
 Deno.test('escapeHtml covers the five specials', () => {
   assertEquals(escapeHtml(`<a href="x">&'`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;')
+})
+
+Deno.test('masteryBuckets groups boxes 1-2 / 3-4 / 5', () => {
+  const r = (box: number) => ({ normalized_word: `w${box}`, box, next_due_at: '2026-07-01T00:00:00Z' })
+  assertEquals(masteryBuckets([r(1), r(2), r(3), r(5)]), { new: 2, learning: 1, mastered: 1 })
+})
+
+Deno.test('digest email renders card, exercise, escaped HTML, and answer links', () => {
+  const material = {
+    definition: 'great pleasure or satisfaction',
+    examples: ['The garden was a delight.'],
+    similar: [{ phrase: 'joy', nuance: 'stronger' }, { phrase: 'pleasure', nuance: 'broader' }],
+    recognition_distractors: ['a sudden fear', 'a type of contract', 'a light source'],
+    cloze: { sentence: 'Watching the sunset was a pure Delight for us.', distractors: ['burden', 'schedule', 'debate'] },
+  }
+  const saved = { word: 'Delight', normalized_word: 'delight', created_at: '2026-07-01T00:00:00Z' }
+  const q = { ...buildExercise(saved, material, 1, seededRng()), id: '00000000-0000-4000-8000-000000000001' }
+  const html = buildDigestEmailHtml({
+    entries: [{ question: q, material, box: 1 }],
+    streak: 3,
+    buckets: { new: 1, learning: 0, mastered: 0 },
+    linkBase: 'https://popdict.space',
+    unsubscribeUrl: 'https://popdict.space/quiz/unsubscribe?u=x',
+  })
+  assert(html.includes(material.definition))
+  assert(html.includes(material.examples[0]))
+  assert(html.includes('joy'))
+  assert(html.includes('/quiz/answer?q=00000000-0000-4000-8000-000000000001&amp;c=0'))
+  assert(html.includes('Unsubscribe'))
+  assert(html.includes('streak'))
+})
+
+Deno.test('digest email escapes HTML in generated content', () => {
+  const material = {
+    definition: 'great pleasure or satisfaction',
+    examples: ['The garden was a delight.'],
+    similar: [{ phrase: 'joy', nuance: 'stronger' }, { phrase: 'pleasure', nuance: 'broader' }],
+    recognition_distractors: ['a sudden fear', 'a type of contract', 'a light source'],
+    cloze: { sentence: 'Watching the sunset was a pure Delight for us.', distractors: ['burden', 'schedule', 'debate'] },
+  }
+  const saved = { word: 'Delight', normalized_word: 'delight', created_at: '2026-07-01T00:00:00Z' }
+  const evil = { ...material, definition: '<script>alert(1)</script>' }
+  const q = { ...buildExercise(saved, evil, 3, seededRng()), id: '00000000-0000-4000-8000-000000000002' }
+  const html = buildDigestEmailHtml({
+    entries: [{ question: q, material: evil, box: 3 }],
+    streak: 0, buckets: { new: 0, learning: 1, mastered: 0 },
+    linkBase: 'https://x', unsubscribeUrl: 'https://x/u',
+  })
+  assert(!html.includes('<script>'))
 })

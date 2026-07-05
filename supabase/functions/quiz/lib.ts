@@ -104,9 +104,21 @@ export function escapeHtml(s: string): string {
     .replaceAll("'", '&#39;')
 }
 
-/** Minimal, brand-true email: paper background, ink text, amber accents. */
-export function buildQuizEmailHtml(input: {
-  questions: QuestionWithId[]
+export function masteryBuckets(reviews: ReviewRow[]): { new: number; learning: number; mastered: number } {
+  const b = { new: 0, learning: 0, mastered: 0 }
+  for (const r of reviews) {
+    if (r.box <= 2) b.new++
+    else if (r.box <= 4) b.learning++
+    else b.mastered++
+  }
+  return b
+}
+
+/** Brand-true digest email: study card then exercise per word. */
+export function buildDigestEmailHtml(input: {
+  entries: { question: QuestionWithId; material: StudyMaterial; box: number }[]
+  streak: number
+  buckets: { new: number; learning: number; mastered: number }
   linkBase: string
   unsubscribeUrl: string
 }): string {
@@ -116,12 +128,27 @@ export function buildQuizEmailHtml(input: {
     `border-radius:8px;color:#1a1714;text-decoration:none;background:#ffffff;">` +
     `${escapeHtml(q.options[i])}</a>`
 
-  const questionBlock = (q: QuestionWithId, n: number) =>
+  const card = (m: StudyMaterial, q: QuestionWithId) =>
+    `<p style="margin:0 0 8px;font-size:15px;color:#1a1714;">${escapeHtml(m.definition)}</p>` +
+    m.examples
+      .map((e) => `<p style="margin:0 0 6px;font-size:13px;font-style:italic;color:#6b6358;">${escapeHtml(e)}</p>`)
+      .join('') +
+    `<p style="margin:8px 0 0;font-size:12px;color:#6b6358;">` +
+    m.similar.map((s) => `<strong>${escapeHtml(s.phrase)}</strong> — ${escapeHtml(s.nuance)}`).join(' · ') +
+    `</p>`
+
+  const exercise = (q: QuestionWithId) =>
+    `<p style="margin:14px 0 6px;font-size:13px;color:#a85d0c;">` +
+    (q.kind === 'cloze' ? `Fill the blank: ${escapeHtml(q.prompt)}` : `Which meaning matches <strong>${escapeHtml(q.prompt)}</strong>?`) +
+    `</p>` +
+    q.options.map((_, i) => optionLink(q, i)).join('')
+
+  const wordBlock = (e: { question: QuestionWithId; material: StudyMaterial }, n: number) =>
     `<tr><td style="padding:18px 0;border-top:1px solid #ece7de;">` +
-    `<p style="margin:0 0 2px;font-size:12px;color:#a85d0c;">Question ${n}</p>` +
-    `<p style="margin:0 0 10px;font-size:20px;font-weight:600;color:#1a1714;">` +
-    `${escapeHtml(q.word)}</p>` +
-    q.options.map((_, i) => optionLink(q, i)).join('') +
+    `<p style="margin:0 0 2px;font-size:12px;color:#a85d0c;">Word ${n}</p>` +
+    `<p style="margin:0 0 10px;font-size:20px;font-weight:600;color:#1a1714;">${escapeHtml(e.question.word)}</p>` +
+    card(e.material, e.question) +
+    exercise(e.question) +
     `</td></tr>`
 
   return (
@@ -129,13 +156,14 @@ export function buildQuizEmailHtml(input: {
     `style="max-width:520px;margin:0 auto;background:#fcfbf9;padding:24px;` +
     `font-family:Georgia,'Times New Roman',serif;">` +
     `<tr><td style="padding-bottom:14px;">` +
-    `<p style="margin:0;font-size:22px;color:#1a1714;">Pop<span style="color:#a85d0c;">Dict</span> weekly quiz</p>` +
-    `<p style="margin:4px 0 0;font-size:13px;color:#6b6358;">Pick the meaning of each word you saved.</p>` +
+    `<p style="margin:0;font-size:22px;color:#1a1714;">Pop<span style="color:#a85d0c;">Dict</span> study digest</p>` +
+    `<p style="margin:4px 0 0;font-size:13px;color:#6b6358;">` +
+    `streak ${input.streak} · ${input.buckets.new} new · ${input.buckets.learning} getting there · ${input.buckets.mastered} mastered</p>` +
     `</td></tr>` +
-    input.questions.map((q, i) => questionBlock(q, i + 1)).join('') +
+    input.entries.map((e, i) => wordBlock(e, i + 1)).join('') +
     `<tr><td style="padding-top:18px;border-top:1px solid #ece7de;">` +
     `<p style="margin:0;font-size:11px;color:#7a7160;">` +
-    `You get this because quiz emails are on in PopDict. ` +
+    `You get this because study emails are on in PopDict. ` +
     `<a href="${input.unsubscribeUrl}" style="color:#a85d0c;">Unsubscribe</a></p>` +
     `</td></tr></table>`
   )
