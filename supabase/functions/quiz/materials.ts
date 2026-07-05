@@ -11,6 +11,8 @@ export type StudyMaterial = {
 
 const nonEmpty = (s: unknown): s is string => typeof s === 'string' && s.trim().length > 0
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 function stringArray(u: unknown, min: number, max: number): string[] | null {
   if (!Array.isArray(u) || u.length < min || u.length > max) return null
   return u.every(nonEmpty) ? (u as string[]) : null
@@ -40,7 +42,7 @@ export function validateStudyMaterial(word: string, u: unknown): StudyMaterial |
   if (typeof c !== 'object' || c === null || !nonEmpty(c.sentence)) return null
   const clozeDistractors = stringArray(c.distractors, 3, 3)
   if (!clozeDistractors) return null
-  if (!(c.sentence as string).toLowerCase().includes(word.toLowerCase())) return null
+  if (!new RegExp('\\b' + escapeRegExp(word) + '\\b', 'i').test(c.sentence as string)) return null
 
   return {
     definition: m.definition as string,

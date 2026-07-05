@@ -58,3 +58,9 @@ anything security-sensitive stay local-only.
 - Class: repo-hygiene
 - Guard: script:.gitignore::**/node_modules
 - Context: Worktree sessions symlink node_modules to the main checkout, and a trailing-slash ignore pattern (`node_modules/`) matches directories only — so `git add -A` staged the symlink, whose target is a machine-local absolute path that must not land in this public repo. The ignore pattern is now slash-free (`**/node_modules`), which matches the symlink too; reverting it reopens this learning.
+
+## L-010: Fail-soft external-API integrations verified only against mocks
+- Status: Open
+- Class: mocked-integration
+- Guard: (none — one-shot live smoke of generateStudyMaterial before first production send; watch sent/skipped counts on first cron runs)
+- Context: The study-digest generator returns null on any failure and every test injects a fake fetch, so a bad credential or model-access problem in production is indistinguishable from "no cache misses" — digests silently shrink or skip with no red gate anywhere. Fail-soft plus mock-only testing needs a live smoke at deploy time.

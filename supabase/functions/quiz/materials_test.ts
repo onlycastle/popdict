@@ -40,6 +40,16 @@ Deno.test('rejects a cloze sentence that does not contain the word', () => {
   )
 })
 
+Deno.test('rejects a cloze sentence where the word only appears inside a larger word', () => {
+  assertEquals(
+    validateStudyMaterial('delight', {
+      ...good,
+      cloze: { ...good.cloze, sentence: 'That was a delightful evening.' },
+    }),
+    null
+  )
+})
+
 Deno.test('rejects similar outside 2-3 entries or missing nuance', () => {
   assertEquals(validateStudyMaterial('delight', { ...good, similar: [good.similar[0]] }), null)
   assertEquals(

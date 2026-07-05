@@ -37,15 +37,31 @@ export default async function QuizResult({
   }
 
   const { word, correct, correctAnswer, streak, material } = review
+  const isCloze = correctAnswer.toLowerCase() === word.toLowerCase()
+  const leitnerCopy = correct
+    ? 'It will come back less often now.'
+    : 'It will come back in tomorrow’s rotation until it sticks.'
 
   return (
     <main className="container prose">
       <h1>{correct ? 'Correct!' : 'Not quite.'}</h1>
       <p>
-        <strong>{word}</strong> means <strong>{correctAnswer}</strong>.
-        {correct
-          ? ' It will come back less often now.'
-          : ' It will come back in tomorrow’s rotation until it sticks.'}
+        {isCloze && correct && (
+          <>
+            <strong>{word}</strong> completed the sentence.{' '}
+          </>
+        )}
+        {isCloze && !correct && (
+          <>
+            The answer was <strong>{word}</strong>.{' '}
+          </>
+        )}
+        {!isCloze && !material && (
+          <>
+            <strong>{word}</strong> means <strong>{correctAnswer}</strong>.{' '}
+          </>
+        )}
+        {leitnerCopy}
       </p>
       {material && (
         <>
