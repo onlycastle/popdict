@@ -128,6 +128,15 @@ describe('dailySeries', () => {
     expect(dailySeries([{ date: '2026-07-02', github: 40, website: 5, combined: 45 }])).toEqual([])
     expect(dailySeries([])).toEqual([])
   })
+
+  it('derives combined from clamped parts when a counter is corrected downward', () => {
+    expect(dailySeries([
+      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+      { date: '2026-07-03', github: 38, website: 8, combined: 46 },
+    ])).toEqual([
+      { date: '2026-07-03', github: 0, website: 3, combined: 3 },
+    ])
+  })
 })
 
 describe('renderDashboardPage chart toggle', () => {

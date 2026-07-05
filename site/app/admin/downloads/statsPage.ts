@@ -39,12 +39,11 @@ export function dailySeries(points: DownloadDayPoint[]): DailyPoint[] {
   const ordered = [...points].sort((a, b) => a.date.localeCompare(b.date))
   return ordered.slice(1).map((point, index) => {
     const prev = ordered[index]
-    return {
-      date: point.date,
-      github: Math.max(0, point.github - prev.github),
-      website: Math.max(0, point.website - prev.website),
-      combined: Math.max(0, point.combined - prev.combined),
-    }
+    const github = Math.max(0, point.github - prev.github)
+    const website = Math.max(0, point.website - prev.website)
+    // combined is derived, not independently clamped: the stacked bar's height
+    // (github + website) must equal the value the axis is scaled against.
+    return { date: point.date, github, website, combined: github + website }
   })
 }
 
