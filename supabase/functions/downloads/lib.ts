@@ -110,3 +110,14 @@ export function buildTimeseries(
   }
   return series
 }
+
+// Count download events per country code; null/blank bucket under 'unknown'.
+export function countByCountry(rows: { country: string | null }[]): Record<string, number> {
+  const byCountry: Record<string, number> = {}
+  for (const row of rows) {
+    const code = row.country?.trim().toUpperCase()
+    const key = code ? code : 'unknown'
+    byCountry[key] = (byCountry[key] ?? 0) + 1
+  }
+  return byCountry
+}
