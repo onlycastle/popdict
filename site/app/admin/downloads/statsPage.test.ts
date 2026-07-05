@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  dailySeries,
   fetchDashboardData,
   isAuthorizedDashboard,
   renderDashboardPage,
@@ -108,5 +109,58 @@ describe('renderDashboardPage', () => {
 
     expect(html).toContain('No daily download data yet.')
     expect(html).not.toContain('aria-label="Daily cumulative download curve"')
+  })
+})
+
+describe('dailySeries', () => {
+  it('diffs consecutive cumulative points and drops the baseline day', () => {
+    expect(dailySeries([
+      { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+      { date: '2026-07-04', github: 50, website: 10, combined: 60 },
+    ])).toEqual([
+      { date: '2026-07-03', github: 7, website: 3, combined: 10 },
+      { date: '2026-07-04', github: 3, website: 2, combined: 5 },
+    ])
+  })
+
+  it('returns empty for fewer than two points', () => {
+    expect(dailySeries([{ date: '2026-07-02', github: 40, website: 5, combined: 45 }])).toEqual([])
+    expect(dailySeries([])).toEqual([])
+  })
+})
+
+describe('renderDashboardPage chart toggle', () => {
+  const data: DownloadDashboardData = {
+    stats: {
+      combined: 60,
+      github: { total: 50, byAsset: { 'PopDict.dmg': 50 }, asOf: '2026-07-04' },
+      website: { total: 10 },
+    },
+    timeseries: [
+      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+      { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+      { date: '2026-07-04', github: 50, website: 10, combined: 60 },
+    ],
+  }
+
+  it('renders both chart views behind a css radio toggle', () => {
+    const html = renderDashboardPage(data, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('id="view-cumulative"')
+    expect(html).toContain('id="view-daily"')
+    expect(html).toContain('aria-label="Daily cumulative download curve"')
+    expect(html).toContain('aria-label="Daily new downloads"')
+    expect(html).toContain('Daily new downloads from 2026-07-03')
+    expect(html).not.toContain('<script')
+  })
+
+  it('shows the daily empty state with fewer than two days', () => {
+    const single: DownloadDashboardData = {
+      ...data,
+      timeseries: [{ date: '2026-07-02', github: 40, website: 5, combined: 45 }],
+    }
+    const html = renderDashboardPage(single, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('Daily view needs at least two days of data.')
+    expect(html).not.toContain('aria-label="Daily new downloads"')
   })
 })

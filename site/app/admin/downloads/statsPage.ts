@@ -9,6 +9,7 @@ export type DownloadStats = {
   }
   website: {
     total: number
+    byCountry?: Record<string, number>
   }
 }
 
@@ -22,6 +23,29 @@ export type DownloadDayPoint = {
 export type DownloadDashboardData = {
   stats: DownloadStats
   timeseries: DownloadDayPoint[]
+}
+
+export type DailyPoint = {
+  date: string
+  github: number
+  website: number
+  combined: number
+}
+
+// Per-day new downloads from consecutive cumulative points. The first point
+// is a baseline (GitHub's first snapshot means "all downloads ever, to that
+// date"), so it is dropped rather than shown as a fake spike.
+export function dailySeries(points: DownloadDayPoint[]): DailyPoint[] {
+  const ordered = [...points].sort((a, b) => a.date.localeCompare(b.date))
+  return ordered.slice(1).map((point, index) => {
+    const prev = ordered[index]
+    return {
+      date: point.date,
+      github: Math.max(0, point.github - prev.github),
+      website: Math.max(0, point.website - prev.website),
+      combined: Math.max(0, point.combined - prev.combined),
+    }
+  })
 }
 
 export function isAuthorizedDashboard(
@@ -79,6 +103,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   const maxCombined = Math.max(1, ...orderedTimeseries.map((point) => point.combined))
   const recent = downloadDelta(orderedTimeseries, 7)
+  const daily = dailySeries(orderedTimeseries)
 
   return `<!doctype html>
 <html lang="en">
@@ -285,11 +310,49 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       font-weight: 700;
       font-size: 13px;
     }
+    .chart-toggle {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .chart-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .chart-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .chart-switch label {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .chart-switch label + label { border-left: 1px solid var(--line); }
+    .chart-view-daily, .view-sub-daily { display: none; }
+    #view-daily:checked ~ .chart-view-daily { display: block; }
+    #view-daily:checked ~ .chart-view-cumulative { display: none; }
+    #view-daily:checked ~ .chart-head .view-sub-daily { display: block; }
+    #view-daily:checked ~ .chart-head .view-sub-cumulative { display: none; }
+    #view-cumulative:checked ~ .chart-head .chart-switch label[for="view-cumulative"],
+    #view-daily:checked ~ .chart-head .chart-switch label[for="view-daily"] {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
     @media (max-width: 720px) {
       header { align-items: flex-start; flex-direction: column; }
       .actions { justify-content: flex-start; }
       .grid { grid-template-columns: 1fr; }
       .chart-head { align-items: flex-start; flex-direction: column; }
+      .chart-actions-col { align-items: flex-start; }
       .legend { justify-content: flex-start; }
       .delta-strip { grid-template-columns: 1fr; gap: 10px; }
       th.optional, td.optional { display: none; }
@@ -317,18 +380,28 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
 
     <section>
       <div class="chart-panel">
+        <input type="radio" name="chart-view" id="view-cumulative" class="chart-toggle" checked>
+        <input type="radio" name="chart-view" id="view-daily" class="chart-toggle">
         <div class="chart-head">
           <div>
             <h2>Download Curve</h2>
-            <div class="muted small">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
+            <div class="muted small view-sub view-sub-cumulative">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
+            <div class="muted small view-sub view-sub-daily">${daily.length > 0 ? `Daily new downloads from ${escapeHtml(daily[0].date)} (first snapshot day is the baseline)` : 'Daily deltas need two snapshot days'}</div>
           </div>
-          <div class="legend" aria-label="Chart legend">
-            ${legendItem('Combined', '#d9862f')}
-            ${legendItem('GitHub', '#303036')}
-            ${legendItem('Website', '#7b735f')}
+          <div class="chart-actions-col">
+            <div class="chart-switch" aria-label="Chart view">
+              <label for="view-cumulative">Cumulative</label>
+              <label for="view-daily">Daily</label>
+            </div>
+            <div class="legend" aria-label="Chart legend">
+              ${legendItem('Combined', '#d9862f')}
+              ${legendItem('GitHub', '#303036')}
+              ${legendItem('Website', '#7b735f')}
+            </div>
           </div>
         </div>
-        ${renderDownloadCurve(orderedTimeseries)}
+        <div class="chart-view chart-view-cumulative">${renderDownloadCurve(orderedTimeseries)}</div>
+        <div class="chart-view chart-view-daily">${renderDailyBars(daily)}</div>
         ${recent ? renderDeltaStrip(recent) : ''}
       </div>
     </section>
@@ -452,14 +525,7 @@ function renderDownloadCurve(points: DownloadDayPoint[]): string {
   const github = chartPoints(points, 'github', left, top, plotWidth, plotHeight, maxValue)
   const website = chartPoints(points, 'website', left, top, plotWidth, plotHeight, maxValue)
   const areaPath = `M ${left} ${yBase} L ${combined.map((point) => `${point.x} ${point.y}`).join(' L ')} L ${left + plotWidth} ${yBase} Z`
-  const grid = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-    const y = round(top + plotHeight - ratio * plotHeight)
-    const label = formatNumber(Math.round(maxValue * ratio))
-    return `<g>
-      <line x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="#eee8df" stroke-width="1" />
-      <text class="axis-label" x="${left - 10}" y="${y + 4}" text-anchor="end">${label}</text>
-    </g>`
-  }).join('')
+  const grid = gridLines(maxValue, left, top, plotWidth, plotHeight)
   const ticks = axisTicks(points, left, yBase, plotWidth)
   const lastCombined = combined[combined.length - 1]
 
@@ -472,6 +538,45 @@ function renderDownloadCurve(points: DownloadDayPoint[]): string {
     ${polyline(website, '#7b735f', 2.5)}
     <circle cx="${lastCombined.x}" cy="${lastCombined.y}" r="4.5" fill="#d9862f" />
     ${ticks}
+  </svg>`
+}
+
+// Stacked bars: GitHub (charcoal) below, website (olive) on top, so the full
+// bar height reads as combined new downloads that day.
+function renderDailyBars(points: DailyPoint[]): string {
+  if (points.length === 0) {
+    return '<div class="empty-chart">Daily view needs at least two days of data.</div>'
+  }
+
+  const width = 760
+  const height = 260
+  const left = 54
+  const right = 22
+  const top = 20
+  const bottom = 42
+  const plotWidth = width - left - right
+  const plotHeight = height - top - bottom
+  const maxValue = Math.max(1, ...points.map((point) => point.combined))
+  const yBase = top + plotHeight
+  const slot = plotWidth / points.length
+  const barWidth = round(Math.min(48, slot * 0.55))
+
+  const bars = points.map((point, index) => {
+    const x = round(left + slot * index + (slot - barWidth) / 2)
+    const githubHeight = round((point.github / maxValue) * plotHeight)
+    const websiteHeight = round((point.website / maxValue) * plotHeight)
+    return `<g>
+      <rect x="${x}" y="${round(yBase - githubHeight)}" width="${barWidth}" height="${githubHeight}" fill="#303036" />
+      <rect x="${x}" y="${round(yBase - githubHeight - websiteHeight)}" width="${barWidth}" height="${websiteHeight}" fill="#7b735f" />
+      <title>${escapeHtml(point.date)}: +${formatNumber(point.combined)} (GitHub +${formatNumber(point.github)}, website +${formatNumber(point.website)})</title>
+    </g>`
+  }).join('')
+
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily new downloads">
+    <rect x="0" y="0" width="${width}" height="${height}" fill="#fff" rx="8" />
+    ${gridLines(maxValue, left, top, plotWidth, plotHeight)}
+    ${bars}
+    ${axisTicks(points, left, yBase, plotWidth)}
   </svg>`
 }
 
@@ -498,7 +603,18 @@ function chartPoints(
   })
 }
 
-function axisTicks(points: DownloadDayPoint[], left: number, y: number, plotWidth: number): string {
+function gridLines(maxValue: number, left: number, top: number, plotWidth: number, plotHeight: number): string {
+  return [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+    const y = round(top + plotHeight - ratio * plotHeight)
+    const label = formatNumber(Math.round(maxValue * ratio))
+    return `<g>
+      <line x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="#eee8df" stroke-width="1" />
+      <text class="axis-label" x="${left - 10}" y="${y + 4}" text-anchor="end">${label}</text>
+    </g>`
+  }).join('')
+}
+
+function axisTicks(points: { date: string }[], left: number, y: number, plotWidth: number): string {
   const indices = points.length === 1
     ? [0]
     : Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
