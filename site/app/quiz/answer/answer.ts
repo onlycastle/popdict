@@ -10,6 +10,7 @@ export function parseAnswerParams(params: URLSearchParams): { q: string; c: numb
 
 export type AnswerOutcome = {
   error?: string
+  q?: string
   word?: string
   correct?: boolean
   correctAnswer?: string
@@ -19,12 +20,7 @@ export type AnswerOutcome = {
 export function resultPath(outcome: AnswerOutcome): string {
   const params = new URLSearchParams()
   if (outcome.error) params.set('error', outcome.error)
-  else {
-    params.set('word', outcome.word ?? '')
-    params.set('correct', outcome.correct ? '1' : '0')
-    params.set('answer', outcome.correctAnswer ?? '')
-    params.set('streak', String(outcome.streak ?? 0))
-  }
+  else params.set('q', outcome.q ?? '')
   return `/quiz/result?${params.toString()}`
 }
 
@@ -36,9 +32,26 @@ export async function forwardAnswer(q: string, c: number): Promise<AnswerOutcome
   if (!res.ok) return { error: res.status === 404 ? 'notfound' : 'unavailable' }
   const body = await res.json()
   return {
+    q,
     word: body.word,
     correct: Boolean(body.correct),
     correctAnswer: body.correctAnswer,
     streak: body.streak,
   }
+}
+
+export type ReviewData = {
+  word: string
+  correct: boolean
+  correctAnswer: string
+  streak: number
+  material: { definition: string; examples: string[]; similar: { phrase: string; nuance: string }[] } | null
+}
+
+export async function fetchReview(q: string): Promise<ReviewData | null> {
+  const base = process.env.QUIZ_FN_URL
+  if (!base || !UUID_RE.test(q)) return null
+  const res = await fetch(`${base}?action=review&q=${q}`, { cache: 'no-store' })
+  if (!res.ok) return null
+  return (await res.json()) as ReviewData
 }

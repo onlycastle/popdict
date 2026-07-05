@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { fetchReview } from '../answer/answer'
 
 export const metadata: Metadata = {
   title: 'Quiz result — PopDict',
@@ -20,30 +21,59 @@ export default async function QuizResult({
   const params = await searchParams
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
   const error = first(params.error)
-  const word = first(params.word)
-  const correct = first(params.correct) === '1'
-  const answer = first(params.answer)
-  const streak = first(params.streak)
+  const q = first(params.q)
+  const review = !error && q ? await fetchReview(q) : null
+
+  if (error || !review) {
+    return (
+      <main className="container prose">
+        <h1>Hmm.</h1>
+        <p>{ERROR_COPY[error ?? 'unavailable'] ?? ERROR_COPY.unavailable}</p>
+        <p>
+          <a href="/">← PopDict</a>
+        </p>
+      </main>
+    )
+  }
+
+  const { word, correct, correctAnswer, streak, material } = review
 
   return (
     <main className="container prose">
-      {error ? (
+      <h1>{correct ? 'Correct!' : 'Not quite.'}</h1>
+      <p>
+        <strong>{word}</strong> means <strong>{correctAnswer}</strong>.
+        {correct
+          ? ' It will come back less often now.'
+          : ' It will come back in tomorrow’s rotation until it sticks.'}
+      </p>
+      {material && (
         <>
-          <h1>Hmm.</h1>
-          <p>{ERROR_COPY[error] ?? ERROR_COPY.unavailable}</p>
-        </>
-      ) : (
-        <>
-          <h1>{correct ? 'Correct!' : 'Not quite.'}</h1>
-          <p>
-            <strong>{word}</strong> means <strong>{answer}</strong>.
-            {correct
-              ? ' It will come back less often now.'
-              : ' It will come back in tomorrow’s rotation until it sticks.'}
-          </p>
-          {streak && Number(streak) > 0 && <p>Quiz streak: {streak} in a row. Keep it going.</p>}
+          <p>{material.definition}</p>
+          {material.examples.length > 0 && (
+            <ul>
+              {material.examples.map((example) => (
+                <li key={example}>
+                  <em>{example}</em>
+                </li>
+              ))}
+            </ul>
+          )}
+          {material.similar.length > 0 && (
+            <>
+              <h2>Similar expressions</h2>
+              <ul>
+                {material.similar.map((s) => (
+                  <li key={s.phrase}>
+                    <strong>{s.phrase}</strong> — {s.nuance}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </>
       )}
+      {streak > 0 && <p>Quiz streak: {streak} in a row. Keep it going.</p>}
       <p>
         <a href="/">← PopDict</a>
       </p>

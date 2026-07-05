@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { parseAnswerParams, resultPath } from './answer'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fetchReview, parseAnswerParams, resultPath } from './answer'
 
 const UUID = '123e4567-e89b-42d3-a456-426614174000'
 
@@ -20,11 +20,61 @@ describe('parseAnswerParams', () => {
 })
 
 describe('resultPath', () => {
-  it('encodes an outcome', () => {
-    expect(resultPath({ word: 'apple', correct: true, correctAnswer: '사과', streak: 3 }))
-      .toBe('/quiz/result?word=apple&correct=1&answer=%EC%82%AC%EA%B3%BC&streak=3')
+  it('encodes the question uuid on success', () => {
+    expect(resultPath({ q: UUID, word: 'apple', correct: true, correctAnswer: '사과', streak: 3 }))
+      .toBe(`/quiz/result?q=${UUID}`)
   })
   it('encodes an error', () => {
     expect(resultPath({ error: 'invalid' })).toBe('/quiz/result?error=invalid')
+  })
+})
+
+describe('fetchReview', () => {
+  const ORIGINAL_ENV = process.env.QUIZ_FN_URL
+
+  afterEach(() => {
+    process.env.QUIZ_FN_URL = ORIGINAL_ENV
+    vi.unstubAllGlobals()
+  })
+
+  it('hits the review action and returns the parsed body', async () => {
+    process.env.QUIZ_FN_URL = 'https://fn.example.com/quiz'
+    const body = {
+      word: 'apple',
+      correct: true,
+      correctAnswer: '사과',
+      streak: 3,
+      material: { definition: 'a fruit', examples: ['I ate an apple.'], similar: [] },
+    }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    expect(await fetchReview(UUID)).toEqual(body)
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://fn.example.com/quiz?action=review&q=${UUID}`,
+      { cache: 'no-store' },
+    )
+  })
+
+  it('returns null when the response is not ok', async () => {
+    process.env.QUIZ_FN_URL = 'https://fn.example.com/quiz'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve({}) }))
+    expect(await fetchReview(UUID)).toBeNull()
+  })
+
+  it('returns null for a non-uuid q without calling fetch', async () => {
+    process.env.QUIZ_FN_URL = 'https://fn.example.com/quiz'
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await fetchReview('not-a-uuid')).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('returns null when QUIZ_FN_URL is unset', async () => {
+    delete process.env.QUIZ_FN_URL
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await fetchReview(UUID)).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
