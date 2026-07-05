@@ -48,7 +48,7 @@ It is protected by HTTP Basic Auth with `DOWNLOADS_DASHBOARD_USER` and
 ## Notes
 
 - `stats` is ≤24h stale by design (reads the latest daily snapshot, not live GitHub).
-- The cron runs daily at 06:00 UTC (`vercel.json` → crons). Hobby plan allows daily.
+- The cron runs daily at 06:00 UTC (`site/vercel.json` → crons). Hobby plan allows daily.
 - `record` is best-effort; a site outage loses events but never breaks downloads.
 - Slack download notifications are opt-in via the `SLACK_DOWNLOAD_WEBHOOK_URL`
   function secret. Notification failures are logged and ignored after the event is
