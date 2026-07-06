@@ -154,10 +154,11 @@ async function prepareEntries(
 async function persistQuiz(
   db: ReturnType<typeof admin>,
   userId: string,
-  pending: PendingEntry[]
+  pending: PendingEntry[],
+  source = 'email'
 ): Promise<{ quizId: string; entries: Entry[] } | null> {
   const { data: quiz, error: quizError } = await db
-    .from('quizzes').insert({ user_id: userId }).select('id').single()
+    .from('quizzes').insert({ user_id: userId, source }).select('id').single()
   if (quizError || !quiz) return null
 
   const { data: inserted, error: qError } = await db
@@ -216,7 +217,8 @@ async function fetchMaterial(
 async function applyAnswer(
   db: ReturnType<typeof admin>,
   q: string,
-  c: number
+  c: number,
+  touchStreak: boolean
 ): Promise<{ status: number; payload: Record<string, unknown>; normalizedWord?: string }> {
   const now = new Date()
   const { data: question } = await db
@@ -263,12 +265,17 @@ async function applyAnswer(
     .from('quizzes').select('id, sent_at, answered_at').eq('id', question.quiz_id).single()
   if (quiz && !quiz.answered_at) {
     await db.from('quizzes').update({ answered_at: now.toISOString() }).eq('id', quiz.id)
-    const { data: prev } = await db
-      .from('quizzes').select('answered_at')
-      .eq('user_id', question.user_id).lt('sent_at', quiz.sent_at)
-      .order('sent_at', { ascending: false }).limit(1).maybeSingle()
-    streak = nextStreak(prev ? Boolean(prev.answered_at) : null, streak)
-    await db.from('quiz_preferences').update({ streak, updated_at: now.toISOString() }).eq('user_id', question.user_id)
+    if (touchStreak) {
+      const { data: prev } = await db
+        .from('quizzes').select('answered_at')
+        .eq('user_id', question.user_id)
+        .eq('source', 'email')
+        .lt('sent_at', quiz.sent_at)
+        .order('sent_at', { ascending: false })
+        .limit(1).maybeSingle()
+      streak = nextStreak(prev ? Boolean(prev.answered_at) : null, streak)
+      await db.from('quiz_preferences').update({ streak, updated_at: now.toISOString() }).eq('user_id', question.user_id)
+    }
   }
 
   return {
@@ -288,10 +295,17 @@ async function handleSession(req: Request): Promise<Response> {
   const db = admin()
   const uid = await requireUser(db, req)
   if (typeof uid !== 'string') return uid
+  // Clear any abandoned in-app quiz for this user so orphan rows don't
+  // accumulate; each abandoned open is cleared on the next open, and
+  // quiz_questions cascade-delete with the quiz.
+  await db.from('quizzes').delete().eq('user_id', uid).eq('source', 'app').is('answered_at', null)
   const { pending } = await prepareEntries(db, uid, new Date())
   if (pending.length === 0) return json({ quizId: null, cards: [] })
-  const built = await persistQuiz(db, uid, pending)
-  if (!built || built.entries.length === 0) return json({ error: 'internal error' }, 500)
+  const built = await persistQuiz(db, uid, pending, 'app')
+  if (!built || built.entries.length === 0) {
+    if (built) await db.from('quizzes').delete().eq('id', built.quizId)
+    return json({ error: 'internal error' }, 500)
+  }
   return json({ quizId: built.quizId, cards: buildSessionCards(built.entries) })
 }
 
@@ -312,7 +326,7 @@ async function handleAnswerPost(body: { q?: unknown; c?: unknown }): Promise<Res
   const c = typeof body.c === 'number' ? body.c : Number(body.c)
   if (!UUID_RE.test(q) || !Number.isInteger(c) || c < 0 || c > 3) return json({ error: 'bad_request' }, 400)
   const db = admin()
-  const r = await applyAnswer(db, q, c)
+  const r = await applyAnswer(db, q, c, false)
   if (r.status !== 200) return json(r.payload, r.status)
   const material = r.normalizedWord ? await fetchMaterial(db, r.normalizedWord) : null
   return json({ ...r.payload, material })
@@ -390,7 +404,7 @@ async function handleAnswer(url: URL): Promise<Response> {
     return json({ error: 'bad_request' }, 400)
   }
   const db = admin()
-  const r = await applyAnswer(db, q, c)
+  const r = await applyAnswer(db, q, c, true)
   return json(r.payload, r.status)
 }
 
