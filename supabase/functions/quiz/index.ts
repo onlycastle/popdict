@@ -22,8 +22,10 @@
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
+  bearerToken,
   buildExercise,
   buildDigestEmailHtml,
+  buildSessionCards,
   leitnerNext,
   masteryBuckets,
   nextStreak,
@@ -32,6 +34,7 @@ import {
   type ReviewRow,
   type SavedWordRow,
   selectDueWords,
+  type SessionCard,
 } from './lib.ts'
 import {
   generateStudyMaterial,
@@ -185,6 +188,136 @@ async function persistQuiz(
   return { quizId: quiz.id, entries }
 }
 
+// Resolve the caller's user id from a Bearer token, or return a 401 Response.
+async function requireUser(db: ReturnType<typeof admin>, req: Request): Promise<string | Response> {
+  const token = bearerToken(req.headers.get('Authorization'))
+  if (!token) return json({ error: 'unauthorized' }, 401)
+  const { data, error } = await db.auth.getUser(token)
+  const userId = data?.user?.id
+  if (error || !userId) return json({ error: 'unauthorized' }, 401)
+  return userId
+}
+
+// Study card for the in-app reveal (definition/examples/similar only).
+async function fetchMaterial(
+  db: ReturnType<typeof admin>,
+  normalizedWord: string
+): Promise<{ definition: string; examples: string[]; similar: { phrase: string; nuance: string }[] } | null> {
+  const { data: material } = await db
+    .from('word_study_materials')
+    .select('word, definition, examples, similar, recognition_distractors, cloze')
+    .eq('word', normalizedWord).maybeSingle()
+  const m = material ? validateStudyMaterial(material.word, material) : null
+  return m ? { definition: m.definition, examples: m.examples, similar: m.similar } : null
+}
+
+// Core of recording an answer (shared by GET and POST). Returns the response
+// payload + status, plus the normalized word so POST callers can attach the card.
+async function applyAnswer(
+  db: ReturnType<typeof admin>,
+  q: string,
+  c: number
+): Promise<{ status: number; payload: Record<string, unknown>; normalizedWord?: string }> {
+  const now = new Date()
+  const { data: question } = await db
+    .from('quiz_questions')
+    .select('id, quiz_id, user_id, word, normalized_word, options, correct_index, chosen_index, answered_at')
+    .eq('id', q).maybeSingle()
+  if (!question) return { status: 404, payload: { error: 'not_found' } }
+
+  const { data: pref } = await db
+    .from('quiz_preferences').select('streak').eq('user_id', question.user_id).maybeSingle()
+  let streak = pref?.streak ?? 0
+
+  if (question.answered_at) {
+    return {
+      status: 200,
+      normalizedWord: question.normalized_word,
+      payload: {
+        word: question.word,
+        correct: question.chosen_index === question.correct_index,
+        correctAnswer: question.options[question.correct_index],
+        streak,
+        alreadyAnswered: true,
+      },
+    }
+  }
+
+  const correct = c === question.correct_index
+  await db.from('quiz_questions')
+    .update({ chosen_index: c, answered_at: now.toISOString() }).eq('id', question.id)
+
+  const { data: review } = await db
+    .from('word_reviews').select('box')
+    .eq('user_id', question.user_id).eq('normalized_word', question.normalized_word).maybeSingle()
+  const next = leitnerNext(review?.box ?? 1, correct)
+  await db.from('word_reviews').upsert({
+    user_id: question.user_id,
+    normalized_word: question.normalized_word,
+    box: next.box,
+    next_due_at: new Date(now.getTime() + next.days * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: now.toISOString(),
+  }, { onConflict: 'user_id,normalized_word' })
+
+  const { data: quiz } = await db
+    .from('quizzes').select('id, sent_at, answered_at').eq('id', question.quiz_id).single()
+  if (quiz && !quiz.answered_at) {
+    await db.from('quizzes').update({ answered_at: now.toISOString() }).eq('id', quiz.id)
+    const { data: prev } = await db
+      .from('quizzes').select('answered_at')
+      .eq('user_id', question.user_id).lt('sent_at', quiz.sent_at)
+      .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+    streak = nextStreak(prev ? Boolean(prev.answered_at) : null, streak)
+    await db.from('quiz_preferences').update({ streak, updated_at: now.toISOString() }).eq('user_id', question.user_id)
+  }
+
+  return {
+    status: 200,
+    normalizedWord: question.normalized_word,
+    payload: {
+      word: question.word,
+      correct,
+      correctAnswer: question.options[question.correct_index],
+      streak,
+      alreadyAnswered: false,
+    },
+  }
+}
+
+async function handleSession(req: Request): Promise<Response> {
+  const db = admin()
+  const uid = await requireUser(db, req)
+  if (typeof uid !== 'string') return uid
+  const { pending } = await prepareEntries(db, uid, new Date())
+  if (pending.length === 0) return json({ quizId: null, cards: [] })
+  const built = await persistQuiz(db, uid, pending)
+  if (!built || built.entries.length === 0) return json({ error: 'internal error' }, 500)
+  return json({ quizId: built.quizId, cards: buildSessionCards(built.entries) })
+}
+
+async function handleCount(req: Request): Promise<Response> {
+  const db = admin()
+  const uid = await requireUser(db, req)
+  if (typeof uid !== 'string') return uid
+  const [{ data: saved }, { data: reviews }] = await Promise.all([
+    db.from('saved_words').select('word, normalized_word, created_at').eq('user_id', uid),
+    db.from('word_reviews').select('normalized_word, box, next_due_at').eq('user_id', uid),
+  ])
+  const due = selectDueWords((saved ?? []) as SavedWordRow[], (reviews ?? []) as ReviewRow[], new Date())
+  return json({ due: due.length })
+}
+
+async function handleAnswerPost(body: { q?: unknown; c?: unknown }): Promise<Response> {
+  const q = typeof body.q === 'string' ? body.q : ''
+  const c = typeof body.c === 'number' ? body.c : Number(body.c)
+  if (!UUID_RE.test(q) || !Number.isInteger(c) || c < 0 || c > 3) return json({ error: 'bad_request' }, 400)
+  const db = admin()
+  const r = await applyAnswer(db, q, c)
+  if (r.status !== 200) return json(r.payload, r.status)
+  const material = r.normalizedWord ? await fetchMaterial(db, r.normalizedWord) : null
+  return json({ ...r.payload, material })
+}
+
 async function handleSend(req: Request): Promise<Response> {
   if (req.headers.get('x-quiz-token') !== Deno.env.get('QUIZ_SEND_TOKEN')) {
     return json({ error: 'unauthorized' }, 401)
@@ -231,7 +364,7 @@ async function handleSend(req: Request): Promise<Response> {
         await sendEmail(email, `Your PopDict study digest — ${built.entries.length} words`, html, unsubscribeUrl)
       } catch (e) {
         console.error('send failed', pref.user_id, e)
-        await db.from('quizzes').delete().eq('id', built.quizId)
+        await db.from('quizzes').delete().eq('id', built.quizId) // cascades to questions
         skipped++; continue
       }
 
@@ -257,72 +390,8 @@ async function handleAnswer(url: URL): Promise<Response> {
     return json({ error: 'bad_request' }, 400)
   }
   const db = admin()
-  const now = new Date()
-
-  const { data: question } = await db
-    .from('quiz_questions')
-    .select('id, quiz_id, user_id, word, normalized_word, options, correct_index, chosen_index, answered_at')
-    .eq('id', q)
-    .maybeSingle()
-  if (!question) return json({ error: 'not_found' }, 404)
-
-  const { data: pref } = await db
-    .from('quiz_preferences').select('streak').eq('user_id', question.user_id).maybeSingle()
-  let streak = pref?.streak ?? 0
-
-  if (question.answered_at) {
-    return json({
-      word: question.word,
-      correct: question.chosen_index === question.correct_index,
-      correctAnswer: question.options[question.correct_index],
-      streak,
-      alreadyAnswered: true,
-    })
-  }
-
-  const correct = c === question.correct_index
-  await db
-    .from('quiz_questions')
-    .update({ chosen_index: c, answered_at: now.toISOString() })
-    .eq('id', question.id)
-
-  const { data: review } = await db
-    .from('word_reviews')
-    .select('box').eq('user_id', question.user_id).eq('normalized_word', question.normalized_word)
-    .maybeSingle()
-  const next = leitnerNext(review?.box ?? 1, correct)
-  await db.from('word_reviews').upsert({
-    user_id: question.user_id,
-    normalized_word: question.normalized_word,
-    box: next.box,
-    next_due_at: new Date(now.getTime() + next.days * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: now.toISOString(),
-  }, { onConflict: 'user_id,normalized_word' })
-
-  // First answer of this quiz bumps the streak.
-  const { data: quiz } = await db
-    .from('quizzes').select('id, sent_at, answered_at').eq('id', question.quiz_id).single()
-  if (quiz && !quiz.answered_at) {
-    await db.from('quizzes').update({ answered_at: now.toISOString() }).eq('id', quiz.id)
-    const { data: prev } = await db
-      .from('quizzes')
-      .select('answered_at')
-      .eq('user_id', question.user_id)
-      .lt('sent_at', quiz.sent_at)
-      .order('sent_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    streak = nextStreak(prev ? Boolean(prev.answered_at) : null, streak)
-    await db.from('quiz_preferences').update({ streak, updated_at: now.toISOString() }).eq('user_id', question.user_id)
-  }
-
-  return json({
-    word: question.word,
-    correct,
-    correctAnswer: question.options[question.correct_index],
-    streak,
-    alreadyAnswered: false,
-  })
+  const r = await applyAnswer(db, q, c)
+  return json(r.payload, r.status)
 }
 
 async function handleReview(url: URL): Promise<Response> {
@@ -369,6 +438,9 @@ Deno.serve(async (req: Request) => {
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({}))
       if (body.action === 'send') return await handleSend(req)
+      if (body.action === 'session') return await handleSession(req)
+      if (body.action === 'count') return await handleCount(req)
+      if (body.action === 'answer') return await handleAnswerPost(body)
       return json({ error: 'unknown action' }, 400)
     }
     if (req.method === 'GET') {
