@@ -243,6 +243,7 @@ export default function Home() {
           <div className="links">
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>
+            <a href="/licenses">Licenses</a>
             {issuesUrl ? <a href={issuesUrl}>GitHub Issues</a> : null}
           </div>
           <div className="copyright">© {new Date().getFullYear()} OriginLayer, Inc.</div>

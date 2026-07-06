@@ -19,7 +19,7 @@ distributed under the SIL Open Font License, Version 1.1, whose full text
 appears once below.
 
 - **Fraunces** — Copyright 2020 The Fraunces Project Authors
-  (https://github.com/undercasetype/Fraunces). Reserved Font Name: "Fraunces".
+  (github.com/undercasetype/Fraunces). Reserved Font Name: "Fraunces".
 - **JetBrains Mono** — Copyright 2020 The JetBrains Mono Project Authors
   (https://github.com/JetBrains/JetBrainsMono). Reserved Font Name:
   "JetBrains Mono".
