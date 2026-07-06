@@ -32,7 +32,10 @@ const config: ForgeConfig = {
     appBundleId: 'com.sungmancho.popdict',
     appCategoryType: 'public.app-category.reference',
     icon: './icon', // Custom app icon (auto-detects .icns on macOS)
-    extraResource: ['./assets'],
+    // `./assets` carries the tray icons; THIRD_PARTY_NOTICES.md ships the SIL
+    // OFL text for the bundled fonts (Fraunces, JetBrains Mono) — an OFL
+    // requirement when redistributing the font binaries inside the app.
+    extraResource: ['./assets', './THIRD_PARTY_NOTICES.md'],
     // Menu-bar (agent) app: no Dock tile, ever. Setting LSUIElement in the
     // packaged Info.plist means macOS launches PopDict as an accessory from the
     // start — there is no Dock icon to flash before the runtime app.dock.hide()

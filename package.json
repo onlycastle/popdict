@@ -31,7 +31,16 @@
     "preview:digest": "deno run --allow-env --allow-read --allow-write --allow-net --allow-run scripts/preview-digest.ts",
     "test:ci": "tsc --noEmit && npm run lint && npm test && npm run harness:validate && cd site && npx tsc --noEmit && npx vitest run"
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "macos",
+    "dictionary",
+    "menu-bar",
+    "english-learning",
+    "vocabulary",
+    "idioms",
+    "supabase"
+  ],
   "author": "PopDict contributors",
   "license": "MIT",
   "engines": {

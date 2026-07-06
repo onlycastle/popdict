@@ -1,0 +1,4 @@
+# Default owner for the whole repository. Pull requests automatically request a
+# review from the owner(s) listed here. See:
+# https://docs.github.com/articles/about-code-owners
+* @onlycastle
