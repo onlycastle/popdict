@@ -21,7 +21,8 @@ Domain map: [docs/llm-wiki/site-downloads.md](../../../docs/llm-wiki/site-downlo
   not a site bug.
 - Match the shared design identity (amber, Fraunces + JetBrains Mono,
   dictionary-entry aesthetic) for any new UI.
-- Vercel builds from the repo root; don't move the project root to `site/`.
+- The Vercel project's Root Directory is `site` (config lives in
+  `site/vercel.json`); pushes to `main` auto-deploy the site.
 
 ## Verification
 

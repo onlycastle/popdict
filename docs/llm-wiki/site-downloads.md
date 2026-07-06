@@ -1,14 +1,15 @@
 ---
 title: Site & downloads
-last-verified: 2026-07-03
+last-verified: 2026-07-05
 ---
 
 # Site & downloads
 
 Next.js (App Router) site in `site/` — landing page, legal pages, OAuth
 handoff (`site/app/auth/`), download redirect, download stats. Deployed on
-Vercel; the Vercel project must build from the REPO ROOT (config:
-[vercel.json](../../vercel.json)), not from `site/`.
+Vercel; the project's Root Directory is `site` (config:
+[site/vercel.json](../../site/vercel.json)), so git pushes to `main`
+auto-deploy and CLI deploys run from `site/`.
 
 Note: popdict.app is an unrelated product — this project's site is not it.
 

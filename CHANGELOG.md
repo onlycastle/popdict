@@ -5,6 +5,13 @@ All notable changes to PopDict are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Added
+- Weekly study digest emails: study cards (definition, examples, similar
+  expressions) plus spaced-repetition exercises for saved words, with
+  one-click answer links.
+
+## [1.3.0] - 2026-07-05
+
 ### Removed
 - Korean support: Korean→English lookups (krdict), English→Korean gloss
   augmentation, and Korean text-to-speech. PopDict is an English-medium

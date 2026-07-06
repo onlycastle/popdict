@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import FeedbackDialog from '../components/FeedbackDialog'
 import LoginModal from '../components/LoginModal'
+import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import WindowControls from '../components/WindowControls'
@@ -35,6 +36,9 @@ export default function SearchView() {
     loginPromptOpen,
     setLoginPromptOpen,
     handleSaveClick,
+    quizPromptOpen,
+    enableQuizEmails,
+    dismissQuizPrompt,
   } = useSaveWord({ user: auth.user, response, searchedTerm, query })
 
   useEffect(() => {
@@ -72,6 +76,11 @@ export default function SearchView() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (quizPromptOpen) {
+          // Escape is a dismissal too — persist the decline like "Not now".
+          void dismissQuizPrompt()
+          return
+        }
         if (loginPromptOpen) {
           setLoginPromptOpen(false)
           return
@@ -88,7 +97,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [feedbackOpen, loginPromptOpen, setLoginPromptOpen])
+  }, [feedbackOpen, loginPromptOpen, setLoginPromptOpen, quizPromptOpen, dismissQuizPrompt])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -100,6 +109,8 @@ export default function SearchView() {
   // positioned (no layout height), hence the explicit floor.
   const loginOpenRef = useRef(loginPromptOpen)
   loginOpenRef.current = loginPromptOpen
+  const quizOpenRef = useRef(quizPromptOpen)
+  quizOpenRef.current = quizPromptOpen
   const feedbackOpenRef = useRef(feedbackOpen)
   feedbackOpenRef.current = feedbackOpen
   const applyWindowHeight = useCallback(() => {
@@ -108,6 +119,8 @@ export default function SearchView() {
     const measured = Math.ceil(el.getBoundingClientRect().height)
     const modalHeight = Math.max(
       loginOpenRef.current ? LOGIN_MODAL_HEIGHT : 0,
+      // The quiz opt-in prompt shares the login modal's markup and size.
+      quizOpenRef.current ? LOGIN_MODAL_HEIGHT : 0,
       feedbackOpenRef.current ? FEEDBACK_MODAL_HEIGHT : 0
     )
     const height = modalHeight ? Math.max(measured, modalHeight) : measured
@@ -123,7 +136,7 @@ export default function SearchView() {
     return () => observer.disconnect()
   }, [applyWindowHeight])
 
-  useEffect(applyWindowHeight, [applyWindowHeight, feedbackOpen, loginPromptOpen])
+  useEffect(applyWindowHeight, [applyWindowHeight, feedbackOpen, loginPromptOpen, quizPromptOpen])
 
   const hasRecent = !query && history.length > 0
   const showContent = Boolean(query) || hasRecent
@@ -228,6 +241,12 @@ export default function SearchView() {
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
             word={pendingSaveWord || wordToSave}
+          />
+
+          <QuizOptInPrompt
+            open={quizPromptOpen}
+            onEnable={() => void enableQuizEmails()}
+            onDismiss={() => void dismissQuizPrompt()}
           />
           <FeedbackDialog
             context={
