@@ -3,6 +3,7 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import FeedbackDialog from '../components/FeedbackDialog'
 import LoginModal from '../components/LoginModal'
 import QuizOptInPrompt from '../components/QuizOptInPrompt'
+import ReviewChip from '../components/ReviewChip'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import WindowControls from '../components/WindowControls'
@@ -159,6 +160,7 @@ export default function SearchView() {
               onSearch={triggerSearch}
               loading={loading}
             />
+            <ReviewChip />
             <WindowControls onFeedbackClick={() => setFeedbackOpen(true)} />
           </div>
 

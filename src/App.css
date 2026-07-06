@@ -133,3 +133,6 @@
 .quiz-review__definition { font-size: 1rem; color: rgba(255,255,255,0.9); }
 .quiz-review__example { font-size: 0.9rem; font-style: italic; color: rgba(255,255,255,0.55); }
 .quiz-review__next { align-self: flex-start; margin-top: 4px; -webkit-app-region: no-drag; }
+
+.review-chip { -webkit-app-region: no-drag; background: transparent; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 5px 10px; color: rgba(255,255,255,0.55); cursor: pointer; white-space: nowrap; }
+.review-chip:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.8); }
