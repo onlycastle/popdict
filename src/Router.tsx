@@ -3,6 +3,7 @@ import SearchView from './views/SearchView'
 import SettingsView from './views/SettingsView'
 import SavedWordsView from './views/SavedWordsView'
 import OnboardingView from './views/OnboardingView'
+import QuizReviewView from './views/QuizReviewView'
 import { resolveRoute, type Route } from './resolveRoute'
 
 // Every app window loads the same bundle and selects its view by URL hash.
@@ -13,6 +14,7 @@ const VIEWS: Record<Route, ComponentType> = {
   settings: SettingsView,
   saved: SavedWordsView,
   onboarding: OnboardingView,
+  review: QuizReviewView,
 }
 
 export default function Router() {

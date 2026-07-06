@@ -1,7 +1,7 @@
 import { screen, type BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
 import * as path from 'path'
 
-export type WindowId = 'search' | 'settings' | 'saved' | 'onboarding'
+export type WindowId = 'search' | 'settings' | 'saved' | 'onboarding' | 'review'
 
 export interface WindowSpec {
   /** BrowserWindow constructor options (size, frame, vibrancy, …) as data. */
@@ -134,6 +134,20 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
         height: 560,
         resizable: false,
         title: 'Welcome to PopDict',
+        ...secondaryWindowChrome,
+        webPreferences: sharedWebPreferences,
+      },
+    },
+
+    review: {
+      hash: 'review',
+      singleton: true,
+      options: {
+        width: 480,
+        height: 640,
+        show: false,
+        resizable: false,
+        title: 'PopDict — Review',
         ...secondaryWindowChrome,
         webPreferences: sharedWebPreferences,
       },
