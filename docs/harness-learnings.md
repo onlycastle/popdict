@@ -64,3 +64,9 @@ anything security-sensitive stay local-only.
 - Class: mocked-integration
 - Guard: (none — one-shot live smoke of generateStudyMaterial before first production send; watch sent/skipped counts on first cron runs)
 - Context: The study-digest generator returns null on any failure and every test injects a fake fetch, so a bad credential or model-access problem in production is indistinguishable from "no cache misses" — digests silently shrink or skip with no red gate anywhere. Fail-soft plus mock-only testing needs a live smoke at deploy time.
+
+## L-011: Migration SQL is never parse-checked before a production push
+- Status: Open
+- Class: migration-hygiene
+- Guard: (none — dry-run only lists file names; consider a gate that parses new migrations, e.g. supabase db lint or a pg parser)
+- Context: A migration using the reserved word `similar` as a bare column name passed every gate, review, and `db push --dry-run` (which does not parse SQL), then failed live at apply time with a 42601 syntax error. No harness gate executes or parses migration SQL; until one does, new migrations get their first syntax check in production.
