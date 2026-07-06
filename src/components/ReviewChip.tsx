@@ -12,14 +12,16 @@ export function ReviewChip({ service }: { service?: QuizSessionService }): JSX.E
   }, [svc])
 
   if (due <= 0) return null
+  const noun = due === 1 ? 'word' : 'words'
   return (
     <button
-      className="review-chip dict-label"
-      aria-label={`Review ${due} due words`}
-      title={`Review ${due} due words`}
+      className="review-nudge"
+      aria-label={`Review ${due} ${noun}`}
+      title={`Review ${due} ${noun}`}
       onClick={() => window.electronAPI?.openReview?.()}
     >
-      Review · {due}
+      <span className="review-nudge__count">{due} {noun} to review</span>
+      <span className="review-nudge__cta">Start →</span>
     </button>
   )
 }

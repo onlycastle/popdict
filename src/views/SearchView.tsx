@@ -141,13 +141,14 @@ export default function SearchView() {
 
   const hasRecent = !query && history.length > 0
   const showContent = Boolean(query) || hasRecent
+  const modalOpen = feedbackOpen || loginPromptOpen || quizPromptOpen
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="app-container">
         <motion.div
           ref={glassRef}
-          className="glass-window"
+          className={`glass-window${modalOpen ? ' modal-open' : ''}`}
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
@@ -160,7 +161,6 @@ export default function SearchView() {
               onSearch={triggerSearch}
               loading={loading}
             />
-            <ReviewChip />
             <WindowControls onFeedbackClick={() => setFeedbackOpen(true)} />
           </div>
 
@@ -194,6 +194,7 @@ export default function SearchView() {
                 transition={{ duration: 0.15 }}
                 className="empty-state"
               >
+                <ReviewChip />
                 <div className="recent-list">
                   <p className="dict-label mb-2">Recent</p>
                   {history.map((word) => (
