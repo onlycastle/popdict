@@ -50,12 +50,32 @@ Deno.test('rejects a cloze sentence where the word only appears inside a larger 
   )
 })
 
-Deno.test('rejects similar outside 2-3 entries or missing nuance', () => {
+Deno.test('rejects fewer than 2 similar entries or a missing nuance', () => {
   assertEquals(validateStudyMaterial('delight', { ...good, similar: [good.similar[0]] }), null)
   assertEquals(
     validateStudyMaterial('delight', { ...good, similar: [{ phrase: 'joy' }, { phrase: 'x', nuance: 'y' }] }),
     null
   )
+})
+
+// The LLM does not reliably honor exact counts, so the validator accepts a
+// generous number and normalizes down rather than dropping the whole card.
+Deno.test('normalizes over-long arrays down to canonical counts', () => {
+  const over = {
+    ...good,
+    examples: ['one.', 'two.', 'three.'],
+    similar: [...good.similar, { phrase: 'bliss', nuance: 'euphoric' }, { phrase: 'glee', nuance: 'childlike' }],
+    recognition_distractors: ['a', 'b', 'c', 'd'],
+    cloze: { ...good.cloze, distractors: ['w', 'x', 'y', 'z'] },
+  }
+  const m = validateStudyMaterial('delight', over)
+  assertEquals(m?.examples.length, 2)
+  assertEquals(m?.similar.length, 3)
+  assertEquals(m?.recognition_distractors.length, 3)
+  assertEquals(m?.cloze.distractors.length, 3)
+  // Kept items are the FIRST n, in order.
+  assertEquals(m?.examples, ['one.', 'two.'])
+  assertEquals(m?.recognition_distractors, ['a', 'b', 'c'])
 })
 
 import { generateStudyMaterial } from './materials.ts'
