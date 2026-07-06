@@ -5,6 +5,7 @@ import {
   sumSnapshot,
   buildTimeseries,
   buildSlackDownloadPayload,
+  countByCountry,
 } from './lib.ts'
 
 Deno.test('referrerHost strips path and query, tolerates junk', () => {
@@ -60,4 +61,17 @@ Deno.test('buildTimeseries carries github forward and accumulates website', () =
     { date: '2026-06-30', github: 16, website: 20, combined: 36 },
     { date: '2026-07-01', github: 16, website: 25, combined: 41 },
   ])
+})
+
+Deno.test('countByCountry uppercases codes and buckets missing as unknown', () => {
+  assertEquals(
+    countByCountry([
+      { country: 'KR' },
+      { country: 'kr' },
+      { country: 'US' },
+      { country: null },
+      { country: '  ' },
+    ]),
+    { KR: 2, US: 1, unknown: 2 },
+  )
 })

@@ -1,4 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
+import { countryDisplayName, countryShade, rankCountries, type CountryRow } from './countries'
+import { WORLD_MAP_PATHS, WORLD_MAP_VIEWBOX } from './worldMapPaths'
 
 export type DownloadStats = {
   combined: number
@@ -9,6 +11,7 @@ export type DownloadStats = {
   }
   website: {
     total: number
+    byCountry?: Record<string, number>
   }
 }
 
@@ -22,6 +25,28 @@ export type DownloadDayPoint = {
 export type DownloadDashboardData = {
   stats: DownloadStats
   timeseries: DownloadDayPoint[]
+}
+
+export type DailyPoint = {
+  date: string
+  github: number
+  website: number
+  combined: number
+}
+
+// Per-day new downloads from consecutive cumulative points. The first point
+// is a baseline (GitHub's first snapshot means "all downloads ever, to that
+// date"), so it is dropped rather than shown as a fake spike.
+export function dailySeries(points: DownloadDayPoint[]): DailyPoint[] {
+  const ordered = [...points].sort((a, b) => a.date.localeCompare(b.date))
+  return ordered.slice(1).map((point, index) => {
+    const prev = ordered[index]
+    const github = Math.max(0, point.github - prev.github)
+    const website = Math.max(0, point.website - prev.website)
+    // combined is derived, not independently clamped: the stacked bar's height
+    // (github + website) must equal the value the axis is scaled against.
+    return { date: point.date, github, website, combined: github + website }
+  })
 }
 
 export function isAuthorizedDashboard(
@@ -79,6 +104,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   const maxCombined = Math.max(1, ...orderedTimeseries.map((point) => point.combined))
   const recent = downloadDelta(orderedTimeseries, 7)
+  const daily = dailySeries(orderedTimeseries)
 
   return `<!doctype html>
 <html lang="en">
@@ -285,14 +311,92 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       font-weight: 700;
       font-size: 13px;
     }
+    .chart-toggle {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .chart-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .chart-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .chart-switch label {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .chart-switch label + label { border-left: 1px solid var(--line); }
+    .chart-view-daily, .view-sub-daily { display: none; }
+    #view-daily:checked ~ .chart-view-daily { display: block; }
+    #view-daily:checked ~ .chart-view-cumulative { display: none; }
+    #view-daily:checked ~ .chart-head .view-sub-daily { display: block; }
+    #view-daily:checked ~ .chart-head .view-sub-cumulative { display: none; }
+    #view-cumulative:checked ~ .chart-head .chart-switch label[for="view-cumulative"],
+    #view-daily:checked ~ .chart-head .chart-switch label[for="view-daily"] {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+    .countries-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 250px;
+      gap: 18px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .world-map { display: block; width: 100%; height: auto; }
+    .country-list {
+      align-self: stretch;
+      border-left: 1px solid var(--line);
+      padding-left: 18px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .country-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .country-row:last-child { border-bottom: 0; }
+    .country-flag { font-size: 18px; line-height: 1; }
+    .country-main { flex: 1; min-width: 0; }
+    .country-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .country-row .bar-track { min-width: 0; margin-top: 4px; height: 6px; }
+    .country-count { font-weight: 700; font-variant-numeric: tabular-nums; }
     @media (max-width: 720px) {
       header { align-items: flex-start; flex-direction: column; }
       .actions { justify-content: flex-start; }
       .grid { grid-template-columns: 1fr; }
       .chart-head { align-items: flex-start; flex-direction: column; }
+      .chart-actions-col { align-items: flex-start; }
       .legend { justify-content: flex-start; }
       .delta-strip { grid-template-columns: 1fr; gap: 10px; }
       th.optional, td.optional { display: none; }
+      .countries-card { grid-template-columns: 1fr; }
+      .country-list { border-left: 0; padding-left: 0; }
     }
   </style>
 </head>
@@ -317,21 +421,33 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
 
     <section>
       <div class="chart-panel">
+        <input type="radio" name="chart-view" id="view-cumulative" class="chart-toggle" checked>
+        <input type="radio" name="chart-view" id="view-daily" class="chart-toggle">
         <div class="chart-head">
           <div>
             <h2>Download Curve</h2>
-            <div class="muted small">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
+            <div class="muted small view-sub view-sub-cumulative">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
+            <div class="muted small view-sub view-sub-daily">${daily.length > 0 ? `Daily new downloads from ${escapeHtml(daily[0].date)} (first snapshot day is the baseline)` : 'Daily view needs at least two days of data.'}</div>
           </div>
-          <div class="legend" aria-label="Chart legend">
-            ${legendItem('Combined', '#d9862f')}
-            ${legendItem('GitHub', '#303036')}
-            ${legendItem('Website', '#7b735f')}
+          <div class="chart-actions-col">
+            <div class="chart-switch" aria-label="Chart view">
+              <label for="view-cumulative">Cumulative</label>
+              <label for="view-daily">Daily</label>
+            </div>
+            <div class="legend" aria-label="Chart legend">
+              ${legendItem('Combined', '#d9862f')}
+              ${legendItem('GitHub', '#303036')}
+              ${legendItem('Website', '#7b735f')}
+            </div>
           </div>
         </div>
-        ${renderDownloadCurve(orderedTimeseries)}
+        <div class="chart-view chart-view-cumulative">${renderDownloadCurve(orderedTimeseries)}</div>
+        <div class="chart-view chart-view-daily">${renderDailyBars(daily)}</div>
         ${recent ? renderDeltaStrip(recent) : ''}
       </div>
     </section>
+
+    ${renderCountriesSection(stats.website.byCountry)}
 
     <section>
       <h2>Assets</h2>
@@ -433,6 +549,53 @@ function deltaItem(label: string, value: number): string {
   return `<div class="delta-item"><div class="label">${escapeHtml(label)} / 7 days</div><div class="delta-value">${formatDelta(value)}</div></div>`
 }
 
+function renderCountriesSection(byCountry: Record<string, number> | undefined): string {
+  const rows = rankCountries(byCountry ?? {})
+  const body = rows.length === 0
+    ? '<div class="empty-chart">No country data yet.</div>'
+    : `<div class="countries-card">
+        ${renderWorldMap(rows)}
+        <div class="country-list">${rows.map((row) => countryRowHtml(row, maxCountryCount(rows))).join('')}</div>
+      </div>`
+  return `<section>
+      <h2>Countries</h2>
+      <div class="muted small">Website downloads, all time — GitHub does not report geography.</div>
+      ${body}
+    </section>`
+}
+
+// Max over real countries only: 'unknown' has no geography and must not
+// flatten the map's shading scale.
+function maxCountryCount(rows: CountryRow[]): number {
+  return Math.max(1, ...rows.filter((row) => row.code !== 'unknown').map((row) => row.count))
+}
+
+function renderWorldMap(rows: CountryRow[]): string {
+  const max = maxCountryCount(rows)
+  const byCode = new Map(rows.map((row) => [row.code, row]))
+  const paths = Object.entries(WORLD_MAP_PATHS).map(([code, d]) => {
+    const row = byCode.get(code)
+    const fill = row ? countryShade(row.count, max) : '#eee8df'
+    const tooltip = code.startsWith('_')
+      ? ''
+      : `<title>${escapeHtml(row ? `${row.name}: ${row.count}` : countryDisplayName(code))}</title>`
+    return `<path d="${d}" fill="${fill}" stroke="#ffffff" stroke-width="0.5">${tooltip}</path>`
+  }).join('')
+  return `<svg class="world-map" viewBox="${WORLD_MAP_VIEWBOX}" role="img" aria-label="Website downloads by country">${paths}</svg>`
+}
+
+function countryRowHtml(row: CountryRow, max: number): string {
+  const width = Math.min(100, Math.max(2, Math.round((row.count / max) * 100)))
+  return `<div class="country-row">
+    <span class="country-flag">${row.flag}</span>
+    <div class="country-main">
+      <div class="country-name">${escapeHtml(row.name)}</div>
+      <div class="bar-track"><div class="bar" style="width:${width}%"></div></div>
+    </div>
+    <span class="country-count">${formatNumber(row.count)}</span>
+  </div>`
+}
+
 function renderDownloadCurve(points: DownloadDayPoint[]): string {
   if (points.length === 0) {
     return '<div class="empty-chart">No daily download data yet.</div>'
@@ -452,14 +615,7 @@ function renderDownloadCurve(points: DownloadDayPoint[]): string {
   const github = chartPoints(points, 'github', left, top, plotWidth, plotHeight, maxValue)
   const website = chartPoints(points, 'website', left, top, plotWidth, plotHeight, maxValue)
   const areaPath = `M ${left} ${yBase} L ${combined.map((point) => `${point.x} ${point.y}`).join(' L ')} L ${left + plotWidth} ${yBase} Z`
-  const grid = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-    const y = round(top + plotHeight - ratio * plotHeight)
-    const label = formatNumber(Math.round(maxValue * ratio))
-    return `<g>
-      <line x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="#eee8df" stroke-width="1" />
-      <text class="axis-label" x="${left - 10}" y="${y + 4}" text-anchor="end">${label}</text>
-    </g>`
-  }).join('')
+  const grid = gridLines(maxValue, left, top, plotWidth, plotHeight)
   const ticks = axisTicks(points, left, yBase, plotWidth)
   const lastCombined = combined[combined.length - 1]
 
@@ -473,6 +629,58 @@ function renderDownloadCurve(points: DownloadDayPoint[]): string {
     <circle cx="${lastCombined.x}" cy="${lastCombined.y}" r="4.5" fill="#d9862f" />
     ${ticks}
   </svg>`
+}
+
+// Stacked bars: GitHub (charcoal) below, website (olive) on top, so the full
+// bar height reads as combined new downloads that day.
+function renderDailyBars(points: DailyPoint[]): string {
+  if (points.length === 0) {
+    return '<div class="empty-chart">Daily view needs at least two days of data.</div>'
+  }
+
+  const width = 760
+  const height = 260
+  const left = 54
+  const right = 22
+  const top = 20
+  const bottom = 42
+  const plotWidth = width - left - right
+  const plotHeight = height - top - bottom
+  const maxValue = Math.max(1, ...points.map((point) => point.combined))
+  const yBase = top + plotHeight
+  const slot = plotWidth / points.length
+  const barWidth = round(Math.min(48, slot * 0.55))
+
+  const bars = points.map((point, index) => {
+    const x = round(left + slot * index + (slot - barWidth) / 2)
+    const githubHeight = round((point.github / maxValue) * plotHeight)
+    const websiteHeight = round((point.website / maxValue) * plotHeight)
+    return `<g>
+      <rect x="${x}" y="${round(yBase - githubHeight)}" width="${barWidth}" height="${githubHeight}" fill="#303036" />
+      <rect x="${x}" y="${round(yBase - githubHeight - websiteHeight)}" width="${barWidth}" height="${websiteHeight}" fill="#7b735f" />
+      <title>${escapeHtml(point.date)}: +${formatNumber(point.combined)} (GitHub +${formatNumber(point.github)}, website +${formatNumber(point.website)})</title>
+    </g>`
+  }).join('')
+
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily new downloads">
+    <rect x="0" y="0" width="${width}" height="${height}" fill="#fff" rx="8" />
+    ${gridLines(maxValue, left, top, plotWidth, plotHeight)}
+    ${bars}
+    ${dailyAxisTicks(points, left, yBase, slot)}
+  </svg>`
+}
+
+// Categorical ticks centered under their bars (the shared axisTicks spreads
+// labels across the plot width, which strands a single bar's date at the
+// right edge).
+function dailyAxisTicks(points: DailyPoint[], left: number, y: number, slot: number): string {
+  const indices = points.length === 1
+    ? [0]
+    : Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))
+  return indices.map((index) => {
+    const x = round(left + slot * (index + 0.5))
+    return `<text class="axis-label" x="${x}" y="${y + 26}" text-anchor="middle">${escapeHtml(points[index].date)}</text>`
+  }).join('')
 }
 
 type ChartMetric = 'combined' | 'github' | 'website'
@@ -498,7 +706,18 @@ function chartPoints(
   })
 }
 
-function axisTicks(points: DownloadDayPoint[], left: number, y: number, plotWidth: number): string {
+function gridLines(maxValue: number, left: number, top: number, plotWidth: number, plotHeight: number): string {
+  return [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+    const y = round(top + plotHeight - ratio * plotHeight)
+    const label = formatNumber(Math.round(maxValue * ratio))
+    return `<g>
+      <line x1="${left}" y1="${y}" x2="${left + plotWidth}" y2="${y}" stroke="#eee8df" stroke-width="1" />
+      <text class="axis-label" x="${left - 10}" y="${y + 4}" text-anchor="end">${label}</text>
+    </g>`
+  }).join('')
+}
+
+function axisTicks(points: { date: string }[], left: number, y: number, plotWidth: number): string {
   const indices = points.length === 1
     ? [0]
     : Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]))

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  dailySeries,
   fetchDashboardData,
   isAuthorizedDashboard,
   renderDashboardPage,
@@ -108,5 +109,139 @@ describe('renderDashboardPage', () => {
 
     expect(html).toContain('No daily download data yet.')
     expect(html).not.toContain('aria-label="Daily cumulative download curve"')
+  })
+})
+
+describe('dailySeries', () => {
+  it('diffs consecutive cumulative points and drops the baseline day', () => {
+    expect(dailySeries([
+      { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+      { date: '2026-07-04', github: 50, website: 10, combined: 60 },
+    ])).toEqual([
+      { date: '2026-07-03', github: 7, website: 3, combined: 10 },
+      { date: '2026-07-04', github: 3, website: 2, combined: 5 },
+    ])
+  })
+
+  it('returns empty for fewer than two points', () => {
+    expect(dailySeries([{ date: '2026-07-02', github: 40, website: 5, combined: 45 }])).toEqual([])
+    expect(dailySeries([])).toEqual([])
+  })
+
+  it('derives combined from clamped parts when a counter is corrected downward', () => {
+    expect(dailySeries([
+      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+      { date: '2026-07-03', github: 38, website: 8, combined: 46 },
+    ])).toEqual([
+      { date: '2026-07-03', github: 0, website: 3, combined: 3 },
+    ])
+  })
+})
+
+describe('renderDashboardPage chart toggle', () => {
+  const data: DownloadDashboardData = {
+    stats: {
+      combined: 60,
+      github: { total: 50, byAsset: { 'PopDict.dmg': 50 }, asOf: '2026-07-04' },
+      website: { total: 10 },
+    },
+    timeseries: [
+      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+      { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+      { date: '2026-07-04', github: 50, website: 10, combined: 60 },
+    ],
+  }
+
+  it('renders both chart views behind a css radio toggle', () => {
+    const html = renderDashboardPage(data, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('id="view-cumulative"')
+    expect(html).toContain('id="view-daily"')
+    expect(html).toContain('aria-label="Daily cumulative download curve"')
+    expect(html).toContain('aria-label="Daily new downloads"')
+    expect(html).toContain('Daily new downloads from 2026-07-03')
+    expect(html).not.toContain('<script')
+  })
+
+  it('shows the daily empty state with fewer than two days', () => {
+    const single: DownloadDashboardData = {
+      ...data,
+      timeseries: [{ date: '2026-07-02', github: 40, website: 5, combined: 45 }],
+    }
+    const html = renderDashboardPage(single, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('Daily view needs at least two days of data.')
+    expect(html).not.toContain('aria-label="Daily new downloads"')
+  })
+
+  it('keeps the radios before the chart head and views so :checked ~ selectors reach them', () => {
+    const html = renderDashboardPage(data, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toMatch(
+      /id="view-cumulative"[\s\S]*id="view-daily"[\s\S]*class="chart-head"[\s\S]*class="chart-view chart-view-cumulative"[\s\S]*class="chart-view chart-view-daily"/,
+    )
+  })
+
+  it('centers the date tick under a single daily bar', () => {
+    const twoDays: DownloadDashboardData = {
+      ...data,
+      timeseries: [
+        { date: '2026-07-02', github: 40, website: 5, combined: 45 },
+        { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+      ],
+    }
+    const html = renderDashboardPage(twoDays, new Date('2026-07-03T00:00:00Z'))
+    const daily = html.slice(html.indexOf('aria-label="Daily new downloads"'))
+    expect(daily.slice(0, daily.indexOf('</svg>'))).toContain('text-anchor="middle"')
+  })
+})
+
+describe('renderDashboardPage countries', () => {
+  const base: DownloadDashboardData = {
+    stats: {
+      combined: 60,
+      github: { total: 42, byAsset: { 'PopDict.dmg': 42 }, asOf: '2026-07-04' },
+      website: { total: 18, byCountry: { KR: 11, US: 6, unknown: 1 } },
+    },
+    timeseries: [
+      { date: '2026-07-03', github: 40, website: 15, combined: 55 },
+      { date: '2026-07-04', github: 42, website: 18, combined: 60 },
+    ],
+  }
+
+  it('renders a shaded map with tooltips and a ranked list', () => {
+    const html = renderDashboardPage(base, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('aria-label="Website downloads by country"')
+    expect(html).toContain('Website downloads, all time — GitHub does not report geography.')
+    expect(html).toContain('<title>South Korea: 11</title>')
+    expect(html).toContain('fill="#d9862f"')
+    expect(html).toContain('🇰🇷')
+    expect(html).toContain('<div class="country-name">Unknown</div>')
+  })
+
+  it('escapes hostile country codes from the api', () => {
+    const hostile: DownloadDashboardData = {
+      ...base,
+      stats: { ...base.stats, website: { total: 1, byCountry: { '<img src=x>': 1 } } },
+    }
+    const html = renderDashboardPage(hostile, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('&lt;img src=x&gt;')
+    expect(html).not.toContain('<img src=x>')
+  })
+
+  it('renders the countries empty state when byCountry is absent or empty', () => {
+    const absent: DownloadDashboardData = {
+      ...base,
+      stats: { ...base.stats, website: { total: 18 } },
+    }
+    const html = renderDashboardPage(absent, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('No country data yet.')
+    expect(html).not.toContain('aria-label="Website downloads by country"')
+
+    const empty: DownloadDashboardData = {
+      ...base,
+      stats: { ...base.stats, website: { total: 18, byCountry: {} } },
+    }
+    const emptyHtml = renderDashboardPage(empty, new Date('2026-07-04T00:00:00Z'))
+    expect(emptyHtml).toContain('No country data yet.')
+    expect(emptyHtml).not.toContain('aria-label="Website downloads by country"')
   })
 })
