@@ -7,7 +7,7 @@ create table public.word_study_materials (
   word text primary key,                  -- normalized (lowercase, trimmed)
   definition text not null,
   examples jsonb not null,                -- string[] (1-2 sentences)
-  similar jsonb not null,                 -- [{phrase, nuance}] (2-3 entries)
+  "similar" jsonb not null,                 -- [{phrase, nuance}] (2-3 entries)
   recognition_distractors jsonb not null, -- string[3] wrong definitions
   cloze jsonb not null,                   -- {sentence, distractors: string[3]}
   model text not null,
