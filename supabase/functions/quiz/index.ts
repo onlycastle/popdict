@@ -87,6 +87,104 @@ type PendingEntry = { question: Question; material: StudyMaterial; box: number }
 // Post-insert entry: question carries the quiz_questions row id (capability token).
 type Entry = { question: QuestionWithId; material: StudyMaterial; box: number }
 
+// Build (but do not persist) the due-word exercises for one user: fetch saved
+// words + reviews, select due, resolve study material (cache then generate),
+// and build one exercise per word. Callers decide the minimum-count policy.
+async function prepareEntries(
+  db: ReturnType<typeof admin>,
+  userId: string,
+  now: Date
+): Promise<{ pending: PendingEntry[]; reviews: ReviewRow[] }> {
+  const [{ data: saved }, { data: reviews }] = await Promise.all([
+    db.from('saved_words').select('word, normalized_word, created_at').eq('user_id', userId),
+    db.from('word_reviews').select('normalized_word, box, next_due_at').eq('user_id', userId),
+  ])
+  const reviewRows = (reviews ?? []) as ReviewRow[]
+  const candidates = selectDueWords((saved ?? []) as SavedWordRow[], reviewRows, now)
+  if (candidates.length === 0) return { pending: [], reviews: reviewRows }
+
+  const reviewByWord = new Map(reviewRows.map((r) => [r.normalized_word, r]))
+  const words = candidates.map((c) => c.normalized_word)
+  const { data: cached } = await db
+    .from('word_study_materials')
+    .select('word, definition, examples, similar, recognition_distractors, cloze')
+    .in('word', words)
+  const materials = new Map<string, StudyMaterial>()
+  for (const row of cached ?? []) {
+    const m = validateStudyMaterial(row.word, row)
+    if (m) materials.set(row.word, m)
+  }
+  for (const c of candidates) {
+    if (materials.has(c.normalized_word)) continue
+    const generated = await generateStudyMaterial(c.normalized_word)
+    if (!generated) continue
+    const { error: insErr } = await db.from('word_study_materials').insert({
+      word: c.normalized_word,
+      definition: generated.definition,
+      examples: generated.examples,
+      similar: generated.similar,
+      recognition_distractors: generated.recognition_distractors,
+      cloze: generated.cloze,
+      model: STUDY_MODEL,
+    })
+    // 23505 = concurrent generation of the same word; reuse it, not an error.
+    if (insErr && insErr.code !== '23505') console.error('material cache insert failed', c.normalized_word, insErr)
+    materials.set(c.normalized_word, generated)
+  }
+
+  const pending: PendingEntry[] = candidates
+    .filter((c) => materials.has(c.normalized_word))
+    .map((c) => {
+      const box = reviewByWord.get(c.normalized_word)?.box ?? 1
+      return {
+        box,
+        material: materials.get(c.normalized_word)!,
+        question: buildExercise(c, materials.get(c.normalized_word)!, box, Math.random),
+      }
+    })
+  return { pending, reviews: reviewRows }
+}
+
+// Persist a quiz + its questions, attaching the db-generated question ids (each
+// id is the capability token). Returns null if the quiz cannot be created;
+// deletes the quiz row on question-insert failure.
+async function persistQuiz(
+  db: ReturnType<typeof admin>,
+  userId: string,
+  pending: PendingEntry[]
+): Promise<{ quizId: string; entries: Entry[] } | null> {
+  const { data: quiz, error: quizError } = await db
+    .from('quizzes').insert({ user_id: userId }).select('id').single()
+  if (quizError || !quiz) return null
+
+  const { data: inserted, error: qError } = await db
+    .from('quiz_questions')
+    .insert(pending.map((e) => ({
+      quiz_id: quiz.id,
+      user_id: userId,
+      word: e.question.word,
+      normalized_word: e.question.normalized_word,
+      options: e.question.options,
+      correct_index: e.question.correct_index,
+    })))
+    .select('id, normalized_word')
+  if (qError || !inserted) {
+    await db.from('quizzes').delete().eq('id', quiz.id)
+    return null
+  }
+
+  const idByWord = new Map<string, string>(
+    (inserted as { id: string; normalized_word: string }[]).map((r) => [r.normalized_word, r.id])
+  )
+  const entries: Entry[] = pending
+    .map((e) => {
+      const id = idByWord.get(e.question.normalized_word)
+      return id ? { ...e, question: { ...e.question, id } } : null
+    })
+    .filter((e): e is Entry => e !== null)
+  return { quizId: quiz.id, entries }
+}
+
 async function handleSend(req: Request): Promise<Response> {
   if (req.headers.get('x-quiz-token') !== Deno.env.get('QUIZ_SEND_TOKEN')) {
     return json({ error: 'unauthorized' }, 401)
@@ -108,117 +206,33 @@ async function handleSend(req: Request): Promise<Response> {
   let skipped = 0
   for (const pref of duePrefs ?? []) {
     try {
-      const [{ data: saved }, { data: reviews }] = await Promise.all([
-        db.from('saved_words').select('word, normalized_word, created_at').eq('user_id', pref.user_id),
-        db.from('word_reviews').select('normalized_word, box, next_due_at').eq('user_id', pref.user_id),
-      ])
-      const candidates = selectDueWords(
-        (saved ?? []) as SavedWordRow[],
-        (reviews ?? []) as ReviewRow[],
-        now
-      )
-      if (candidates.length === 0) { skipped++; continue }
-
-      const reviewByWord = new Map((reviews ?? []).map((r) => [r.normalized_word, r as ReviewRow]))
-
-      // Cache lookup, then fill misses via the generator (skip word on failure).
-      const words = candidates.map((c) => c.normalized_word)
-      const { data: cached } = await db
-        .from('word_study_materials')
-        .select('word, definition, examples, similar, recognition_distractors, cloze')
-        .in('word', words)
-      const materials = new Map<string, StudyMaterial>()
-      for (const row of cached ?? []) {
-        const m = validateStudyMaterial(row.word, row)
-        if (m) materials.set(row.word, m)
-      }
-      for (const c of candidates) {
-        if (materials.has(c.normalized_word)) continue
-        const generated = await generateStudyMaterial(c.normalized_word)
-        if (!generated) continue
-        const { error: insErr } = await db.from('word_study_materials').insert({
-          word: c.normalized_word,
-          definition: generated.definition,
-          examples: generated.examples,
-          similar: generated.similar,
-          recognition_distractors: generated.recognition_distractors,
-          cloze: generated.cloze,
-          model: STUDY_MODEL,
-        })
-        // 23505 = concurrent send generated the same word first; reuse it, not an error.
-        if (insErr && insErr.code !== '23505') console.error('material cache insert failed', c.normalized_word, insErr)
-        materials.set(c.normalized_word, generated)
-      }
-
-      const entries: PendingEntry[] = candidates
-        .filter((c) => materials.has(c.normalized_word))
-        .map((c) => {
-          const box = reviewByWord.get(c.normalized_word)?.box ?? 1
-          return {
-            box,
-            material: materials.get(c.normalized_word)!,
-            question: buildExercise(c, materials.get(c.normalized_word)!, box, Math.random),
-          }
-        })
-      if (entries.length < 2) { skipped++; continue }
+      const { pending, reviews } = await prepareEntries(db, pref.user_id, now)
+      if (pending.length < 2) { skipped++; continue }
 
       const { data: userRes, error: userError } = await db.auth.admin.getUserById(pref.user_id)
       const email = userRes?.user?.email
       if (userError || !email) { skipped++; continue }
 
-      const { data: quiz, error: quizError } = await db
-        .from('quizzes').insert({ user_id: pref.user_id }).select('id').single()
-      if (quizError || !quiz) { skipped++; continue }
-
-      const { data: inserted, error: qError } = await db
-        .from('quiz_questions')
-        .insert(entries.map((e) => ({
-          quiz_id: quiz.id,
-          user_id: pref.user_id,
-          word: e.question.word,
-          normalized_word: e.question.normalized_word,
-          options: e.question.options,
-          correct_index: e.question.correct_index,
-        })))
-        .select('id, normalized_word')
-      if (qError || !inserted) {
-        await db.from('quizzes').delete().eq('id', quiz.id)
-        skipped++
-        continue
-      }
-
-      // Inserted rows don't carry kind/prompt — attach the returned id to
-      // each pre-insert Question instead of casting the DB rows.
-      const idByWord = new Map<string, string>(
-        (inserted as { id: string; normalized_word: string }[]).map((r) => [r.normalized_word, r.id])
-      )
-      const withIds: Entry[] = entries
-        .map((e) => {
-          const id = idByWord.get(e.question.normalized_word)
-          return id ? { ...e, question: { ...e.question, id } } : null
-        })
-        .filter((e): e is Entry => e !== null)
-      if (withIds.length < 2) {
-        await db.from('quizzes').delete().eq('id', quiz.id)
-        skipped++
-        continue
+      const built = await persistQuiz(db, pref.user_id, pending)
+      if (!built || built.entries.length < 2) {
+        if (built) await db.from('quizzes').delete().eq('id', built.quizId)
+        skipped++; continue
       }
 
       const unsubscribeUrl = `${linkBase()}/quiz/unsubscribe?u=${pref.unsubscribe_token}`
       const html = buildDigestEmailHtml({
-        entries: withIds,
+        entries: built.entries,
         streak: pref.streak ?? 0,
-        buckets: masteryBuckets((reviews ?? []) as ReviewRow[]),
+        buckets: masteryBuckets(reviews),
         linkBase: linkBase(),
         unsubscribeUrl,
       })
       try {
-        await sendEmail(email, `Your PopDict study digest — ${withIds.length} words`, html, unsubscribeUrl)
+        await sendEmail(email, `Your PopDict study digest — ${built.entries.length} words`, html, unsubscribeUrl)
       } catch (e) {
         console.error('send failed', pref.user_id, e)
-        await db.from('quizzes').delete().eq('id', quiz.id) // cascades to questions
-        skipped++
-        continue
+        await db.from('quizzes').delete().eq('id', built.quizId)
+        skipped++; continue
       }
 
       const { error: markError } = await db
