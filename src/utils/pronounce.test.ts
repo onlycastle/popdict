@@ -39,10 +39,20 @@ describe('pronounce', () => {
     return { speak }
   }
 
+  function stubAudio(play: ReturnType<typeof vi.fn>) {
+    vi.stubGlobal(
+      'Audio',
+      class {
+        addEventListener = vi.fn()
+        play = play
+      }
+    )
+  }
+
   it('plays the audio clip and does not fall back when playback succeeds', async () => {
     const { speak } = stubSpeech()
     const play = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('Audio', vi.fn(() => ({ addEventListener: vi.fn(), play })))
+    stubAudio(play)
 
     pronounce('kick', 'https://cdn/kick.mp3')
     await flush()
@@ -54,7 +64,7 @@ describe('pronounce', () => {
   it('falls back to TTS when audio playback fails', async () => {
     const { speak } = stubSpeech()
     const play = vi.fn().mockRejectedValue(new Error('404'))
-    vi.stubGlobal('Audio', vi.fn(() => ({ addEventListener: vi.fn(), play })))
+    stubAudio(play)
 
     pronounce('kick', 'https://cdn/kick.mp3')
     await flush()

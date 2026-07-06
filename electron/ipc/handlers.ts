@@ -73,6 +73,7 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
   router.handle('send-feedback', (_e, payload?: FeedbackPayload) => openFeedback(payload))
   router.on('open-settings', () => windows.open('settings'))
   router.on('open-saved-words', () => windows.open('saved'))
+  router.on('open-review', () => windows.open('review'))
   router.on('lookup-word', (_e, word: string) => seedSearch(windows, word))
   router.on('finish-onboarding', () => {
     store.patch({ onboardingDone: true })

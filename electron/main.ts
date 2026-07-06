@@ -18,7 +18,7 @@ import { TrayMenu } from './tray/TrayMenu'
 import { IpcRouter } from './ipc/IpcRouter'
 import { registerIpcHandlers } from './ipc/handlers'
 import { createLogger } from '../shared/logger'
-import { isAuthCallbackUrl } from '../shared/authUrl'
+import { isAuthCallbackUrl, isQuizDeepLink } from '../shared/authUrl'
 
 const log = createLogger('Auth')
 
@@ -126,6 +126,11 @@ if (hasSingleInstanceLock) {
     const initialAuthCallbackUrl = process.argv.find((arg) => isAuthCallbackUrl(arg))
     if (initialAuthCallbackUrl) {
       broker.receive(initialAuthCallbackUrl)
+    }
+
+    const initialQuizUrl = process.argv.find((arg) => isQuizDeepLink(arg))
+    if (initialQuizUrl) {
+      windows.open('review')
     }
 
     if (broker.hasPending) {

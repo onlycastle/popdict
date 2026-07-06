@@ -4,6 +4,7 @@ import {
   describeExternalAuthUrl,
   isAllowedExternalAuthUrl,
   isAuthCallbackUrl,
+  isQuizDeepLink,
   planAuthAction,
   readAuthCallbackParams,
 } from './authUrl'
@@ -94,6 +95,15 @@ describe('isAllowedExternalAuthUrl', () => {
     expect(isAllowedExternalAuthUrl('https://evil.example.com/phish')).toBe(false)
     expect(isAllowedExternalAuthUrl('https://abc.supabase.co.evil.com/phish')).toBe(false)
     expect(isAllowedExternalAuthUrl('not a url')).toBe(false)
+  })
+})
+
+describe('isQuizDeepLink', () => {
+  it('matches the quiz deep link and nothing else', () => {
+    expect(isQuizDeepLink('popdict://quiz')).toBe(true)
+    expect(isQuizDeepLink('popdict://quiz/')).toBe(true)
+    expect(isQuizDeepLink('popdict://auth/callback?x=1')).toBe(false)
+    expect(isQuizDeepLink('https://popdict.space/quiz')).toBe(false)
   })
 })
 

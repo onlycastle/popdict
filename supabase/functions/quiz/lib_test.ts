@@ -1,8 +1,10 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import {
+  bearerToken,
   blankWord,
   buildDigestEmailHtml,
   buildExercise,
+  buildSessionCards,
   escapeHtml,
   leitnerNext,
   masteryBuckets,
@@ -148,4 +150,50 @@ Deno.test('digest email escapes HTML in generated content', () => {
     linkBase: 'https://x', unsubscribeUrl: 'https://x/u',
   })
   assert(!html.includes('<script>'))
+})
+
+Deno.test('digest email includes the Review-in-app deep-link button', () => {
+  const material = {
+    definition: 'great pleasure or satisfaction',
+    examples: ['The garden was a delight.'],
+    similar: [{ phrase: 'joy', nuance: 'stronger' }, { phrase: 'pleasure', nuance: 'broader' }],
+    recognition_distractors: ['a sudden fear', 'a type of contract', 'a light source'],
+    cloze: { sentence: 'Watching the sunset was a pure Delight for us.', distractors: ['burden', 'schedule', 'debate'] },
+  }
+  const saved = { word: 'Delight', normalized_word: 'delight', created_at: '2026-07-01T00:00:00Z' }
+  const q = { ...buildExercise(saved, material, 1, seededRng()), id: '00000000-0000-4000-8000-000000000003' }
+  const html = buildDigestEmailHtml({
+    entries: [{ question: q, material, box: 1 }],
+    streak: 1, buckets: { new: 1, learning: 0, mastered: 0 },
+    linkBase: 'https://popdict.space', unsubscribeUrl: 'https://popdict.space/quiz/unsubscribe?u=x',
+  })
+  assert(html.includes('popdict://quiz'))
+  assert(html.includes('Review in PopDict'))
+})
+
+Deno.test('buildSessionCards maps questions and omits the answer index', () => {
+  const cards = buildSessionCards([
+    {
+      question: {
+        id: 'q1', word: 'Resilient', normalized_word: 'resilient',
+        kind: 'recognition', prompt: 'Resilient',
+        options: ['able to recover', 'fragile', 'listless', 'hostile'],
+        correct_index: 0,
+      },
+    },
+  ])
+  assertEquals(cards, [{
+    questionId: 'q1', kind: 'recognition', prompt: 'Resilient',
+    options: ['able to recover', 'fragile', 'listless', 'hostile'],
+  }])
+  assert(!('correct_index' in cards[0]))
+  assert(!('correctIndex' in cards[0]))
+})
+
+Deno.test('bearerToken extracts the token or returns null', () => {
+  assertEquals(bearerToken('Bearer abc.def.ghi'), 'abc.def.ghi')
+  assertEquals(bearerToken('bearer xyz'), 'xyz')
+  assertEquals(bearerToken(null), null)
+  assertEquals(bearerToken('Basic zzz'), null)
+  assertEquals(bearerToken('Bearer    '), null)
 })

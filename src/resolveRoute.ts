@@ -1,9 +1,10 @@
-export type Route = 'search' | 'settings' | 'saved' | 'onboarding'
+export type Route = 'search' | 'settings' | 'saved' | 'onboarding' | 'review'
 
 const ROUTES: Record<string, Route> = {
   settings: 'settings',
   saved: 'saved',
   onboarding: 'onboarding',
+  review: 'review',
 }
 
 /**

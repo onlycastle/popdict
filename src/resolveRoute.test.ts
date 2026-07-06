@@ -22,4 +22,9 @@ describe('resolveRoute', () => {
     expect(resolveRoute('#/')).toBe('search')
     expect(resolveRoute('#nope')).toBe('search')
   })
+
+  it('resolves the review route from both hash styles', () => {
+    expect(resolveRoute('#/review')).toBe('review')
+    expect(resolveRoute('#review')).toBe('review')
+  })
 })

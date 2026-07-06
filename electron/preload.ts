@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearHistory: () => ipcRenderer.invoke('clear-history'),
   openSettings: () => ipcRenderer.send('open-settings'),
   openSavedWords: () => ipcRenderer.send('open-saved-words'),
+  openReview: () => ipcRenderer.send('open-review'),
   finishOnboarding: () => ipcRenderer.send('finish-onboarding'),
   lookupWord: (word: string) => ipcRenderer.send('lookup-word', word),
   onSeedSearch: (callback: (word: string) => void) => {

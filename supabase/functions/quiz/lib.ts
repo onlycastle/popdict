@@ -18,6 +18,36 @@ export type Question = {
 }
 export type QuestionWithId = Question & { id: string }
 
+export type SessionCard = {
+  questionId: string
+  kind: 'recognition' | 'cloze'
+  prompt: string
+  options: string[]
+}
+
+/**
+ * Client payload for an in-app quiz session. The correct index is deliberately
+ * omitted: the app must not know the answer until it submits (same trust model
+ * as the email capability links).
+ */
+export function buildSessionCards(entries: { question: QuestionWithId }[]): SessionCard[] {
+  return entries.map((e) => ({
+    questionId: e.question.id,
+    kind: e.question.kind,
+    prompt: e.question.prompt,
+    options: e.question.options,
+  }))
+}
+
+/** Extract a bearer token from an Authorization header; null if absent/blank/malformed. */
+export function bearerToken(header: string | null): string | null {
+  if (!header) return null
+  const m = header.match(/^Bearer\s+(.+)$/i)
+  if (!m) return null
+  const token = m[1].trim()
+  return token.length > 0 ? token : null
+}
+
 /** Words due for review: no review row means due since the word was saved. */
 export function selectDueWords(
   saved: SavedWordRow[],
@@ -161,6 +191,10 @@ export function buildDigestEmailHtml(input: {
     `streak ${input.streak} · ${input.buckets.new} new · ${input.buckets.learning} getting there · ${input.buckets.mastered} mastered</p>` +
     `</td></tr>` +
     input.entries.map((e, i) => wordBlock(e, i + 1)).join('') +
+    `<tr><td style="padding-top:20px;">` +
+    `<a href="popdict://quiz" style="display:inline-block;padding:11px 20px;background:#a85d0c;` +
+    `color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;">Review in PopDict &rarr;</a>` +
+    `</td></tr>` +
     `<tr><td style="padding-top:18px;border-top:1px solid #ece7de;">` +
     `<p style="margin:0;font-size:11px;color:#7a7160;">` +
     `You get this because study emails are on in PopDict. ` +
