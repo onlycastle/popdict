@@ -38,7 +38,7 @@ export default function Privacy() {
         vocabulary quiz and send it to your account email through Resend, our email
         delivery provider. The study cards and exercises in each email — definitions,
         example sentences, and quiz questions — are machine-generated using
-        Anthropic’s Claude API; the saved word is sent to Anthropic to generate that
+        Google’s Gemini API; the saved word is sent to Google to generate that
         content. Your answers are stored to schedule which words repeat. Every quiz
         email contains an unsubscribe link that takes effect immediately; you can
         also toggle quiz emails off in the app’s settings.
