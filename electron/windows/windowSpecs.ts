@@ -20,6 +20,11 @@ const sharedWebPreferences: BrowserWindowConstructorOptions['webPreferences'] = 
   preload: path.join(__dirname, 'preload.js'),
   contextIsolation: true,
   nodeIntegration: false,
+  // Renderers are sandboxed. This is already Electron's default when
+  // nodeIntegration is off, but pinning it explicitly keeps the guarantee from
+  // silently changing on an Electron upgrade or a stray webPreferences override.
+  // The preload only uses contextBridge + ipcRenderer, both sandbox-compatible.
+  sandbox: true,
 }
 
 // Native macOS material for the secondary windows (Settings / Saved /

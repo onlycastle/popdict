@@ -25,13 +25,20 @@ the Supabase variables documented in [README.md](README.md).
 
 ## Checks
 
+Run these before requesting review. CI runs the same set, so a green local run
+means a green PR:
+
 ```bash
 npx tsc --noEmit
 npm run lint
 npm test
+npm run harness:validate   # deterministic quality gates — CI fails without it
 ```
 
-For site changes:
+`npm run test:ci` runs everything CI runs in one shot (the app checks above plus
+the site typecheck and tests), if you prefer a single command.
+
+For site changes, also:
 
 ```bash
 cd site
