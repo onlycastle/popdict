@@ -32,6 +32,14 @@
   position: relative;
 }
 
+/* While a modal is open the OS window grows to fit it; the glass box must grow
+   too, otherwise the absolutely-positioned modal backdrop (inset:0) spans only
+   the ~64px content-sized box and the modal is clipped. */
+.glass-window.modal-open {
+  height: 100vh;
+  max-height: 100vh;
+}
+
 /* One row of chrome: magnifier, the serif input, and two quiet controls.
    The row is fixed-height so the idle window is exactly bar-sized. */
 .search-row {
@@ -134,5 +142,7 @@
 .quiz-review__example { font-size: 0.9rem; font-style: italic; color: rgba(255,255,255,0.55); }
 .quiz-review__next { align-self: flex-start; margin-top: 4px; -webkit-app-region: no-drag; }
 
-.review-chip { -webkit-app-region: no-drag; background: transparent; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 5px 10px; color: rgba(255,255,255,0.55); cursor: pointer; white-space: nowrap; }
-.review-chip:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.8); }
+.review-nudge { -webkit-app-region: no-drag; display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 12px; padding: 9px 12px; border: 1px solid rgba(245,176,92,0.28); border-radius: 10px; background: rgba(245,176,92,0.06); color: #F5B05C; cursor: pointer; transition: background-color 0.2s ease; }
+.review-nudge:hover { background: rgba(245,176,92,0.12); }
+.review-nudge__count { font-size: 0.82rem; font-weight: 500; }
+.review-nudge__cta { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; }

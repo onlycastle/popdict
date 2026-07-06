@@ -300,6 +300,9 @@ input[type='checkbox'] {
   flex: 0 0 30px;
   width: 30px;
   height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
