@@ -152,6 +152,25 @@ Deno.test('digest email escapes HTML in generated content', () => {
   assert(!html.includes('<script>'))
 })
 
+Deno.test('digest email includes the Review-in-app deep-link button', () => {
+  const material = {
+    definition: 'great pleasure or satisfaction',
+    examples: ['The garden was a delight.'],
+    similar: [{ phrase: 'joy', nuance: 'stronger' }, { phrase: 'pleasure', nuance: 'broader' }],
+    recognition_distractors: ['a sudden fear', 'a type of contract', 'a light source'],
+    cloze: { sentence: 'Watching the sunset was a pure Delight for us.', distractors: ['burden', 'schedule', 'debate'] },
+  }
+  const saved = { word: 'Delight', normalized_word: 'delight', created_at: '2026-07-01T00:00:00Z' }
+  const q = { ...buildExercise(saved, material, 1, seededRng()), id: '00000000-0000-4000-8000-000000000003' }
+  const html = buildDigestEmailHtml({
+    entries: [{ question: q, material, box: 1 }],
+    streak: 1, buckets: { new: 1, learning: 0, mastered: 0 },
+    linkBase: 'https://popdict.space', unsubscribeUrl: 'https://popdict.space/quiz/unsubscribe?u=x',
+  })
+  assert(html.includes('popdict://quiz'))
+  assert(html.includes('Review in PopDict'))
+})
+
 Deno.test('buildSessionCards maps questions and omits the answer index', () => {
   const cards = buildSessionCards([
     {

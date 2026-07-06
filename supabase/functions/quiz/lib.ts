@@ -191,6 +191,10 @@ export function buildDigestEmailHtml(input: {
     `streak ${input.streak} · ${input.buckets.new} new · ${input.buckets.learning} getting there · ${input.buckets.mastered} mastered</p>` +
     `</td></tr>` +
     input.entries.map((e, i) => wordBlock(e, i + 1)).join('') +
+    `<tr><td style="padding-top:20px;">` +
+    `<a href="popdict://quiz" style="display:inline-block;padding:11px 20px;background:#a85d0c;` +
+    `color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;">Review in PopDict &rarr;</a>` +
+    `</td></tr>` +
     `<tr><td style="padding-top:18px;border-top:1px solid #ece7de;">` +
     `<p style="margin:0;font-size:11px;color:#7a7160;">` +
     `You get this because study emails are on in PopDict. ` +
