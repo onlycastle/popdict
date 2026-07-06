@@ -118,3 +118,28 @@ Deno.test('generateStudyMaterial returns null on API error / blocked / invalid J
   Deno.env.delete('GEMINI_API_KEY')
   assertEquals(await generateStudyMaterial('delight', fakeGeminiFetch(apiSuccess)), null)
 })
+
+Deno.test('generateStudyMaterial aborts a slow API call', async () => {
+  Deno.env.set('GEMINI_API_KEY', 'test-key')
+  let aborted = false
+  const slowFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      const signal = init?.signal
+      if (signal?.aborted) {
+        aborted = true
+        reject(new DOMException('aborted', 'AbortError'))
+        return
+      }
+      signal?.addEventListener('abort', () => {
+        aborted = true
+        reject(new DOMException('aborted', 'AbortError'))
+      }, { once: true })
+    })) as typeof fetch
+
+  try {
+    assertEquals(await generateStudyMaterial('delight', slowFetch, 1), null)
+    assertEquals(aborted, true)
+  } finally {
+    Deno.env.delete('GEMINI_API_KEY')
+  }
+})

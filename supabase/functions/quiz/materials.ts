@@ -62,6 +62,7 @@ export function validateStudyMaterial(word: string, u: unknown): StudyMaterial |
 declare const Deno: { env: { get: (key: string) => string | undefined } }
 
 export const STUDY_MODEL = 'gemini-2.5-flash-lite'
+export const STUDY_GENERATION_TIMEOUT_MS = 10_000
 
 // OpenAPI-subset Schema for Gemini's generationConfig.responseSchema.
 const STUDY_SCHEMA = {
@@ -113,15 +114,19 @@ const STUDY_SCHEMA = {
  */
 export async function generateStudyMaterial(
   word: string,
-  fetchFn: typeof fetch = fetch
+  fetchFn: typeof fetch = fetch,
+  timeoutMs = STUDY_GENERATION_TIMEOUT_MS
 ): Promise<StudyMaterial | null> {
   const key = Deno.env.get('GEMINI_API_KEY')
   if (!key) return null
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const res = await fetchFn(
       `https://generativelanguage.googleapis.com/v1beta/models/${STUDY_MODEL}:generateContent`,
       {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: {
@@ -149,5 +154,7 @@ export async function generateStudyMaterial(
     return validateStudyMaterial(word, JSON.parse(text))
   } catch {
     return null
+  } finally {
+    clearTimeout(timeout)
   }
 }
