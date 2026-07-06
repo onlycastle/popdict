@@ -3,12 +3,17 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.4.0] - 2026-07-06
 
 ### Added
 - Weekly study digest emails: study cards (definition, examples, similar
   expressions) plus spaced-repetition exercises for saved words, with
   one-click answer links.
+- In-app Review screen: practice due saved words one card at a time
+  (multiple choice with an instant study-card reveal), opened from a
+  "Review" chip in the search bar or a deep link in the study email. Spaced
+  repetition is shared with the digest; the weekly streak stays tied to the
+  email.
 
 ## [1.3.0] - 2026-07-05
 
