@@ -88,3 +88,6 @@ deno.lock
 out-data/
 .vercel
 .env*.local
+
+# Local digest email preview (npm run preview:digest)
+preview-digest.html
