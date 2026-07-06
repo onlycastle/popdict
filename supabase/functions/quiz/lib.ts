@@ -18,6 +18,36 @@ export type Question = {
 }
 export type QuestionWithId = Question & { id: string }
 
+export type SessionCard = {
+  questionId: string
+  kind: 'recognition' | 'cloze'
+  prompt: string
+  options: string[]
+}
+
+/**
+ * Client payload for an in-app quiz session. The correct index is deliberately
+ * omitted: the app must not know the answer until it submits (same trust model
+ * as the email capability links).
+ */
+export function buildSessionCards(entries: { question: QuestionWithId }[]): SessionCard[] {
+  return entries.map((e) => ({
+    questionId: e.question.id,
+    kind: e.question.kind,
+    prompt: e.question.prompt,
+    options: e.question.options,
+  }))
+}
+
+/** Extract a bearer token from an Authorization header; null if absent/blank/malformed. */
+export function bearerToken(header: string | null): string | null {
+  if (!header) return null
+  const m = header.match(/^Bearer\s+(.+)$/i)
+  if (!m) return null
+  const token = m[1].trim()
+  return token.length > 0 ? token : null
+}
+
 /** Words due for review: no review row means due since the word was saved. */
 export function selectDueWords(
   saved: SavedWordRow[],

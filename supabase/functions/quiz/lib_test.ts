@@ -1,8 +1,10 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import {
+  bearerToken,
   blankWord,
   buildDigestEmailHtml,
   buildExercise,
+  buildSessionCards,
   escapeHtml,
   leitnerNext,
   masteryBuckets,
@@ -148,4 +150,31 @@ Deno.test('digest email escapes HTML in generated content', () => {
     linkBase: 'https://x', unsubscribeUrl: 'https://x/u',
   })
   assert(!html.includes('<script>'))
+})
+
+Deno.test('buildSessionCards maps questions and omits the answer index', () => {
+  const cards = buildSessionCards([
+    {
+      question: {
+        id: 'q1', word: 'Resilient', normalized_word: 'resilient',
+        kind: 'recognition', prompt: 'Resilient',
+        options: ['able to recover', 'fragile', 'listless', 'hostile'],
+        correct_index: 0,
+      },
+    },
+  ])
+  assertEquals(cards, [{
+    questionId: 'q1', kind: 'recognition', prompt: 'Resilient',
+    options: ['able to recover', 'fragile', 'listless', 'hostile'],
+  }])
+  assert(!('correct_index' in cards[0]))
+  assert(!('correctIndex' in cards[0]))
+})
+
+Deno.test('bearerToken extracts the token or returns null', () => {
+  assertEquals(bearerToken('Bearer abc.def.ghi'), 'abc.def.ghi')
+  assertEquals(bearerToken('bearer xyz'), 'xyz')
+  assertEquals(bearerToken(null), null)
+  assertEquals(bearerToken('Basic zzz'), null)
+  assertEquals(bearerToken('Bearer    '), null)
 })
