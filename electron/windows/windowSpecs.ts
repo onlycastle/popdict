@@ -145,7 +145,6 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
       options: {
         width: 480,
         height: 640,
-        show: false,
         resizable: false,
         title: 'PopDict — Review',
         ...secondaryWindowChrome,
