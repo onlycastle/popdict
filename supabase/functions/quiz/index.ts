@@ -89,6 +89,27 @@ async function sendEmail(to: string, subject: string, html: string, unsubscribeU
 type PendingEntry = { question: Question; material: StudyMaterial; box: number }
 // Post-insert entry: question carries the quiz_questions row id (capability token).
 type Entry = { question: QuestionWithId; material: StudyMaterial; box: number }
+type GeneratedMaterial = { word: string; material: StudyMaterial }
+
+const MATERIAL_GENERATION_CONCURRENCY = 4
+
+async function mapConcurrent<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = next++
+      if (i >= items.length) return
+      results[i] = await fn(items[i])
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
 
 // Build (but do not persist) the due-word exercises for one user: fetch saved
 // words + reviews, select due, resolve study material (cache then generate),
@@ -117,12 +138,20 @@ async function prepareEntries(
     const m = validateStudyMaterial(row.word, row)
     if (m) materials.set(row.word, m)
   }
-  for (const c of candidates) {
-    if (materials.has(c.normalized_word)) continue
-    const generated = await generateStudyMaterial(c.normalized_word)
-    if (!generated) continue
+  const missing = candidates.filter((c) => !materials.has(c.normalized_word))
+  const generatedRows: (GeneratedMaterial | null)[] = await mapConcurrent(
+    missing,
+    MATERIAL_GENERATION_CONCURRENCY,
+    async (c) => {
+      const material = await generateStudyMaterial(c.normalized_word)
+      return material ? { word: c.normalized_word, material } : null
+    }
+  )
+  for (const generatedRow of generatedRows) {
+    if (!generatedRow) continue
+    const { word, material: generated } = generatedRow
     const { error: insErr } = await db.from('word_study_materials').insert({
-      word: c.normalized_word,
+      word,
       definition: generated.definition,
       examples: generated.examples,
       similar: generated.similar,
@@ -131,8 +160,8 @@ async function prepareEntries(
       model: STUDY_MODEL,
     })
     // 23505 = concurrent generation of the same word; reuse it, not an error.
-    if (insErr && insErr.code !== '23505') console.error('material cache insert failed', c.normalized_word, insErr)
-    materials.set(c.normalized_word, generated)
+    if (insErr && insErr.code !== '23505') console.error('material cache insert failed', word, insErr)
+    materials.set(word, generated)
   }
 
   const pending: PendingEntry[] = candidates
