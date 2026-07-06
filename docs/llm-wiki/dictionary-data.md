@@ -58,8 +58,8 @@ edge function owns the whole loop:
 
 Study material (definition, examples, similar expressions, quiz distractors)
 is generated once per word by
-[materials.ts](../../supabase/functions/quiz/materials.ts) via the Anthropic
-API — secret read through `Deno.env.get('ANTHROPIC_API_KEY')`, same boundary
+[materials.ts](../../supabase/functions/quiz/materials.ts) via the Gemini
+API — secret read through `Deno.env.get('GEMINI_API_KEY')`, same boundary
 as the other functions — and cached forever in
 [word_study_materials](../../supabase/migrations/20260705120000_create_word_study_materials.sql),
 never regenerated once cached.

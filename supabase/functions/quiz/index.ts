@@ -15,7 +15,7 @@
 //   unsubscribe GET ?action=unsubscribe&u=<token> — flips enabled off.
 //
 // Deploy:  supabase functions deploy quiz --no-verify-jwt
-// Secrets: supabase secrets set RESEND_API_KEY=... QUIZ_SEND_TOKEN=... ANTHROPIC_API_KEY=...
+// Secrets: supabase secrets set RESEND_API_KEY=... QUIZ_SEND_TOKEN=... GEMINI_API_KEY=...
 // Optional: QUIZ_LINK_BASE (default https://popdict.space),
 //           QUIZ_FROM (default PopDict <quiz@mail.popdict.space>)
 

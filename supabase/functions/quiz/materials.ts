@@ -55,11 +55,11 @@ export function validateStudyMaterial(word: string, u: unknown): StudyMaterial |
 
 declare const Deno: { env: { get: (key: string) => string | undefined } }
 
-export const STUDY_MODEL = 'claude-haiku-4-5'
+export const STUDY_MODEL = 'gemini-2.5-flash-lite'
 
+// OpenAPI-subset Schema for Gemini's generationConfig.responseSchema.
 const STUDY_SCHEMA = {
   type: 'object',
-  additionalProperties: false,
   required: ['definition', 'examples', 'similar', 'recognition_distractors', 'cloze'],
   properties: {
     definition: { type: 'string', description: 'One concise learner-friendly definition (CEFR B1 clarity).' },
@@ -70,7 +70,7 @@ const STUDY_SCHEMA = {
     similar: {
       type: 'array',
       items: {
-        type: 'object', additionalProperties: false, required: ['phrase', 'nuance'],
+        type: 'object', required: ['phrase', 'nuance'],
         properties: {
           phrase: { type: 'string' },
           nuance: { type: 'string', description: 'One-line contrast with the target word.' },
@@ -83,7 +83,7 @@ const STUDY_SCHEMA = {
       description: 'Exactly 3 plausible but wrong definitions (same register as the real one).',
     },
     cloze: {
-      type: 'object', additionalProperties: false, required: ['sentence', 'distractors'],
+      type: 'object', required: ['sentence', 'distractors'],
       properties: {
         sentence: { type: 'string', description: 'One new example sentence that contains the exact target word.' },
         distractors: {
@@ -96,34 +96,42 @@ const STUDY_SCHEMA = {
 }
 
 /**
- * Generate study material for one word via the Anthropic API (structured
- * output). Returns null on ANY failure — the caller skips the word this
- * round and retries next send. Never throws.
+ * Generate study material for one word via the Gemini API (JSON mode with a
+ * response schema). Returns null on ANY failure — the caller skips the word
+ * this round and retries next send. Never throws.
  */
 export async function generateStudyMaterial(
   word: string,
   fetchFn: typeof fetch = fetch
 ): Promise<StudyMaterial | null> {
-  const key = Deno.env.get('ANTHROPIC_API_KEY')
+  const key = Deno.env.get('GEMINI_API_KEY')
   if (!key) return null
   try {
-    const res = await fetchFn('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: STUDY_MODEL,
-        max_tokens: 1500,
-        system:
-          'You create study material for English learners (monolingual, CEFR-B1 clarity). ' +
-          'Everyday register. The cloze sentence must contain the exact target word.',
-        messages: [{ role: 'user', content: `Create study material for the word: ${word}` }],
-        output_config: { format: { type: 'json_schema', schema: STUDY_SCHEMA } },
-      }),
-    })
+    const res = await fetchFn(
+      `https://generativelanguage.googleapis.com/v1beta/models/${STUDY_MODEL}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text:
+                'You create study material for English learners (monolingual, CEFR-B1 clarity). ' +
+                'Everyday register. The cloze sentence must contain the exact target word.',
+            }],
+          },
+          contents: [{ parts: [{ text: `Create study material for the word: ${word}` }] }],
+          generationConfig: { responseMimeType: 'application/json', responseSchema: STUDY_SCHEMA },
+        }),
+      }
+    )
     if (!res.ok) return null
     const body = await res.json()
-    if (body.stop_reason !== 'end_turn') return null
-    const text = (body.content ?? []).find((b: { type: string }) => b.type === 'text')?.text
+    const candidate = body.candidates?.[0]
+    if (candidate?.finishReason !== 'STOP') return null
+    const text = (candidate.content?.parts ?? []).find(
+      (p: { text?: unknown }) => typeof p.text === 'string'
+    )?.text
     if (typeof text !== 'string') return null
     return validateStudyMaterial(word, JSON.parse(text))
   } catch {
