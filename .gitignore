@@ -86,3 +86,6 @@ deno.lock
 
 # ETL build artifacts
 out-data/
+
+# Local digest email preview (npm run preview:digest)
+preview-digest.html
