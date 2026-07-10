@@ -39,8 +39,9 @@ npm start
 ```
 
 Basic dictionary lookup works without cloud configuration. Optional
-cloud-backed features such as saved words and idiom lookup are disabled in
-local builds unless you provide your own service configuration in `.env.local`.
+cloud-backed features such as saved words and idiom lookup require a separately
+configured compatible backend; `.env.example` lists the local variables consumed
+by development builds.
 
 ## Development
 

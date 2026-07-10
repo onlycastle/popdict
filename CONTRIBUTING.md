@@ -11,9 +11,9 @@ cp .env.example .env.local
 npm start
 ```
 
-Supabase is optional for basic dictionary lookup. Auth, saved words, and idioms
-need local environment values; use `.env.example` as the public-safe
-template.
+Cloud-backed features are optional and require a separately configured
+compatible backend. Use `.env.example` as the public-safe template for local
+variables.
 
 ## Pull Requests
 
