@@ -9,6 +9,13 @@ PopDict is a macOS menu-bar dictionary for English learners. Press one hotkey to
 look up a word or idiom, hear pronunciation, and save words for later without
 leaving the app you are reading in.
 
+![PopDict demo: press the hotkey, type a word, read the definition](docs/demo.gif)
+
+## Install
+
+[**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest) —
+signed, notarized, and auto-updating.
+
 ## Features
 
 - Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
