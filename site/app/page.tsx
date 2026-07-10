@@ -72,56 +72,22 @@ export default function Home() {
           </div>
         </header>
 
-        {/* THE STAGE — the signature scene, on its own full-width stage: a real
-            reading surface whose sentence ends in a highlighted idiom, and the
-            glass popup floating beside it as the consequence. Text and popup
-            never overlap. This scene is the product. */}
-        <section className="stage" aria-hidden="true">
-          <div className="demo">
-            <div className="reading">
-              <p className="reading-meta">the morning thread · 8:41</p>
-              <p className="reading-body">
-                The standup had become a chorus of coughs, apologetic mutes,
-                and quiet “brb, tea” messages — by Thursday, half the team was{' '}
-                <span className="reading-mark">under the weather</span>.
-              </p>
-            </div>
-
-            <div className="popup">
-              <div className="popup-rail">
-                <span className="popup-wordmark">
-                  <span className="popup-dot" />
-                  popdict
-                </span>
-                <span className="popup-esc">esc</span>
-              </div>
-              <div className="popup-search">
-                <svg
-                  className="popup-glass"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <circle cx="7" cy="7" r="5" />
-                  <path d="m11 11 3.5 3.5" strokeLinecap="round" />
-                </svg>
-                under the weather
-              </div>
-              <div className="popup-result">
-                <span className="popup-badge">idiom</span>
-                <p className="popup-head">under the weather</p>
-                <p className="popup-def">Feeling slightly ill or unwell.</p>
-                <p className="popup-example">
-                  “I’m a bit under the weather today, so I’ll join remotely.”
-                </p>
-                <div className="popup-actions">
-                  <span className="popup-action">▶ Listen</span>
-                  <span className="popup-action popup-action-save">＋ Save</span>
-                </div>
-              </div>
-            </div>
+        {/* THE STAGE — a real product capture, not an abstraction: hotkey,
+            lookup window, and context together in one inspectable frame. */}
+        <section className="stage" aria-labelledby="demo-title">
+          <div className="demo-capture">
+            <img
+              className="demo-gif"
+              src="/demo.gif"
+              alt="PopDict popup searching for a word while floating over a browser page"
+              width="720"
+              height="456"
+            />
           </div>
+          <p className="demo-caption" id="demo-title">
+            Press the hotkey, type a word, read the definition without leaving
+            the page.
+          </p>
         </section>
 
         {/* USAGE — a genuine sequence (you must press the key first), shown as one
