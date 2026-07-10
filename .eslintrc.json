@@ -24,7 +24,9 @@
     "dist/",
     "out/",
     "supabase/functions/",
-    "site/"
+    "site/",
+    "scripts/harness/fixtures/",
+    "scripts/preview-digest.ts"
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",

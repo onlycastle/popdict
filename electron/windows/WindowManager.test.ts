@@ -67,6 +67,7 @@ const SPECS: Record<WindowId, WindowSpec> = {
   settings: { hash: 'settings', singleton: true, options: {} },
   saved: { hash: 'saved', singleton: true, options: {} },
   onboarding: { hash: 'onboarding', singleton: true, options: {} },
+  review: { hash: 'review', singleton: true, options: {} },
 }
 
 function manager() {

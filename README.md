@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/onlycastle/popdict/actions/workflows/ci.yml/badge.svg)](https://github.com/onlycastle/popdict/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/onlycastle/popdict)](https://github.com/onlycastle/popdict/releases/latest)
-[![License: MIT](https://img.shields.io/github/license/onlycastle/popdict)](LICENSE)
-![Platform: macOS (Apple Silicon)](https://img.shields.io/badge/platform-macOS%20%28Apple%20Silicon%29-black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)
 
 PopDict is a macOS menu-bar dictionary for English learners. Press one hotkey to
 look up a word or idiom, hear pronunciation, and save words for later without
@@ -16,28 +16,19 @@ leaving the app you are reading in.
 [**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest) —
 signed, notarized, and auto-updating.
 
-Or with Homebrew:
-
-```bash
-brew install --cask onlycastle/tap/popdict
-```
-
 ## Features
 
 - Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
 - Optional select-to-lookup for highlighted text on macOS.
 - Free Dictionary API definitions with audio playback and text-to-speech fallback.
-- Korean ↔ English: Hangul lookups through the National Institute of Korean
-  Language's Basic Korean Dictionary (krdict), plus Korean translations alongside
-  English definitions.
 - Idiom and phrase lookup through a Supabase Edge Function proxy.
 - Google sign-in for saved words, backed by Supabase.
 - Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
 
 ## Requirements
 
-- macOS for the desktop app.
-- Node.js 20 or newer.
+- macOS 11 (Big Sur) or newer for the desktop app (Apple Silicon or Intel).
+- Node.js 20.19 or newer (matches `engines` in package.json) to build from source.
 - A Supabase project if you want auth, saved words, or idiom lookups.
 
 ## Quick Start
@@ -80,10 +71,11 @@ More detail is in [IDIOM_SETUP.md](IDIOM_SETUP.md).
 ## Development
 
 ```bash
-npm start          # Electron Forge + Vite dev app
-npm run lint       # ESLint
-npm test           # Vitest
-npx tsc --noEmit   # TypeScript check
+npm start                 # Electron Forge + Vite dev app
+npm run lint              # ESLint
+npm test                  # Vitest
+npx tsc --noEmit          # TypeScript check
+npm run harness:validate  # deterministic quality gates (also run in CI)
 ```
 
 To build your own copy of the app from source for personal use:
@@ -92,9 +84,10 @@ To build your own copy of the app from source for personal use:
 npm run package    # produces an unsigned app under out/
 ```
 
-> Official signed and notarized releases are published only by the maintainer.
-> Builds you produce from a fork are unsigned and intended for personal use, not
-> redistribution.
+> Official builds are signed and notarized by the maintainer; apps you build
+> from a fork are unsigned. The MIT license lets you use, modify, and
+> redistribute the **code** freely — see the [Trademark](#trademark) note below
+> about the PopDict **name and logo**.
 
 ## Project Structure
 
@@ -115,6 +108,20 @@ and feature requests should go through GitHub Issues.
 
 Read [SECURITY.md](SECURITY.md) for vulnerability reporting guidance. Do not post
 secrets or private account data in public issues.
+
+## Acknowledgements
+
+PopDict bundles the open-source fonts Fraunces and JetBrains Mono under the SIL
+Open Font License and uses third-party dictionary data (Free Dictionary /
+Wiktionary, STANDS4). Full attributions are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Trademark
+
+The MIT license covers PopDict's source code. The name "PopDict" and the PopDict
+logo are **not** part of the MIT grant. Please don't use them in a way that
+implies endorsement by or affiliation with the project, and rebrand forks you
+redistribute under your own name.
 
 ## License
 

@@ -32,6 +32,14 @@
   position: relative;
 }
 
+/* While a modal is open the OS window grows to fit it; the glass box must grow
+   too, otherwise the absolutely-positioned modal backdrop (inset:0) spans only
+   the ~64px content-sized box and the modal is clipped. */
+.glass-window.modal-open {
+  height: 100vh;
+  max-height: 100vh;
+}
+
 /* One row of chrome: magnifier, the serif input, and two quiet controls.
    The row is fixed-height so the idle window is exactly bar-sized. */
 .search-row {
@@ -118,3 +126,23 @@
     scroll-behavior: auto !important;
   }
 }
+
+.quiz-review { display: flex; flex-direction: column; gap: 18px; padding: 28px 30px; min-height: 100vh; }
+.quiz-review__top { display: flex; align-items: center; justify-content: space-between; }
+.quiz-review__prompt { font-size: 1.4rem; line-height: 1.45; color: rgba(255,255,255,0.92); }
+.quiz-review__options { display: flex; flex-direction: column; }
+.quiz-review__option { text-align: left; padding: 14px 14px; background: transparent; border: none; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.82); font-size: 0.95rem; cursor: pointer; -webkit-app-region: no-drag; }
+.quiz-review__option:last-child { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.quiz-review__option:hover:not(:disabled) { background: rgba(255,255,255,0.06); }
+.quiz-review__option:disabled { cursor: default; }
+.quiz-review__option--correct { color: #F5B05C; }
+.quiz-review__option--wrong { color: #e06b6b; }
+.quiz-review__card { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.quiz-review__definition { font-size: 1rem; color: rgba(255,255,255,0.9); }
+.quiz-review__example { font-size: 0.9rem; font-style: italic; color: rgba(255,255,255,0.55); }
+.quiz-review__next { align-self: flex-start; margin-top: 4px; -webkit-app-region: no-drag; }
+
+.review-nudge { -webkit-app-region: no-drag; display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 12px; padding: 9px 12px; border: 1px solid rgba(245,176,92,0.28); border-radius: 10px; background: rgba(245,176,92,0.06); color: #F5B05C; cursor: pointer; transition: background-color 0.2s ease; }
+.review-nudge:hover { background: rgba(245,176,92,0.12); }
+.review-nudge__count { font-size: 0.82rem; font-weight: 500; }
+.review-nudge__cta { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; }

@@ -7,6 +7,7 @@ import type { HotkeyManager } from '../hotkey/HotkeyManager'
 import type { TrayMenu } from '../tray/TrayMenu'
 import { createLogger } from '../../shared/logger'
 import { describeExternalAuthUrl, isAllowedExternalAuthUrl } from '../../shared/authUrl'
+import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 
 const log = createLogger('Auth')
 
@@ -16,7 +17,7 @@ export interface IpcDeps {
   broker: AuthCallbackBroker
   hotkey: HotkeyManager
   tray: TrayMenu
-  openFeedback: () => void
+  openFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult> | FeedbackOpenResult
 }
 
 /** The settings shape the renderer expects, merging stored config with OS state. */
@@ -69,9 +70,10 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     return ok
   })
 
-  router.on('send-feedback', () => openFeedback())
+  router.handle('send-feedback', (_e, payload?: FeedbackPayload) => openFeedback(payload))
   router.on('open-settings', () => windows.open('settings'))
   router.on('open-saved-words', () => windows.open('saved'))
+  router.on('open-review', () => windows.open('review'))
   router.on('lookup-word', (_e, word: string) => seedSearch(windows, word))
   router.on('finish-onboarding', () => {
     store.patch({ onboardingDone: true })

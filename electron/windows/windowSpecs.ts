@@ -1,7 +1,7 @@
 import { screen, type BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
 import * as path from 'path'
 
-export type WindowId = 'search' | 'settings' | 'saved' | 'onboarding'
+export type WindowId = 'search' | 'settings' | 'saved' | 'onboarding' | 'review'
 
 export interface WindowSpec {
   /** BrowserWindow constructor options (size, frame, vibrancy, …) as data. */
@@ -20,6 +20,11 @@ const sharedWebPreferences: BrowserWindowConstructorOptions['webPreferences'] = 
   preload: path.join(__dirname, 'preload.js'),
   contextIsolation: true,
   nodeIntegration: false,
+  // Renderers are sandboxed. This is already Electron's default when
+  // nodeIntegration is off, but pinning it explicitly keeps the guarantee from
+  // silently changing on an Electron upgrade or a stray webPreferences override.
+  // The preload only uses contextBridge + ipcRenderer, both sandbox-compatible.
+  sandbox: true,
 }
 
 // Native macOS material for the secondary windows (Settings / Saved /
@@ -134,6 +139,19 @@ export function buildWindowSpecs(onAuthReady: () => void): Record<WindowId, Wind
         height: 560,
         resizable: false,
         title: 'Welcome to PopDict',
+        ...secondaryWindowChrome,
+        webPreferences: sharedWebPreferences,
+      },
+    },
+
+    review: {
+      hash: 'review',
+      singleton: true,
+      options: {
+        width: 480,
+        height: 640,
+        resizable: false,
+        title: 'PopDict — Review',
         ...secondaryWindowChrome,
         webPreferences: sharedWebPreferences,
       },

@@ -31,6 +31,16 @@ export function isAuthCallbackUrl(url: string): boolean {
   }
 }
 
+/** True only for our own `popdict://quiz` deep link, which opens the Review window. */
+export function isQuizDeepLink(url: string): boolean {
+  try {
+    const u = new URL(url)
+    return u.protocol === `${AUTH_PROTOCOL}:` && u.hostname === 'quiz'
+  } catch {
+    return false
+  }
+}
+
 /** Structured, secret-free summary of a callback URL for debug logging. */
 export function describeAuthUrl(rawUrl: string): LogDetails {
   try {

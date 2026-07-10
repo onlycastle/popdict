@@ -120,6 +120,17 @@ export class SavedWordsRepository {
     return Boolean(data)
   }
 
+  /** Number of words the user has saved (head-only count query). */
+  async count(user: User): Promise<number> {
+    const client = this.requireClient()
+    const { count, error } = await client
+      .from('saved_words')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+    if (error) this.fail('count saved words', error)
+    return count ?? 0
+  }
+
   private requireClient(): SupabaseClient {
     if (!this.client) {
       throw new Error('Supabase is not configured.')

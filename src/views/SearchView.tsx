@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
+import FeedbackDialog from '../components/FeedbackDialog'
 import LoginModal from '../components/LoginModal'
+import QuizOptInPrompt from '../components/QuizOptInPrompt'
+import ReviewChip from '../components/ReviewChip'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import WindowControls from '../components/WindowControls'
@@ -12,6 +15,7 @@ import '../App.css'
 // The login modal is absolutely positioned, so it contributes no layout height
 // for the ResizeObserver to measure — give it a fixed window height instead.
 const LOGIN_MODAL_HEIGHT = 440
+const FEEDBACK_MODAL_HEIGHT = 520
 
 export default function SearchView() {
   const [query, setQuery] = useState('')
@@ -20,6 +24,7 @@ export default function SearchView() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   const {
     wordToSave,
@@ -32,6 +37,9 @@ export default function SearchView() {
     loginPromptOpen,
     setLoginPromptOpen,
     handleSaveClick,
+    quizPromptOpen,
+    enableQuizEmails,
+    dismissQuizPrompt,
   } = useSaveWord({ user: auth.user, response, searchedTerm, query })
 
   useEffect(() => {
@@ -69,8 +77,17 @@ export default function SearchView() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (quizPromptOpen) {
+          // Escape is a dismissal too — persist the decline like "Not now".
+          void dismissQuizPrompt()
+          return
+        }
         if (loginPromptOpen) {
           setLoginPromptOpen(false)
+          return
+        }
+        if (feedbackOpen) {
+          setFeedbackOpen(false)
           return
         }
         if (window.electronAPI) {
@@ -81,7 +98,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [loginPromptOpen, setLoginPromptOpen])
+  }, [feedbackOpen, loginPromptOpen, setLoginPromptOpen, quizPromptOpen, dismissQuizPrompt])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -89,15 +106,25 @@ export default function SearchView() {
 
   // Size the window to the glass panel's real rendered height. The panel is
   // content-sized (capped by its CSS max-height), independent of the window's
-  // current height, so this never feeds back on itself. The login modal is
-  // absolutely positioned (no layout height), hence the explicit floor.
+  // current height, so this never feeds back on itself. Modals are absolutely
+  // positioned (no layout height), hence the explicit floor.
   const loginOpenRef = useRef(loginPromptOpen)
   loginOpenRef.current = loginPromptOpen
+  const quizOpenRef = useRef(quizPromptOpen)
+  quizOpenRef.current = quizPromptOpen
+  const feedbackOpenRef = useRef(feedbackOpen)
+  feedbackOpenRef.current = feedbackOpen
   const applyWindowHeight = useCallback(() => {
     const el = glassRef.current
     if (!el || !window.electronAPI?.setWindowHeight) return
     const measured = Math.ceil(el.getBoundingClientRect().height)
-    const height = loginOpenRef.current ? Math.max(measured, LOGIN_MODAL_HEIGHT) : measured
+    const modalHeight = Math.max(
+      loginOpenRef.current ? LOGIN_MODAL_HEIGHT : 0,
+      // The quiz opt-in prompt shares the login modal's markup and size.
+      quizOpenRef.current ? LOGIN_MODAL_HEIGHT : 0,
+      feedbackOpenRef.current ? FEEDBACK_MODAL_HEIGHT : 0
+    )
+    const height = modalHeight ? Math.max(measured, modalHeight) : measured
     window.electronAPI.setWindowHeight(height)
   }, [])
 
@@ -110,17 +137,18 @@ export default function SearchView() {
     return () => observer.disconnect()
   }, [applyWindowHeight])
 
-  useEffect(applyWindowHeight, [applyWindowHeight, loginPromptOpen])
+  useEffect(applyWindowHeight, [applyWindowHeight, feedbackOpen, loginPromptOpen, quizPromptOpen])
 
   const hasRecent = !query && history.length > 0
   const showContent = Boolean(query) || hasRecent
+  const modalOpen = feedbackOpen || loginPromptOpen || quizPromptOpen
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="app-container">
         <motion.div
           ref={glassRef}
-          className="glass-window"
+          className={`glass-window${modalOpen ? ' modal-open' : ''}`}
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
@@ -133,7 +161,7 @@ export default function SearchView() {
               onSearch={triggerSearch}
               loading={loading}
             />
-            <WindowControls />
+            <WindowControls onFeedbackClick={() => setFeedbackOpen(true)} />
           </div>
 
           {showContent && <div className="content-divider" />}
@@ -166,6 +194,7 @@ export default function SearchView() {
                 transition={{ duration: 0.15 }}
                 className="empty-state"
               >
+                <ReviewChip />
                 <div className="recent-list">
                   <p className="dict-label mb-2">Recent</p>
                   {history.map((word) => (
@@ -215,6 +244,23 @@ export default function SearchView() {
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
             word={pendingSaveWord || wordToSave}
+          />
+
+          <QuizOptInPrompt
+            open={quizPromptOpen}
+            onEnable={() => void enableQuizEmails()}
+            onDismiss={() => void dismissQuizPrompt()}
+          />
+          <FeedbackDialog
+            context={
+              searchedTerm
+                ? `Search term: ${searchedTerm}`
+                : query.trim()
+                  ? `Typed query: ${query.trim()}`
+                  : undefined
+            }
+            onClose={() => setFeedbackOpen(false)}
+            open={feedbackOpen}
           />
         </motion.div>
       </div>

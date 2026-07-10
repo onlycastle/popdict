@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import * as path from 'path'
 import type { Logger } from '../../shared/logger'
-import { AUTH_PROTOCOL, describeAuthUrl, isAuthCallbackUrl } from '../../shared/authUrl'
+import { AUTH_PROTOCOL, describeAuthUrl, isAuthCallbackUrl, isQuizDeepLink } from '../../shared/authUrl'
 import type { AuthCallbackBroker } from './AuthCallbackBroker'
 import type { WindowManager } from '../windows/WindowManager'
 
@@ -34,12 +34,24 @@ export function installDeepLinkHandlers(deps: {
 
   app.on('open-url', (event, url) => {
     event.preventDefault()
+    if (isQuizDeepLink(url)) {
+      log.event('macOS open-url event: quiz deep link')
+      windows.open('review')
+      return
+    }
     log.event('macOS open-url event', describeAuthUrl(url))
     broker.receive(url)
   })
 
   if (hasSingleInstanceLock) {
     app.on('second-instance', (_event, argv) => {
+      const quizUrl = argv.find((arg) => isQuizDeepLink(arg))
+      if (quizUrl) {
+        log.event('second instance quiz deep link')
+        windows.open('review')
+        return
+      }
+
       const callbackUrl = argv.find((arg) => isAuthCallbackUrl(arg))
       if (callbackUrl) {
         log.event('second instance auth callback', describeAuthUrl(callbackUrl))

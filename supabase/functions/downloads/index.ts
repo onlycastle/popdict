@@ -16,6 +16,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   buildSlackDownloadPayload,
   buildTimeseries,
+  countByCountry,
   referrerHost,
   releasesToSnapshotRows,
   sumSnapshot,
@@ -126,11 +127,15 @@ async function handleStats(): Promise<Response> {
     if (e2) return json({ error: 'stats failed' }, 500)
     github = { ...sumSnapshot(snap ?? []), asOf }
   }
-  const { count, error: e3 } = await db
-    .from('download_events').select('*', { count: 'exact', head: true })
+  // One query serves both the lifetime total (exact even past the PostgREST
+  // row cap) and the per-country breakdown, which counts returned rows only.
+  // Move byCountry to a SQL group-by RPC if events ever near ~1000 rows.
+  const { data: events, count, error: e3 } = await db
+    .from('download_events').select('country', { count: 'exact' })
   if (e3) return json({ error: 'stats failed' }, 500)
   const website = count ?? 0
-  return json({ combined: github.total + website, github, website: { total: website } })
+  const byCountry = countByCountry(events ?? [])
+  return json({ combined: github.total + website, github, website: { total: website, byCountry } })
 }
 
 async function handleTimeseries(): Promise<Response> {
