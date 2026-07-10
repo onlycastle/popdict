@@ -29,7 +29,6 @@ signed, notarized, and auto-updating.
 
 - macOS 11 (Big Sur) or newer for the desktop app (Apple Silicon or Intel).
 - Node.js 20.19 or newer (matches `engines` in package.json) to build from source.
-- A Supabase project if you want auth, saved words, or idiom lookups.
 
 ## Quick Start
 
@@ -39,34 +38,9 @@ cp .env.example .env.local
 npm start
 ```
 
-The app can run without Supabase configured, but saved words and idioms are disabled
-until you provide Supabase settings.
-
-## Configuration
-
-| Variable | Purpose |
-| --- | --- |
-| `VITE_SUPABASE_URL` | Supabase project URL for auth, saved words, and Edge Functions. |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key safe to ship in the renderer bundle. |
-| `VITE_SUPABASE_AUTH_REDIRECT_URL` | OAuth callback URL. Defaults to `https://popdict.space/auth/callback`, which forwards into the desktop app. |
-
-## Supabase Setup
-
-1. Enable Google sign-in in Supabase Auth.
-2. Add `https://popdict.space/auth/callback` to Supabase Auth redirect URLs.
-   If you override `VITE_SUPABASE_AUTH_REDIRECT_URL`, add that exact URL instead.
-3. Apply migrations:
-   ```bash
-   supabase link --project-ref <project-ref>
-   supabase db push
-   ```
-4. Deploy the idiom Edge Function if you want phrase lookup:
-   ```bash
-   supabase functions deploy idioms
-   supabase secrets set STANDS4_UID=your_uid STANDS4_TOKEN=your_tokenid
-   ```
-
-More detail is in [IDIOM_SETUP.md](IDIOM_SETUP.md).
+Basic dictionary lookup works without cloud configuration. Optional
+cloud-backed features such as saved words and idiom lookup are disabled in
+local builds unless you provide your own service configuration in `.env.local`.
 
 ## Development
 
