@@ -4,6 +4,8 @@ import type { FeedbackPayload } from '../shared/feedback'
 type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
+  lookupCount: number
+  signInNudgeDismissedAt: number | null
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
