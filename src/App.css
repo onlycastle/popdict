@@ -146,3 +146,7 @@
 .review-nudge:hover { background: rgba(245,176,92,0.12); }
 .review-nudge__count { font-size: 0.82rem; font-weight: 500; }
 .review-nudge__cta { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; }
+.signin-nudge { padding: 0; cursor: default; }
+.signin-nudge__main { display: flex; flex: 1; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 0 9px 12px; background: none; border: none; color: inherit; cursor: pointer; }
+.signin-nudge__dismiss { padding: 9px 12px; background: none; border: none; color: rgba(245, 176, 92, 0.55); cursor: pointer; transition: color 0.2s ease; }
+.signin-nudge__dismiss:hover { color: #f5b05c; }
