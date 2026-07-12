@@ -9,12 +9,16 @@ export type StoredConfig = {
   hotkey: string
   onboardingDone: boolean
   history: string[]
+  lookupCount: number
+  signInNudgeDismissedAt: number | null
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
   hotkey: DEFAULT_HOTKEY,
   onboardingDone: false,
   history: [],
+  lookupCount: 0,
+  signInNudgeDismissedAt: null,
 }
 
 export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): string[] {
@@ -38,6 +42,12 @@ function withDefaults(raw: unknown): StoredConfig {
     hotkey: typeof r.hotkey === 'string' && r.hotkey ? r.hotkey : DEFAULT_HOTKEY,
     onboardingDone: typeof r.onboardingDone === 'boolean' ? r.onboardingDone : false,
     history: Array.isArray(r.history) ? r.history.filter((w) => typeof w === 'string') : [],
+    lookupCount:
+      typeof r.lookupCount === 'number' && Number.isFinite(r.lookupCount) && r.lookupCount >= 0
+        ? r.lookupCount
+        : 0,
+    signInNudgeDismissedAt:
+      typeof r.signInNudgeDismissedAt === 'number' ? r.signInNudgeDismissedAt : null,
   }
 }
 
@@ -62,6 +72,9 @@ export function createStore(filePath: string) {
     },
     addHistory(word: string): string[] {
       const cfg = read()
+      // A lookup is any non-blank word, repeats included — the history array
+      // (capped, deduped, user-clearable) can't serve as the lifetime counter.
+      if (word.trim()) cfg.lookupCount += 1
       cfg.history = addToHistory(cfg.history, word)
       write(cfg)
       return cfg.history

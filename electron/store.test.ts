@@ -84,4 +84,32 @@ describe('createStore', () => {
     fs.writeFileSync(file, '{ not json')
     expect(createStore(file).getConfig().hotkey).toBe(DEFAULT_HOTKEY)
   })
+  it('counts every non-blank lookup, including repeats', () => {
+    const store = createStore(file)
+    store.addHistory('apple')
+    store.addHistory('APPLE')
+    store.addHistory('banana')
+    expect(store.getConfig().lookupCount).toBe(3)
+  })
+  it('does not count blank lookups', () => {
+    const store = createStore(file)
+    store.addHistory('   ')
+    expect(store.getConfig().lookupCount).toBe(0)
+  })
+  it('keeps lookupCount when history is cleared', () => {
+    const store = createStore(file)
+    store.addHistory('apple')
+    store.clearHistory()
+    expect(store.getConfig().lookupCount).toBe(1)
+  })
+  it('defaults nudge fields on legacy config files', () => {
+    fs.writeFileSync(file, JSON.stringify({ hotkey: 'A', onboardingDone: true, history: ['a'] }))
+    const cfg = createStore(file).getConfig()
+    expect(cfg.lookupCount).toBe(0)
+    expect(cfg.signInNudgeDismissedAt).toBeNull()
+  })
+  it('persists signInNudgeDismissedAt via patch', () => {
+    createStore(file).patch({ signInNudgeDismissedAt: 1234 })
+    expect(createStore(file).getConfig().signInNudgeDismissedAt).toBe(1234)
+  })
 })
