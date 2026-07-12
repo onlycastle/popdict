@@ -26,6 +26,7 @@ export default function SearchView() {
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [signInNudgeLoginOpen, setSignInNudgeLoginOpen] = useState(false)
   const [signInNudge, setSignInNudge] = useState<{
     lookupCount: number
     dismissedAt: number | null
@@ -99,6 +100,7 @@ export default function SearchView() {
           return
         }
         if (loginPromptOpen) {
+          setSignInNudgeLoginOpen(false)
           setLoginPromptOpen(false)
           return
         }
@@ -125,6 +127,20 @@ export default function SearchView() {
     setSignInNudge((s) => ({ ...s, dismissedAt }))
     void window.electronAPI?.setSettings({ signInNudgeDismissedAt: dismissedAt })
   }, [])
+
+  const openSignInNudgeLogin = useCallback(() => {
+    setSignInNudgeLoginOpen(true)
+    setLoginPromptOpen(true)
+  }, [setLoginPromptOpen])
+
+  const closeLoginPrompt = useCallback(() => {
+    setSignInNudgeLoginOpen(false)
+    setLoginPromptOpen(false)
+  }, [setLoginPromptOpen])
+
+  useEffect(() => {
+    if (auth.user && signInNudgeLoginOpen) closeLoginPrompt()
+  }, [auth.user, closeLoginPrompt, signInNudgeLoginOpen])
 
   // Size the window to the glass panel's real rendered height. The panel is
   // content-sized (capped by its CSS max-height), independent of the window's
@@ -220,10 +236,10 @@ export default function SearchView() {
                   dismissedAt={signInNudge.dismissedAt}
                   lookupCount={signInNudge.lookupCount}
                   onDismiss={dismissSignInNudge}
-                  onSignIn={() => setLoginPromptOpen(true)}
+                  onSignIn={openSignInNudgeLogin}
                   signedIn={Boolean(auth.user)}
                 />
-                <ReviewChip />
+                {auth.user && <ReviewChip />}
                 <div className="recent-list">
                   <p className="dict-label mb-2">Recent</p>
                   {history.map((word) => (
@@ -269,10 +285,10 @@ export default function SearchView() {
             error={auth.error || saveError}
             loading={auth.loading || saving}
             message={auth.message}
-            onClose={() => setLoginPromptOpen(false)}
+            onClose={closeLoginPrompt}
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
-            word={pendingSaveWord || wordToSave}
+            word={signInNudgeLoginOpen ? '' : pendingSaveWord || wordToSave}
           />
 
           <QuizOptInPrompt
