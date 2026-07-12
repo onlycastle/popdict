@@ -6,6 +6,7 @@ import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import ReviewChip from '../components/ReviewChip'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
+import SignInChip from '../components/SignInChip'
 import WindowControls from '../components/WindowControls'
 import { useDictionarySearch } from '../hooks/useDictionarySearch'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
@@ -25,6 +26,18 @@ export default function SearchView() {
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [signInNudge, setSignInNudge] = useState<{
+    lookupCount: number
+    dismissedAt: number | null
+  }>({ lookupCount: 0, dismissedAt: null })
+
+  const refreshSignInNudge = useCallback(() => {
+    void window.electronAPI?.getSettings().then((s) => {
+      setSignInNudge({ lookupCount: s.lookupCount, dismissedAt: s.signInNudgeDismissedAt })
+    })
+  }, [])
+
+  useEffect(refreshSignInNudge, [refreshSignInNudge])
 
   const {
     wordToSave,
@@ -50,9 +63,12 @@ export default function SearchView() {
   // which runs ahead of the debounced search).
   useEffect(() => {
     if (response && !error && searchedTerm) {
-      window.electronAPI?.addHistory(searchedTerm).then(setHistory)
+      window.electronAPI?.addHistory(searchedTerm).then((list) => {
+        setHistory(list)
+        refreshSignInNudge()
+      })
     }
-  }, [response, error, searchedTerm])
+  }, [response, error, searchedTerm, refreshSignInNudge])
 
   // Focus search input when window is shown
   useEffect(() => {
@@ -102,6 +118,12 @@ export default function SearchView() {
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
+  }, [])
+
+  const dismissSignInNudge = useCallback(() => {
+    const dismissedAt = Date.now()
+    setSignInNudge((s) => ({ ...s, dismissedAt }))
+    void window.electronAPI?.setSettings({ signInNudgeDismissedAt: dismissedAt })
   }, [])
 
   // Size the window to the glass panel's real rendered height. The panel is
@@ -194,6 +216,13 @@ export default function SearchView() {
                 transition={{ duration: 0.15 }}
                 className="empty-state"
               >
+                <SignInChip
+                  dismissedAt={signInNudge.dismissedAt}
+                  lookupCount={signInNudge.lookupCount}
+                  onDismiss={dismissSignInNudge}
+                  onSignIn={() => setLoginPromptOpen(true)}
+                  signedIn={Boolean(auth.user)}
+                />
                 <ReviewChip />
                 <div className="recent-list">
                   <p className="dict-label mb-2">Recent</p>

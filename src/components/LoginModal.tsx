@@ -47,7 +47,9 @@ export default function LoginModal({
                   Sign in to save
                 </h2>
                 <p className="mt-1 text-sm text-white/70">
-                  Save “{word}” to your account.
+                  {word
+                    ? `Save “${word}” to your account.`
+                    : 'Save words, review them in-app, and get a weekly study digest.'}
                 </p>
               </div>
               <button
