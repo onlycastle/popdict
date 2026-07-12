@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
 
 function prettyHotkey(accelerator: string): string {
@@ -14,6 +15,7 @@ function prettyHotkey(accelerator: string): string {
 
 export default function OnboardingView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
+  const auth = useSupabaseAuth()
 
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
@@ -41,12 +43,29 @@ export default function OnboardingView() {
 
         <div>
           <h2 className="view-title text-base">
-            <span className="dict-sense-num mr-2">2</span>Save words to review
+            <span className="dict-sense-num mr-2">2</span>Make words stick
           </h2>
           <p className="mt-1.5 text-sm text-white/70">
-            Sign in with Google (optional — only needed to save) and tap Save on any
-            result. Review them anytime from the tray → Saved Words.
+            Sign in with Google to save words, review them in-app, and get a weekly
+            study digest.
           </p>
+          {auth.user ? (
+            <p className="mt-3 text-sm text-white/80">Signed in as {auth.user.email} ✓</p>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn-primary mt-3"
+                onClick={auth.signInWithGoogle}
+                disabled={auth.loading || !auth.configured}
+              >
+                {auth.loading ? 'Opening Google…' : 'Sign in with Google'}
+              </button>
+              <p className="mt-2 text-xs text-white/45">
+                {auth.error || auth.message || 'Lookups never need an account.'}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
