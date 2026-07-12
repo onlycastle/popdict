@@ -3,6 +3,12 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-07-12
+
+### Changed
+- Recent searches now start folded, keeping the lookup window compact until
+  history is needed.
+
 ## [1.4.0] - 2026-07-06
 
 ### Added
