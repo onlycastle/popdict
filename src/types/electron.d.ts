@@ -7,6 +7,10 @@ export type AppSettings = {
   signInNudgeDismissedAt: number | null
 }
 
+export type AppSettingsPatch = Partial<
+  Pick<AppSettings, 'launchAtLogin' | 'signInNudgeDismissedAt'>
+>
+
 export interface ElectronAPI {
   hideWindow: () => void
   setWindowHeight: (height: number) => void
@@ -15,7 +19,7 @@ export interface ElectronAPI {
   consumeAuthCallback: () => Promise<string | null>
   getAppVersion: () => Promise<string>
   getSettings: () => Promise<AppSettings>
-  setSettings: (partial: Partial<AppSettings>) => Promise<AppSettings>
+  setSettings: (partial: AppSettingsPatch) => Promise<AppSettings>
   getHistory: () => Promise<string[]>
   addHistory: (word: string) => Promise<string[]>
   removeHistory: (word: string) => Promise<string[]>

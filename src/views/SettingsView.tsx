@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
-import type { AppSettings } from '../types/electron'
+import type { AppSettings, AppSettingsPatch } from '../types/electron'
 import FeedbackDialog from '../components/FeedbackDialog'
 import HotkeyField from '../components/HotkeyField'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
@@ -63,7 +63,7 @@ export default function SettingsView() {
       </div>
     )
 
-  const update = (patch: Partial<AppSettings>) =>
+  const update = (patch: AppSettingsPatch) =>
     window.electronAPI.setSettings(patch).then(setSettings)
   const accountName =
     auth.user?.user_metadata?.full_name ??

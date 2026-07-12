@@ -8,6 +8,10 @@ type AppSettings = {
   signInNudgeDismissedAt: number | null
 }
 
+type AppSettingsPatch = Partial<
+  Pick<AppSettings, 'launchAtLogin' | 'signInNudgeDismissedAt'>
+>
+
 contextBridge.exposeInMainWorld('electronAPI', {
   hideWindow: () => ipcRenderer.send('hide-window'),
   setWindowHeight: (height: number) => ipcRenderer.send('set-window-height', height),
@@ -22,7 +26,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   consumeAuthCallback: () => ipcRenderer.invoke('consume-auth-callback'),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  setSettings: (partial: Partial<AppSettings>) => ipcRenderer.invoke('set-settings', partial),
+  setSettings: (partial: AppSettingsPatch) => ipcRenderer.invoke('set-settings', partial),
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (word: string) => ipcRenderer.invoke('add-history', word),
   removeHistory: (word: string) => ipcRenderer.invoke('remove-history', word),

@@ -11,6 +11,11 @@ import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 
 const log = createLogger('Auth')
 
+type SettingsPatch = {
+  launchAtLogin?: boolean
+  signInNudgeDismissedAt?: number | null
+}
+
 export interface IpcDeps {
   store: Store
   windows: WindowManager
@@ -46,12 +51,14 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
   router.handle('get-settings', () => settingsPayload(store))
   router.handle('get-app-version', () => app.getVersion())
 
-  router.handle('set-settings', (_e, partial) => {
-    const { launchAtLogin, hotkey: _ignoredHotkey, ...storable } = partial ?? {}
+  router.handle('set-settings', (_e, partial: SettingsPatch | undefined) => {
+    const { launchAtLogin, signInNudgeDismissedAt } = partial ?? {}
     if (typeof launchAtLogin === 'boolean') {
       app.setLoginItemSettings({ openAtLogin: launchAtLogin })
     }
-    store.patch(storable)
+    if (signInNudgeDismissedAt === null || typeof signInNudgeDismissedAt === 'number') {
+      store.patch({ signInNudgeDismissedAt })
+    }
     tray.rebuild()
     return settingsPayload(store)
   })
