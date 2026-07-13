@@ -85,3 +85,19 @@ describe('createStore', () => {
     expect(createStore(file).getConfig().hotkey).toBe(DEFAULT_HOTKEY)
   })
 })
+
+describe('signInNudgeDismissedAt', () => {
+  it('defaults to null on fresh and legacy config files', () => {
+    expect(createStore(file).getConfig().signInNudgeDismissedAt).toBeNull()
+    fs.writeFileSync(file, JSON.stringify({ hotkey: 'X', onboardingDone: true, history: ['a'] }))
+    expect(createStore(file).getConfig().signInNudgeDismissedAt).toBeNull()
+  })
+  it('persists a dismissal timestamp across instances', () => {
+    createStore(file).patch({ signInNudgeDismissedAt: 1752345600000 })
+    expect(createStore(file).getConfig().signInNudgeDismissedAt).toBe(1752345600000)
+  })
+  it('coerces an invalid stored value to null', () => {
+    fs.writeFileSync(file, JSON.stringify({ signInNudgeDismissedAt: 'yesterday' }))
+    expect(createStore(file).getConfig().signInNudgeDismissedAt).toBeNull()
+  })
+})

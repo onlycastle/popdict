@@ -3,6 +3,7 @@ import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 export type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
+  signInNudgeDismissedAt: number | null
 }
 
 export interface ElectronAPI {

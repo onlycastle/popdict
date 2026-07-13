@@ -26,6 +26,7 @@ function settingsPayload(store: Store) {
   return {
     hotkey: cfg.hotkey,
     launchAtLogin: app.getLoginItemSettings().openAtLogin,
+    signInNudgeDismissedAt: cfg.signInNudgeDismissedAt,
   }
 }
 

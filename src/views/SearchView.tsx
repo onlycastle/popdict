@@ -6,10 +6,13 @@ import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import ReviewChip from '../components/ReviewChip'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
+import SignInChip from '../components/SignInChip'
+import { shouldShowSignInNudge } from '../components/signInNudge'
 import WindowControls from '../components/WindowControls'
 import { useDictionarySearch } from '../hooks/useDictionarySearch'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import { useSaveWord } from '../hooks/useSaveWord'
+import type { AppSettings } from '../types/electron'
 import '../App.css'
 
 // The login modal is absolutely positioned, so it contributes no layout height
@@ -25,6 +28,7 @@ export default function SearchView() {
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [settings, setSettings] = useState<AppSettings | null>(null)
 
   const {
     wordToSave,
@@ -44,6 +48,13 @@ export default function SearchView() {
 
   useEffect(() => {
     window.electronAPI?.getHistory().then(setHistory)
+    window.electronAPI?.getSettings().then(setSettings)
+  }, [])
+
+  const dismissSignInNudge = useCallback(() => {
+    const dismissedAt = Date.now()
+    setSettings((s) => (s ? { ...s, signInNudgeDismissedAt: dismissedAt } : s))
+    void window.electronAPI?.setSettings({ signInNudgeDismissedAt: dismissedAt })
   }, [])
 
   // Record the term that produced the current result (not the live query,
@@ -139,8 +150,16 @@ export default function SearchView() {
 
   useEffect(applyWindowHeight, [applyWindowHeight, feedbackOpen, loginPromptOpen, quizPromptOpen])
 
+  const showSignInNudge = shouldShowSignInNudge({
+    configured: auth.configured,
+    authLoading: auth.loading,
+    signedIn: Boolean(auth.user),
+    dismissedAt: settings === null ? undefined : settings.signInNudgeDismissedAt,
+  })
   const hasRecent = !query && history.length > 0
-  const showContent = Boolean(query) || hasRecent
+  // The sign-in chip must show even before the first lookup (empty history).
+  const showEmptyState = hasRecent || (!query && showSignInNudge)
+  const showContent = Boolean(query) || showEmptyState
   const modalOpen = feedbackOpen || loginPromptOpen || quizPromptOpen
 
   return (
@@ -185,7 +204,7 @@ export default function SearchView() {
           </AnimatePresence>
 
           <AnimatePresence mode="wait">
-            {hasRecent && (
+            {showEmptyState && (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0 }}
@@ -194,45 +213,54 @@ export default function SearchView() {
                 transition={{ duration: 0.15 }}
                 className="empty-state"
               >
-                <ReviewChip />
-                <details className="recent-list">
-                  <summary className="dict-label cursor-pointer select-none">Recent</summary>
-                  <div className="mt-2">
-                    {history.map((word) => (
-                      <div
-                        key={word}
-                        className="group -mx-2 flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white/5"
-                      >
-                        <button
-                          onClick={() => setQuery(word)}
-                          className="min-w-0 flex-1 truncate text-left text-white/75 text-sm hover:text-white"
+                {showSignInNudge ? (
+                  <SignInChip
+                    onSignIn={() => setLoginPromptOpen(true)}
+                    onDismiss={dismissSignInNudge}
+                  />
+                ) : (
+                  <ReviewChip />
+                )}
+                {hasRecent && (
+                  <details className="recent-list">
+                    <summary className="dict-label cursor-pointer select-none">Recent</summary>
+                    <div className="mt-2">
+                      {history.map((word) => (
+                        <div
+                          key={word}
+                          className="group -mx-2 flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white/5"
                         >
-                          {word}
-                        </button>
-                        <button
-                          onClick={() => handleRemoveRecent(word)}
-                          aria-label={`Remove ${word} from recent`}
-                          title="Remove from recent"
-                          className="shrink-0 rounded p-1 text-white/35 opacity-0 transition hover:bg-white/10 hover:text-red-300 focus-visible:opacity-100 group-hover:opacity-100"
-                        >
-                          <svg
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                          <button
+                            onClick={() => setQuery(word)}
+                            className="min-w-0 flex-1 truncate text-left text-white/75 text-sm hover:text-white"
                           >
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </details>
+                            {word}
+                          </button>
+                          <button
+                            onClick={() => handleRemoveRecent(word)}
+                            aria-label={`Remove ${word} from recent`}
+                            title="Remove from recent"
+                            className="shrink-0 rounded p-1 text-white/35 opacity-0 transition hover:bg-white/10 hover:text-red-300 focus-visible:opacity-100 group-hover:opacity-100"
+                          >
+                            <svg
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
