@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { loginModalSubtitle } from './signInNudge'
 
 interface LoginModalProps {
   configured: boolean
@@ -46,9 +47,7 @@ export default function LoginModal({
                 <h2 id="login-modal-title" className="dict-headword text-xl">
                   Sign in to save
                 </h2>
-                <p className="mt-1 text-sm text-white/70">
-                  Save “{word}” to your account.
-                </p>
+                <p className="mt-1 text-sm text-white/70">{loginModalSubtitle(word)}</p>
               </div>
               <button
                 type="button"
