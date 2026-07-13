@@ -146,3 +146,9 @@
 .review-nudge:hover { background: rgba(245,176,92,0.12); }
 .review-nudge__count { font-size: 0.82rem; font-weight: 500; }
 .review-nudge__cta { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; }
+
+/* Sign-in variant of the nudge: div wrapper (two separate buttons inside). */
+.signin-nudge { gap: 10px; cursor: default; }
+.signin-nudge__main { display: flex; flex: 1; min-width: 0; align-items: center; justify-content: space-between; padding: 0; border: none; background: none; color: inherit; font: inherit; cursor: pointer; }
+.signin-nudge__dismiss { flex-shrink: 0; padding: 2px 5px; border: none; border-radius: 6px; background: none; color: rgb(var(--accent) / 0.45); cursor: pointer; transition: color 0.2s ease, background-color 0.2s ease; }
+.signin-nudge__dismiss:hover { color: rgb(var(--accent) / 0.9); background: rgb(var(--accent) / 0.1); }
