@@ -116,6 +116,11 @@ body {
   line-height: 1;
 }
 
+/* Accent-colored inline text (the amber highlighter, at full strength). */
+.text-accent {
+  color: rgb(var(--accent));
+}
+
 /* ---- Buttons --------------------------------------------------------------
    Primary = the amber "highlighter" fill (one affirmative action per screen);
    ghost = quiet secondary. Both opt out of the drag region for the popup. */
