@@ -9,12 +9,15 @@ export type StoredConfig = {
   hotkey: string
   onboardingDone: boolean
   history: string[]
+  /** Epoch ms when the user dismissed the search-view sign-in chip; null = never. */
+  signInNudgeDismissedAt: number | null
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
   hotkey: DEFAULT_HOTKEY,
   onboardingDone: false,
   history: [],
+  signInNudgeDismissedAt: null,
 }
 
 export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): string[] {
@@ -38,6 +41,8 @@ function withDefaults(raw: unknown): StoredConfig {
     hotkey: typeof r.hotkey === 'string' && r.hotkey ? r.hotkey : DEFAULT_HOTKEY,
     onboardingDone: typeof r.onboardingDone === 'boolean' ? r.onboardingDone : false,
     history: Array.isArray(r.history) ? r.history.filter((w) => typeof w === 'string') : [],
+    signInNudgeDismissedAt:
+      typeof r.signInNudgeDismissedAt === 'number' ? r.signInNudgeDismissedAt : null,
   }
 }
 
