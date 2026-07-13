@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { loginModalSubtitle, shouldShowSignInNudge } from './signInNudge'
+import { loginModalSubtitle, shouldShowSignInNudge, type SignInNudgeState } from './signInNudge'
 
-const visible = { configured: true, authLoading: false, signedIn: false, dismissedAt: null }
+const visible: SignInNudgeState = {
+  configured: true,
+  authLoading: false,
+  signedIn: false,
+  dismissedAt: null,
+}
 
 describe('shouldShowSignInNudge', () => {
   it('shows for a settled, signed-out, never-dismissed user', () => {
