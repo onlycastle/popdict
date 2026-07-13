@@ -3,6 +3,18 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-07-13
+
+### Added
+- Onboarding now offers a real "Continue with Google" sign-in button, so
+  saving words and weekly reviews are one click away from the welcome screen.
+- Signed-out users see a dismissible "Save words · weekly reviews" chip in
+  the lookup window; dismissing it hides it permanently.
+
+### Changed
+- Onboarding copy leads with what an account unlocks (save, in-app review,
+  weekly study digest) and reassures that lookups never need an account.
+
 ## [1.5.0] - 2026-07-12
 
 ### Changed

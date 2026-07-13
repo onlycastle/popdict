@@ -1,7 +1,7 @@
 {
   "name": "popdict",
   "productName": "PopDict",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "PopDict desktop dictionary app",
   "main": ".vite/build/main.js",
   "homepage": "https://github.com/onlycastle/popdict#readme",
