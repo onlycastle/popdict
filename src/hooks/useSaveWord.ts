@@ -6,7 +6,7 @@ import type { SearchResponse } from '../types/dictionary'
 
 /** The word a Save action targets: the canonical headword, else the raw query. */
 export function getWordToSave(response: SearchResponse | null, fallback: string): string {
-  return (response?.dictionaryResults?.[0]?.word ?? response?.idiomResult?.term ?? fallback).trim()
+  return (response?.dictionaryResults?.[0]?.word ?? fallback).trim()
 }
 
 /** Prompt exactly once, at the 5th save, unless the user already has a preference row. */

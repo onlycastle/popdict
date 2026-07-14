@@ -4,6 +4,7 @@ import type { AppSettings } from '../types/electron'
 import FeedbackDialog from '../components/FeedbackDialog'
 import HotkeyField from '../components/HotkeyField'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
+import { TARGET_LANGUAGE_OPTIONS } from '../../shared/language'
 
 export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -112,6 +113,27 @@ export default function SettingsView() {
               {auth.error || auth.message}
             </p>
           )}
+        </section>
+
+        <section className="space-y-2 border-b border-white/10 pb-5">
+          <h2 className="dict-label mb-1.5">Translation language</h2>
+          <select
+            className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80"
+            value={settings.translationLanguage ?? ''}
+            onChange={(event) => update({
+              translationLanguage: event.target.value
+                ? event.target.value as AppSettings['translationLanguage']
+                : null,
+            })}
+          >
+            <option value="">English definitions only</option>
+            {TARGET_LANGUAGE_OPTIONS.map((language) => (
+              <option key={language.code} value={language.code}>{language.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-white/45">
+            Signed-in users see up to three Wiktionary equivalents. The app interface stays in English.
+          </p>
         </section>
 
         {auth.user && quizEnabled !== null && (

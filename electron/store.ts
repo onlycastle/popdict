@@ -1,6 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { DEFAULT_HOTKEY } from '../shared/hotkey'
+import { isTargetLanguage, type TargetLanguage } from '../shared/language'
 
 export { DEFAULT_HOTKEY }
 const HISTORY_CAP = 12
@@ -11,6 +12,8 @@ export type StoredConfig = {
   history: string[]
   /** Epoch ms when the user dismissed the search-view sign-in chip; null = never. */
   signInNudgeDismissedAt: number | null
+  /** Null keeps the original English-only dictionary experience. */
+  translationLanguage: TargetLanguage | null
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
@@ -18,6 +21,7 @@ const DEFAULT_CONFIG: StoredConfig = {
   onboardingDone: false,
   history: [],
   signInNudgeDismissedAt: null,
+  translationLanguage: null,
 }
 
 export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): string[] {
@@ -43,6 +47,7 @@ function withDefaults(raw: unknown): StoredConfig {
     history: Array.isArray(r.history) ? r.history.filter((w) => typeof w === 'string') : [],
     signInNudgeDismissedAt:
       typeof r.signInNudgeDismissedAt === 'number' ? r.signInNudgeDismissedAt : null,
+    translationLanguage: isTargetLanguage(r.translationLanguage) ? r.translationLanguage : null,
   }
 }
 
@@ -61,7 +66,7 @@ export function createStore(filePath: string) {
   return {
     getConfig: read,
     patch(partial: Partial<Omit<StoredConfig, 'history'>>): StoredConfig {
-      const next = { ...read(), ...partial }
+      const next = withDefaults({ ...read(), ...partial })
       write(next)
       return next
     },

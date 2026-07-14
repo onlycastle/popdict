@@ -1,6 +1,6 @@
 ---
 title: Desktop runtime (Electron)
-last-verified: 2026-07-03
+last-verified: 2026-07-14
 ---
 
 # Desktop runtime
@@ -55,6 +55,12 @@ registers the scheme,
 brokers the callback to the renderer. URL building lives in
 [shared/authUrl.ts](../../shared/authUrl.ts); the site half is the
 `site/app/auth/` handoff page.
+
+The settings window persists `translationLanguage` locally; `null` means
+English-only, while the five target codes are validated by
+[shared/language.ts](../../shared/language.ts). Search-window focus refreshes
+settings through the preload bridge so language changes apply without an app
+restart.
 
 ## Security invariants
 

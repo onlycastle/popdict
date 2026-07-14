@@ -7,12 +7,21 @@ import ReviewChip from '../components/ReviewChip'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import SignInChip from '../components/SignInChip'
+import TranslationCard from '../components/TranslationCard'
+import { translationPanelState } from '../components/translationPresentation'
 import { shouldShowSignInNudge } from '../components/signInNudge'
 import WindowControls from '../components/WindowControls'
 import { useDictionarySearch } from '../hooks/useDictionarySearch'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import { useSaveWord } from '../hooks/useSaveWord'
+import { useTranslations } from '../hooks/useTranslations'
 import type { AppSettings } from '../types/electron'
+import { normalizeEnglishWord } from '../../shared/language'
+import {
+  shouldCloseTranslationLoginPrompt,
+  type LoginPromptPurpose,
+} from './loginPrompt'
+import { handleSearchWindowFocus } from './searchFocus'
 import '../App.css'
 
 // The login modal is absolutely positioned, so it contributes no layout height
@@ -28,7 +37,25 @@ export default function SearchView() {
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [loginPromptPurpose, setLoginPromptPurpose] = useState<LoginPromptPurpose>('save')
   const [settings, setSettings] = useState<AppSettings | null>(null)
+  const translationLanguage = settings?.translationLanguage ?? null
+  const canonicalWord = normalizeEnglishWord(response?.dictionaryResults?.[0]?.word ?? '')
+  const translationEligible = Boolean(
+    response && !loading && !error && canonicalWord && translationLanguage
+  )
+  const translations = useTranslations({
+    word: canonicalWord ?? '',
+    language: translationLanguage,
+    enabled: translationEligible && Boolean(auth.user),
+  })
+  const translationPanel = translationPanelState({
+    language: translationLanguage,
+    canonicalWord,
+    authLoading: auth.loading,
+    signedIn: Boolean(auth.user),
+    lookupStatus: translations.status,
+  })
 
   const {
     wordToSave,
@@ -46,10 +73,24 @@ export default function SearchView() {
     dismissQuizPrompt,
   } = useSaveWord({ user: auth.user, response, searchedTerm, query })
 
+  const refreshSettings = useCallback(() => {
+    void window.electronAPI?.getSettings().then(setSettings)
+  }, [])
+
   useEffect(() => {
     window.electronAPI?.getHistory().then(setHistory)
-    window.electronAPI?.getSettings().then(setSettings)
-  }, [])
+    refreshSettings()
+  }, [refreshSettings])
+
+  useEffect(() => {
+    if (shouldCloseTranslationLoginPrompt({
+      open: loginPromptOpen,
+      purpose: loginPromptPurpose,
+      signedIn: Boolean(auth.user),
+    })) {
+      setLoginPromptOpen(false)
+    }
+  }, [auth.user, loginPromptOpen, loginPromptPurpose, setLoginPromptOpen])
 
   const dismissSignInNudge = useCallback(() => {
     const dismissedAt = Date.now()
@@ -69,10 +110,10 @@ export default function SearchView() {
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.onFocusSearch(() => {
-        searchInputRef.current?.focus()
+        handleSearchWindowFocus(refreshSettings, () => searchInputRef.current?.focus())
       })
     }
-  }, [])
+  }, [refreshSettings])
 
   // Seed the search box when another window asks to look up a word
   // (e.g. clicking an entry in the Saved Words window).
@@ -192,7 +233,10 @@ export default function SearchView() {
                 loading={loading}
                 error={error}
                 query={query}
-                onSave={response && !loading && !error ? handleSaveClick : undefined}
+                onSave={response && !loading && !error ? () => {
+                  setLoginPromptPurpose('save')
+                  void handleSaveClick()
+                } : undefined}
                 saveDisabled={saving || alreadySaved}
                 saveFeedback={
                   saveError || (savedWord.toLowerCase() === wordToSave.toLowerCase() ? 'Saved' : '')
@@ -202,6 +246,28 @@ export default function SearchView() {
               />
             )}
           </AnimatePresence>
+
+          {translationPanel !== 'hidden' && translationLanguage && canonicalWord && (
+            translationPanel === 'gated' ? (
+              <TranslationCard
+                language={translationLanguage}
+                word={canonicalWord}
+                state="gated"
+                onSignIn={() => {
+                  setLoginPromptPurpose('translate')
+                  setLoginPromptOpen(true)
+                }}
+              />
+            ) : translations.status !== 'empty' && translations.status !== 'idle' ? (
+              <TranslationCard
+                language={translationLanguage}
+                word={canonicalWord}
+                state={translationPanel}
+                translations={translations.translations}
+                onRetry={translations.retry}
+              />
+            ) : null
+          )}
 
           <AnimatePresence mode="wait">
             {showEmptyState && (
@@ -215,7 +281,10 @@ export default function SearchView() {
               >
                 {showSignInNudge ? (
                   <SignInChip
-                    onSignIn={() => setLoginPromptOpen(true)}
+                    onSignIn={() => {
+                      setLoginPromptPurpose('save')
+                      setLoginPromptOpen(true)
+                    }}
                     onDismiss={dismissSignInNudge}
                   />
                 ) : (
@@ -273,7 +342,11 @@ export default function SearchView() {
             onClose={() => setLoginPromptOpen(false)}
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
-            word={pendingSaveWord || wordToSave}
+            purpose={loginPromptPurpose}
+            translationLanguage={translationLanguage}
+            word={loginPromptPurpose === 'translate'
+              ? canonicalWord ?? query.trim()
+              : pendingSaveWord || wordToSave}
           />
 
           <QuizOptInPrompt

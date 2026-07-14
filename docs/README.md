@@ -11,7 +11,8 @@ Start with the top-level [README.md](../README.md) (install, run, configure) and
   packaged `.dmg` build before it ships.
 - [download-tracking-runbook.md](download-tracking-runbook.md) — how the
   private download metric is wired end to end.
-- [../IDIOM_SETUP.md](../IDIOM_SETUP.md) — deploying the idiom Edge Function.
+- [../data/translations/README.md](../data/translations/README.md) — dataset
+  sources, licensing, filtering, and reproducible generation.
 
 ### Architecture at a glance
 
@@ -22,11 +23,11 @@ src/         React renderer — the lookup UI, hooks, and services that call
              the dictionary sources and Supabase.
 shared/      Types and pure helpers shared by main and renderer (auth URL
              parsing, feedback URLs) — unit-tested in isolation.
-supabase/    Postgres migrations (RLS-protected user tables) and Edge
-             Functions (idioms proxy, downloads metric, weekly quiz digest).
+supabase/    Postgres migrations (RLS-protected user/translation tables) and
+             Edge Functions (compatibility, downloads metric, quiz digest).
 site/        Next.js marketing + legal site (App Router) and the download
              redirect that serves the latest GitHub release.
-scripts/     Build, notarization, and the deterministic quality-gate harness.
+scripts/     Build, dataset generation, notarization, and quality gates.
 ```
 
 ## For the AI/automation harness

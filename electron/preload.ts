@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { FeedbackPayload } from '../shared/feedback'
+import type { TargetLanguage } from '../shared/language'
 
 type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
+  translationLanguage: TargetLanguage | null
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {

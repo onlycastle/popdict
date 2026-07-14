@@ -1,11 +1,25 @@
-import { DictionaryResult } from '../types/dictionary'
+import type { DictionaryLicense, DictionaryResult } from '../types/dictionary'
+
+export interface AttributedAudio {
+  url: string
+  sourceUrl: string
+  license: DictionaryLicense
+}
 
 /**
- * Returns the first usable audio URL from a dictionary result's phonetics,
+ * Returns the first recorded pronunciation with complete attribution metadata,
  * or undefined when none is available (the caller falls back to TTS).
  */
-export function getAudioUrl(result?: DictionaryResult | null): string | undefined {
-  return result?.phonetics?.find((p) => p.audio)?.audio || undefined
+export function getAttributedAudio(result?: DictionaryResult | null): AttributedAudio | undefined {
+  const phonetic = result?.phonetics?.find(
+    (p) => p.audio && p.sourceUrl && p.license?.name && p.license.url
+  )
+  if (!phonetic?.audio || !phonetic.sourceUrl || !phonetic.license) return undefined
+  return {
+    url: phonetic.audio,
+    sourceUrl: phonetic.sourceUrl,
+    license: phonetic.license,
+  }
 }
 
 /** Speak a word with the browser's built-in TTS. No-op if unsupported. */

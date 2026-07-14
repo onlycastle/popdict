@@ -1,9 +1,11 @@
 import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
+import type { TargetLanguage } from '../../shared/language'
 
 export type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
   signInNudgeDismissedAt: number | null
+  translationLanguage: TargetLanguage | null
 }
 
 export interface ElectronAPI {

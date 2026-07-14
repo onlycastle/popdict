@@ -1,7 +1,7 @@
 {
   "name": "popdict",
   "productName": "PopDict",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "PopDict desktop dictionary app",
   "main": ".vite/build/main.js",
   "homepage": "https://github.com/onlycastle/popdict#readme",
@@ -28,6 +28,7 @@
     "test:watch": "vitest",
     "harness:validate": "node scripts/harness/validate.mjs",
     "harness:test": "vitest run scripts/harness",
+    "data:translations": "node scripts/translations/build-dataset.mjs",
     "preview:digest": "deno run --allow-env --allow-read --allow-write --allow-net --allow-run scripts/preview-digest.ts",
     "test:ci": "tsc --noEmit && npm run lint && npm test && npm run harness:validate && cd site && npx tsc --noEmit && npx vitest run"
   },
@@ -38,13 +39,13 @@
     "menu-bar",
     "english-learning",
     "vocabulary",
-    "idioms",
+    "translation",
     "supabase"
   ],
   "author": "PopDict contributors",
   "license": "MIT",
   "engines": {
-    "node": ">=20.19.0"
+    "node": "^20.19.0 || ^22.12.0 || ^24.0.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.2",

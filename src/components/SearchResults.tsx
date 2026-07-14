@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { SearchResponse } from '../types/dictionary'
-import { getAudioUrl, pronounce } from '../utils/pronounce'
+import { getAttributedAudio, pronounce } from '../utils/pronounce'
 
 interface SearchResultsProps {
   response: SearchResponse | null
@@ -61,7 +61,7 @@ const SearchResults = ({
     )
   }
 
-  if (isNotFound || !response || (!response.dictionaryResults && !response.idiomResult)) {
+  if (isNotFound || !response || !response.dictionaryResults) {
     return (
       <motion.div
         initial={{ opacity: 0, y: -6 }}
@@ -78,9 +78,9 @@ const SearchResults = ({
     )
   }
 
-  const { dictionaryResults, idiomResult } = response
+  const { dictionaryResults } = response
   const firstResult = dictionaryResults?.[0]
-  const audioUrl = getAudioUrl(firstResult)
+  const attributedAudio = getAttributedAudio(firstResult)
 
   return (
     <motion.div
@@ -90,20 +90,6 @@ const SearchResults = ({
       transition={{ duration: 0.18, ease: 'easeOut' }}
       className="results-container"
     >
-      {/* Idiom section - shown first if available */}
-      {idiomResult && (
-        <div className="idiom-card mb-5 p-4 border rounded-xl">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="idiom-badge inline-block px-2 py-1 rounded-md">idiom</span>
-          </div>
-          <h3 className="dict-headword text-xl mb-2 leading-tight">{idiomResult.term}</h3>
-          <p className="text-white/90 text-sm leading-relaxed mb-2">{idiomResult.explanation}</p>
-          {idiomResult.example && (
-            <p className="dict-example text-sm leading-relaxed mt-3">{idiomResult.example}</p>
-          )}
-        </div>
-      )}
-
       {/* Dictionary entry */}
       {firstResult && (
         <>
@@ -117,7 +103,7 @@ const SearchResults = ({
                 {firstResult.phonetic && <p className="dict-ipa">{firstResult.phonetic}</p>}
                 <button
                   type="button"
-                  onClick={() => pronounce(firstResult.word, audioUrl)}
+                  onClick={() => pronounce(firstResult.word, attributedAudio?.url)}
                   aria-label={`Play pronunciation of ${firstResult.word}`}
                   title="Play pronunciation"
                   className="shrink-0 rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
@@ -188,6 +174,46 @@ const SearchResults = ({
               </div>
             ))}
           </div>
+
+          {(firstResult.sourceUrls?.length || firstResult.license || attributedAudio) && (
+            <p className="dictionary-attribution">
+              {firstResult.sourceUrls?.slice(0, 1).map((url) => (
+                <a key={url} href={url} target="_blank" rel="noreferrer noopener">
+                  Entry source
+                </a>
+              ))}
+              {firstResult.sourceUrls?.length && firstResult.license ? ' · ' : ''}
+              {firstResult.license && (
+                <a
+                  href={firstResult.license.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  {firstResult.license.name}
+                </a>
+              )}
+              {(firstResult.sourceUrls?.length || firstResult.license) && attributedAudio ? ' · ' : ''}
+              {attributedAudio && (
+                <>
+                  <a
+                    href={attributedAudio.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Audio source
+                  </a>
+                  {' · '}
+                  <a
+                    href={attributedAudio.license.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Audio {attributedAudio.license.name}
+                  </a>
+                </>
+              )}
+            </p>
+          )}
         </>
       )}
     </motion.div>

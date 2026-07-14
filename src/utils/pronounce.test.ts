@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getAudioUrl, pronounce } from './pronounce'
+import { getAttributedAudio, pronounce } from './pronounce'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -7,20 +7,42 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('getAudioUrl', () => {
-  it('returns the first non-empty audio url', () => {
-    const url = getAudioUrl({
+describe('getAttributedAudio', () => {
+  it('returns the first audio clip with its own source and license', () => {
+    const audio = getAttributedAudio({
       word: 'kick',
-      phonetics: [{ audio: '' }, { audio: 'https://cdn/kick.mp3' }],
+      phonetics: [
+        { audio: '' },
+        {
+          audio: 'https://cdn/kick.mp3',
+          sourceUrl: 'https://commons.wikimedia.org/wiki/File:kick.ogg',
+          license: { name: 'CC BY-SA 3.0', url: 'https://creativecommons.org/licenses/by-sa/3.0/' },
+        },
+      ],
       meanings: [],
     })
-    expect(url).toBe('https://cdn/kick.mp3')
+    expect(audio).toEqual({
+      url: 'https://cdn/kick.mp3',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:kick.ogg',
+      license: {
+        name: 'CC BY-SA 3.0',
+        url: 'https://creativecommons.org/licenses/by-sa/3.0/',
+      },
+    })
   })
 
   it('returns undefined when there is no audio', () => {
-    expect(getAudioUrl({ word: 'kick', phonetics: [{ text: '/kɪk/' }], meanings: [] })).toBeUndefined()
-    expect(getAudioUrl(null)).toBeUndefined()
-    expect(getAudioUrl(undefined)).toBeUndefined()
+    expect(getAttributedAudio({ word: 'kick', phonetics: [{ text: '/kɪk/' }], meanings: [] })).toBeUndefined()
+    expect(getAttributedAudio(null)).toBeUndefined()
+    expect(getAttributedAudio(undefined)).toBeUndefined()
+  })
+
+  it('rejects recorded audio without source and license attribution metadata', () => {
+    expect(getAttributedAudio({
+      word: 'kick',
+      phonetics: [{ audio: 'https://cdn/kick.mp3' }],
+      meanings: [],
+    })).toBeUndefined()
   })
 })
 

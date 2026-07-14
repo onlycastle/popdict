@@ -27,6 +27,7 @@ function settingsPayload(store: Store) {
     hotkey: cfg.hotkey,
     launchAtLogin: app.getLoginItemSettings().openAtLogin,
     signInNudgeDismissedAt: cfg.signInNudgeDismissedAt,
+    translationLanguage: cfg.translationLanguage,
   }
 }
 

@@ -85,8 +85,8 @@ export default function Image() {
               lineHeight: 1.3,
             }}
           >
-            A macOS dictionary one keystroke away — look up any word or idiom,
-            hear it, and save it to review.
+            A macOS dictionary one keystroke away — look up an English word,
+            hear it, translate it, and save it to review.
           </div>
         </div>
 

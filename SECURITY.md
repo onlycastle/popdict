@@ -17,6 +17,6 @@ Include:
 
 ## Secrets
 
-PopDict should never ship private keys, Supabase service role keys, STANDS4 tokens,
-Apple signing material, notary credentials, or personal `.env` files. If you believe
+PopDict should never ship private keys, Supabase service role keys, upstream service
+tokens, Apple signing material, notary credentials, or personal `.env` files. If you believe
 a secret was committed, report it privately so it can be revoked and rotated.

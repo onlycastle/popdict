@@ -3,6 +3,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['{src,electron,shared}/**/*.test.ts', 'scripts/harness/**/*.test.mjs'],
+    include: [
+      '{src,electron,shared}/**/*.test.{ts,tsx}',
+      'scripts/{harness,translations}/**/*.test.mjs',
+    ],
   },
 })

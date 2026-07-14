@@ -9,7 +9,7 @@ export default function Privacy() {
   return (
     <main className="container prose">
       <h1>Privacy Policy</h1>
-      <p className="updated">Last updated: July 5, 2026</p>
+      <p className="updated">Last updated: July 14, 2026</p>
 
       <p>
         PopDict is a macOS dictionary app. This policy explains what data it handles and
@@ -18,13 +18,14 @@ export default function Privacy() {
 
       <h2>What stays on your device</h2>
       <ul>
-        <li>Your recent search history and app settings (hotkey, preferences).</li>
+        <li>Your recent search history and app settings (hotkey, translation language, preferences).</li>
       </ul>
       <p>This data lives only on your Mac and is never sent to us.</p>
 
       <h2>What we store (only if you sign in)</h2>
       <p>
-        Signing in is optional and only needed to save words. If you sign in with Google,
+        Signing in is optional and only needed to save words, view translations, or use
+        account-based review features. If you sign in with Google,
         our authentication provider (Supabase) stores:
       </p>
       <ul>
@@ -34,22 +35,22 @@ export default function Privacy() {
 
       <h2>Quiz emails (optional)</h2>
       <p>
-        If you turn on quiz emails, we use your saved words to generate a periodic
-        vocabulary quiz and send it to your account email through Resend, our email
-        delivery provider. The study cards and exercises in each email — definitions,
-        example sentences, and quiz questions — are machine-generated using
-        Google’s Gemini API; the saved word is sent to Google to generate that
-        content. Your answers are stored to schedule which words repeat. Every quiz
+        If you turn on quiz emails, we use your saved words and previously prepared
+        study materials stored in Supabase to assemble a periodic vocabulary quiz and
+        send it to your account email through Resend, our email delivery provider.
+        Your answers are stored to schedule which words repeat. Every quiz
         email contains an unsubscribe link that takes effect immediately; you can
         also toggle quiz emails off in the app’s settings.
       </p>
 
       <h2>Dictionary lookups</h2>
       <p>
-        When you search, the word is sent to the Free Dictionary API
-        (dictionaryapi.dev) to fetch definitions. For multi-word idioms, the phrase is
-        sent to our server-side function, which queries the STANDS4 phrases service. These
-        lookups are not tied to your identity.
+        When you search, the text is sent to the Free Dictionary API
+        (dictionaryapi.dev) to fetch English definitions. This lookup is not tied to
+        your PopDict identity. If you are signed in and select a translation language,
+        PopDict queries its read-only Wiktionary-derived translation table in Supabase
+        for the successfully resolved English word. PopDict does not send the word to a
+        live translation vendor.
       </p>
 
       <h2>Analytics</h2>
@@ -67,8 +68,8 @@ export default function Privacy() {
       <h2>Sharing</h2>
       <p>
         We do not sell your data. Data is processed only by the service providers named
-        above (Supabase, the dictionary providers, and our website host) to operate the
-        app.
+        above (Supabase, Free Dictionary, Resend, GitHub, and our website host) to
+        operate the app and website.
       </p>
 
       <h2>Contact</h2>

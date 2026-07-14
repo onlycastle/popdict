@@ -440,21 +440,89 @@ input[type='checkbox'] {
   height: 16px;
 }
 
-/* Idiom result: the one place colour earns its keep. Warm amber on dark, tying
-   the "highlight a phrase → see its meaning" gesture to the signature accent. */
-.idiom-card {
-  background: rgb(var(--accent) / 0.1);
-  border-color: rgb(var(--accent) / 0.32);
+.translation-card {
+  margin: 0 1rem 0.8rem;
+  padding: 0.8rem 1rem;
+  border-top: 1px solid rgb(var(--accent) / 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(var(--accent) / 0.045);
 }
 
-.idiom-badge {
-  font-family: var(--font-mono);
+.translation-card-heading {
+  margin-bottom: 0.45rem;
+}
+
+.translation-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.translation-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.translation-text {
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+}
+
+.translation-sense {
+  color: rgba(255, 255, 255, 0.48);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+}
+
+.translation-card-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.75rem;
+}
+
+.translation-skeleton {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.translation-skeleton span {
+  display: block;
+  width: 8rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.translation-skeleton span:last-child {
+  width: 11rem;
+}
+
+.translation-attribution,
+.dictionary-attribution {
+  margin-top: 0.65rem;
+  color: rgba(255, 255, 255, 0.36);
   font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgb(var(--accent) / 0.95);
-  background: rgb(var(--accent) / 0.2);
+  line-height: 1.45;
+}
+
+.translation-attribution a,
+.dictionary-attribution a {
+  color: rgba(255, 214, 153, 0.58);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dictionary-attribution {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Custom scrollbar */

@@ -128,17 +128,40 @@ export default function Licenses() {
       </p>
       <pre>{OFL_TEXT}</pre>
 
-      <h2>Dictionary and phrase data</h2>
+      <h2>English definitions</h2>
       <p>
         Word definitions come from the{' '}
         <a href="https://dictionaryapi.dev">Free Dictionary API</a>, whose data is
         derived from <a href="https://www.wiktionary.org">Wiktionary</a> and
         licensed under{' '}
         <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA</a>.
-        Idiom and phrase lookups are provided by the{' '}
-        <a href="https://www.abbreviations.com/api/">STANDS4 API</a> and used
-        under its terms of service, with attribution to STANDS4 as the data
-        source.
+        PopDict preserves and displays the per-entry source and license metadata
+        returned by the API.
+      </p>
+
+      <h2>Multilingual translation dataset — CC BY-SA 4.0</h2>
+      <p>
+        Korean, Japanese, Simplified Chinese, Spanish, and Brazilian Portuguese
+        equivalents are derived from English Wiktionary through the{' '}
+        <a href="https://kaikki.org/dictionary/rawdata.html">Kaikki machine-readable dictionary</a>.
+        The learner headword selection comes from{' '}
+        <a href="https://www.newgeneralservicelist.com/ngsl-graded-reader">NGSL-GR 1.0</a>.
+        PopDict’s generated translation dataset and normalized 3,000-headword list
+        are distributed under{' '}
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>,
+        separately from the MIT-licensed application code.
+      </p>
+      <p>
+        The pinned Kaikki snapshot was extracted July 9, 2026 from the July 6,
+        2026 English Wiktionary dump. PopDict normalized English headwords,
+        selected five target languages, removed archaic, obsolete, dated, rare,
+        and nonstandard forms, applied regional/script filters, deduplicated
+        equivalents, and ranked at most three per word and language. Checksums
+        and exact inputs are recorded in the repository’s{' '}
+        <a href="https://github.com/onlycastle/popdict/blob/main/data/translations/manifest.json">
+          translation dataset manifest
+        </a>{' '}
+        and bundled notices.
       </p>
 
       <h2>Full notices</h2>

@@ -10,27 +10,29 @@ export interface Meaning {
   definitions: Definition[]
 }
 
+export interface DictionaryLicense {
+  name: string
+  url: string
+}
+
 export interface DictionaryResult {
   word: string
   phonetic?: string
   phonetics?: Array<{
     text?: string
     audio?: string
+    sourceUrl?: string
+    license?: DictionaryLicense
   }>
   origin?: string
   meanings: Meaning[]
+  license?: DictionaryLicense
+  sourceUrls?: string[]
 }
 
-export interface IdiomResult {
-  term: string
-  explanation: string
-  example?: string
-}
-
-export type SearchSource = 'free-dictionary' | 'phrases-api' | 'both'
+export type SearchSource = 'free-dictionary'
 
 export interface SearchResponse {
   dictionaryResults: DictionaryResult[] | null
-  idiomResult: IdiomResult | null
   source: SearchSource
 }

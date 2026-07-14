@@ -3,6 +3,28 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-07-14
+
+### Added
+- Free signed-in translations for Korean, Japanese, Simplified Chinese,
+  Spanish, and Brazilian Portuguese, with up to three ranked equivalents and
+  short English sense labels.
+- A deterministic CC BY-SA 4.0 translation dataset built from a pinned Kaikki /
+  English Wiktionary snapshot and 3,000 normalized NGSL-GR learner headwords.
+- Source and license attribution for English definitions, pronunciation audio,
+  and multilingual translation cards.
+
+### Changed
+- Translation language changes apply when the search window regains focus.
+- Recorded pronunciation is used only when its source and license metadata are
+  available; system text-to-speech remains the fallback.
+- Multi-word searches now follow the normal Free Dictionary no-results path.
+
+### Removed
+- STANDS4 upstream access and obsolete idiom usage counters.
+- Unshipped billing, Stripe subscription, quota, Gemini generation, and paid
+  gloss code paths.
+
 ## [1.6.0] - 2026-07-13
 
 ### Added

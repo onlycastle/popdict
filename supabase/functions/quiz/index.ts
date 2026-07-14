@@ -3,8 +3,7 @@
 //   send        daily Vercel Cron (via site /api/cron/quiz) posts {action:'send'}
 //               with x-quiz-token; users whose weekly digest is due get an
 //               email of study cards + Leitner-laddered exercises built from
-//               their saved words, using a per-word cached (or freshly
-//               generated) study material.
+//               their saved words and the existing per-word material cache.
 //   answer      email links land on popdict.space/quiz/answer, which calls
 //               GET ?action=answer&q=<question-uuid>&c=<choice>. The uuid is the
 //               capability token. Records the answer, updates Leitner state
@@ -15,7 +14,7 @@
 //   unsubscribe GET ?action=unsubscribe&u=<token> — flips enabled off.
 //
 // Deploy:  supabase functions deploy quiz --no-verify-jwt
-// Secrets: supabase secrets set RESEND_API_KEY=... QUIZ_SEND_TOKEN=... GEMINI_API_KEY=...
+// Secrets: supabase secrets set RESEND_API_KEY=... QUIZ_SEND_TOKEN=...
 // Optional: QUIZ_LINK_BASE (default https://popdict.space),
 //           QUIZ_FROM (default PopDict <quiz@mail.popdict.space>)
 
@@ -36,12 +35,7 @@ import {
   selectDueWords,
   type SessionCard,
 } from './lib.ts'
-import {
-  generateStudyMaterial,
-  STUDY_MODEL,
-  validateStudyMaterial,
-  type StudyMaterial,
-} from './materials.ts'
+import { validateStudyMaterial, type StudyMaterial } from './materials.ts'
 
 declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void
@@ -89,30 +83,8 @@ async function sendEmail(to: string, subject: string, html: string, unsubscribeU
 type PendingEntry = { question: Question; material: StudyMaterial; box: number }
 // Post-insert entry: question carries the quiz_questions row id (capability token).
 type Entry = { question: QuestionWithId; material: StudyMaterial; box: number }
-type GeneratedMaterial = { word: string; material: StudyMaterial }
-
-const MATERIAL_GENERATION_CONCURRENCY = 4
-
-async function mapConcurrent<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length)
-  let next = 0
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    for (;;) {
-      const i = next++
-      if (i >= items.length) return
-      results[i] = await fn(items[i])
-    }
-  })
-  await Promise.all(workers)
-  return results
-}
-
 // Build (but do not persist) the due-word exercises for one user: fetch saved
-// words + reviews, select due, resolve study material (cache then generate),
+// words + reviews, select due, resolve existing study material from the cache,
 // and build one exercise per word. Callers decide the minimum-count policy.
 async function prepareEntries(
   db: ReturnType<typeof admin>,
@@ -138,32 +110,6 @@ async function prepareEntries(
     const m = validateStudyMaterial(row.word, row)
     if (m) materials.set(row.word, m)
   }
-  const missing = candidates.filter((c) => !materials.has(c.normalized_word))
-  const generatedRows: (GeneratedMaterial | null)[] = await mapConcurrent(
-    missing,
-    MATERIAL_GENERATION_CONCURRENCY,
-    async (c) => {
-      const material = await generateStudyMaterial(c.normalized_word)
-      return material ? { word: c.normalized_word, material } : null
-    }
-  )
-  for (const generatedRow of generatedRows) {
-    if (!generatedRow) continue
-    const { word, material: generated } = generatedRow
-    const { error: insErr } = await db.from('word_study_materials').insert({
-      word,
-      definition: generated.definition,
-      examples: generated.examples,
-      similar: generated.similar,
-      recognition_distractors: generated.recognition_distractors,
-      cloze: generated.cloze,
-      model: STUDY_MODEL,
-    })
-    // 23505 = concurrent generation of the same word; reuse it, not an error.
-    if (insErr && insErr.code !== '23505') console.error('material cache insert failed', word, insErr)
-    materials.set(word, generated)
-  }
-
   const pending: PendingEntry[] = candidates
     .filter((c) => materials.has(c.normalized_word))
     .map((c) => {

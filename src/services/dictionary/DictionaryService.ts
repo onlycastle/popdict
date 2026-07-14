@@ -1,19 +1,11 @@
-import type { DictionaryResult, IdiomResult, SearchResponse } from '../../types/dictionary'
+import type { DictionaryResult, SearchResponse } from '../../types/dictionary'
 import type { DictionarySource } from './DictionarySource'
 import { FreeDictionarySource } from './FreeDictionarySource'
-import { IdiomSource } from './IdiomSource'
 import { toUserError } from './DictionaryError'
 
-/**
- * Coordinates the dictionary sources: single words go to the free dictionary
- * alone; multi-word queries also try the idiom source in parallel and merge
- * whatever succeeds.
- */
+/** Resolves English definitions. Phrases follow the normal no-results path. */
 export class DictionaryService {
-  constructor(
-    private free: DictionarySource<DictionaryResult[]>,
-    private idiom: DictionarySource<IdiomResult>
-  ) {}
+  constructor(private free: DictionarySource<DictionaryResult[]>) {}
 
   async search(query: string): Promise<SearchResponse> {
     const trimmedQuery = query.trim()
@@ -21,42 +13,17 @@ export class DictionaryService {
       throw new Error('Empty query')
     }
 
-    const isMultiWord = trimmedQuery.includes(' ')
-
-    if (!isMultiWord) {
-      try {
-        const results = await this.free.lookup(trimmedQuery)
-        return { dictionaryResults: results, idiomResult: null, source: 'free-dictionary' }
-      } catch (error) {
-        throw toUserError(error, `"${trimmedQuery}" not found`)
-      }
-    }
-
-    // Multi-word — try the English sources in parallel.
-    const [dictResult, idiomResult] = await Promise.allSettled([
-      this.free.lookup(trimmedQuery),
-      this.idiom.lookup(trimmedQuery),
-    ])
-
-    const hasDict = dictResult.status === 'fulfilled'
-    const hasIdiom = idiomResult.status === 'fulfilled'
-
-    if (!hasDict && !hasIdiom) {
-      // If the dictionary call failed on the network, say so rather than
-      // pretending the word doesn't exist.
-      if (dictResult.status === 'rejected') {
-        throw toUserError(dictResult.reason, `No results found for "${trimmedQuery}"`)
-      }
-      throw new Error(`No results found for "${trimmedQuery}"`)
-    }
-
-    return {
-      dictionaryResults: hasDict ? dictResult.value : null,
-      idiomResult: hasIdiom ? idiomResult.value : null,
-      source: hasDict && hasIdiom ? 'both' : hasDict ? 'free-dictionary' : 'phrases-api',
+    try {
+      const results = await this.free.lookup(trimmedQuery)
+      return { dictionaryResults: results, source: 'free-dictionary' }
+    } catch (error) {
+      const fallback = trimmedQuery.includes(' ')
+        ? `No results found for "${trimmedQuery}"`
+        : `"${trimmedQuery}" not found`
+      throw toUserError(error, fallback)
     }
   }
 }
 
 /** App-wide instance wired to the real sources. */
-export const dictionaryService = new DictionaryService(new FreeDictionarySource(), new IdiomSource())
+export const dictionaryService = new DictionaryService(new FreeDictionarySource())

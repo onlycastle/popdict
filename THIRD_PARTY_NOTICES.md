@@ -121,16 +121,56 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ---
 
-## Dictionary and phrase data
+## English definition data
 
 - **Free Dictionary API** (https://dictionaryapi.dev) — provides word
   definitions used for lookups. Its data is derived from
   [Wiktionary](https://www.wiktionary.org) and is licensed under
   [Creative Commons Attribution-ShareAlike (CC BY-SA)](https://creativecommons.org/licenses/by-sa/3.0/).
-- **STANDS4 / Idioms & Phrases API** (https://www.abbreviations.com/api/) —
-  provides idiom and phrase lookups via the `idioms` Supabase Edge Function.
-  Data is used under the STANDS4 API terms of service, which require
-  attribution to STANDS4 as the data source.
+
+PopDict preserves the source and license metadata returned with each Free
+Dictionary entry. Recorded pronunciation is used only when its phonetic record
+also supplies source and license metadata; otherwise PopDict uses system
+text-to-speech.
+
+---
+
+## Multilingual translation dataset — CC BY-SA 4.0
+
+Attribution: **English Wiktionary via Kaikki — filtered and ranked by PopDict.**
+
+The generated `data/translations/word-translations.csv` dataset and normalized
+`data/translations/ngsl-gr-3000.txt` learner headword list are licensed
+separately from PopDict application code under
+[Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
+
+Pinned source inputs:
+
+- **Kaikki raw Wiktextract JSONL**
+  (https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz), extracted
+  2026-07-09 from the English Wiktionary dump dated 2026-07-06. Compressed
+  SHA-256:
+  `e8a1d8e9470af8ee424bc5a2d74ad89aa158b913d924042dc5a90a62437906c6`.
+- **NGSL-GR 1.0 ranked learner vocabulary**
+  (https://www.newgeneralservicelist.com/s/NGSL-GR_rank.csv). Source CSV
+  SHA-256:
+  `5c4f7bb84b5d74d7481d43483b811f1591bd667b86a6131f1566fdf07cade91e`.
+
+PopDict’s deterministic changes are: select the first 3,000 distinct
+normalized single English NGSL-GR headwords; retain Korean, Japanese,
+Simplified Chinese, Spanish, and Brazilian Portuguese; remove archaic,
+obsolete, dated, rare, and nonstandard candidates using entry tags and leading
+source-sense qualifiers; remove wrong-region, wrong-script, and romanized-only
+candidates; normalize Unicode and whitespace; deduplicate;
+reject unresolved Wiktionary templates; prefer useful sense diversity; and
+rank at most three equivalents per word and language. Short English
+source-sense labels are retained when available after safe markup cleanup.
+
+The machine-readable manifest with record counts, source URLs, checksums, and
+the filtering summary is at `data/translations/manifest.json`. Wiktextract is
+developed by Tatu Ylonen and contributors; Kaikki requests links to its pages
+and citation of Tatu Ylonen, “Wiktextract: Wiktionary as Machine-Readable
+Structured Data,” LREC 2022, for academic use.
 
 ---
 

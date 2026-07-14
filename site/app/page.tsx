@@ -43,7 +43,7 @@ export default function Home() {
           <p className="definition">
             <span className="sense-num">1.</span> a dictionary that{' '}
             <mark className="mark">appears</mark> one keystroke away — look up
-            any word or idiom, hear it, and save it without leaving what
+            an English word, hear it, translate it, and save it without leaving what
             you’re reading.
           </p>
           <div className="hero-cta">
@@ -141,9 +141,9 @@ export default function Home() {
               <p>Play the recorded clip, or a built-in text-to-speech fallback.</p>
             </article>
             <article className="sense">
-              <span className="sense-tag">phrases</span>
-              <h3>Idioms &amp; phrases</h3>
-              <p>Multi-word searches return idiomatic meanings, not just literals.</p>
+              <span className="sense-tag">translate</span>
+              <h3>Five translation languages</h3>
+              <p>Sign in for free equivalents in Korean, Japanese, Simplified Chinese, Spanish, or Brazilian Portuguese.</p>
             </article>
             <article className="sense">
               <span className="sense-tag">review</span>
@@ -164,11 +164,11 @@ export default function Home() {
           <dl className="notes">
             <div className="note">
               <dt>Is it free?</dt>
-              <dd>Yes — and open source under the MIT License.</dd>
+              <dd>Yes. English definitions and all five translation languages are free.</dd>
             </div>
             <div className="note">
               <dt>Do I need an account?</dt>
-              <dd>Only to save words. Looking up words works without signing in.</dd>
+              <dd>Only to save words or see translations. English lookups work without signing in.</dd>
             </div>
             <div className="note">
               <dt>Why the Accessibility permission?</dt>

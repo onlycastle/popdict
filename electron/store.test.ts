@@ -53,6 +53,7 @@ describe('createStore', () => {
     const cfg = store.getConfig()
     expect(cfg.hotkey).toBe(DEFAULT_HOTKEY)
     expect(cfg.history).toEqual([])
+    expect(cfg.translationLanguage).toBeNull()
   })
   it('persists patched values across instances', () => {
     createStore(file).patch({ onboardingDone: true, hotkey: 'CommandOrControl+Shift+D' })
@@ -83,6 +84,23 @@ describe('createStore', () => {
   it('recovers from a corrupt file by returning defaults', () => {
     fs.writeFileSync(file, '{ not json')
     expect(createStore(file).getConfig().hotkey).toBe(DEFAULT_HOTKEY)
+  })
+})
+
+describe('translationLanguage', () => {
+  it('persists every supported language and rejects unknown stored values', () => {
+    for (const language of ['ko', 'ja', 'zh-Hans', 'es', 'pt-BR'] as const) {
+      createStore(file).patch({ translationLanguage: language })
+      expect(createStore(file).getConfig().translationLanguage).toBe(language)
+    }
+    fs.writeFileSync(file, JSON.stringify({ translationLanguage: 'xx' }))
+    expect(createStore(file).getConfig().translationLanguage).toBeNull()
+  })
+
+  it('rejects an unsupported value supplied through a settings patch', () => {
+    const result = createStore(file).patch({ translationLanguage: 'xx' as never })
+    expect(result.translationLanguage).toBeNull()
+    expect(createStore(file).getConfig().translationLanguage).toBeNull()
   })
 })
 

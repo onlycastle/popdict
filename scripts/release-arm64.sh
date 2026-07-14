@@ -27,6 +27,12 @@ require_cmd() {
 require_cmd node
 require_cmd npm
 
+NODE_SUPPORTED="$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); Number((major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major === 24)")"
+if [[ "$NODE_SUPPORTED" != "1" ]]; then
+  printf 'Node 20.19+, 22.12+, or 24.x is required for releases (found %s).\n' "$(node --version)" >&2
+  exit 1
+fi
+
 if [[ -z "$SIGNING_IDENTITY" ]]; then
   printf 'POPDICT_MAC_SIGNING_IDENTITY is required for signed public releases.\n' >&2
   exit 1
@@ -54,6 +60,12 @@ fi
 
 step "Checking notarization credentials"
 xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" --output-format json >/dev/null
+
+step "Checking native DMG maker dependency"
+if ! node -e "require('macos-alias')" >/dev/null 2>&1; then
+  printf 'macos-alias is not built for %s; run npm rebuild macos-alias with this Node runtime.\n' "$(node --version)" >&2
+  exit 1
+fi
 
 if [[ -z "${POPDICT_GITHUB_REPO:-}" ]]; then
   printf 'POPDICT_GITHUB_REPO is required for public releases so auto-update is enabled.\n' >&2
@@ -86,13 +98,12 @@ codesign --verify --verbose=2 "$DMG_PATH"
 xcrun stapler validate "$DMG_PATH"
 spctl -a -vvv -t open --context context:primary-signature "$DMG_PATH"
 
-step "Release artifacts ready"
-ls -lh "$DMG_PATH"
 ZIP_PATH="out/make/zip/darwin/${ARCH}/${APP_NAME}-darwin-${ARCH}-${VERSION}.zip"
-if [[ -f "$ZIP_PATH" ]]; then
-  ls -lh "$ZIP_PATH"
-  printf '\nUpload BOTH to the GitHub release:\n  DMG (download):     %s\n  ZIP (auto-update):  %s\n' "$DMG_PATH" "$ZIP_PATH"
-else
+if [[ ! -f "$ZIP_PATH" ]]; then
   printf '\nZIP artifact not found at expected path: %s\n' "$ZIP_PATH" >&2
-  printf '%s\n' "$DMG_PATH"
+  exit 1
 fi
+
+step "Release artifacts ready"
+ls -lh "$DMG_PATH" "$ZIP_PATH"
+printf '\nUpload BOTH to the GitHub release:\n  DMG (download):     %s\n  ZIP (auto-update):  %s\n' "$DMG_PATH" "$ZIP_PATH"

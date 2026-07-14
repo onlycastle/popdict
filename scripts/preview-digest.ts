@@ -5,22 +5,10 @@
 //   npm run preview:digest                 # default words
 //   npm run preview:digest -- vivid wary   # your own words
 //
-// With GEMINI_API_KEY in .env.local it generates real study material; without
-// it, bundled sample cards render so you can still check the layout. Runs on
+// Bundled sample cards keep the preview deterministic and offline. Runs on
 // Deno (the same runtime the edge function uses).
 import { buildExercise, buildDigestEmailHtml, type QuestionWithId } from '../supabase/functions/quiz/lib.ts'
-import { generateStudyMaterial, type StudyMaterial } from '../supabase/functions/quiz/materials.ts'
-
-// --- Load GEMINI_API_KEY from .env.local (npm scripts don't auto-source it). ---
-try {
-  const env = await Deno.readTextFile(new URL('../.env.local', import.meta.url))
-  const line = env.split('\n').find((l) => l.startsWith('GEMINI_API_KEY='))
-  if (line && !Deno.env.get('GEMINI_API_KEY')) {
-    Deno.env.set('GEMINI_API_KEY', line.slice('GEMINI_API_KEY='.length).trim())
-  }
-} catch {
-  // no .env.local — fall back to samples below
-}
+import type { StudyMaterial } from '../supabase/functions/quiz/materials.ts'
 
 // Bundled fallbacks so the layout always renders offline / keyless.
 const SAMPLES: Record<string, StudyMaterial> = {
@@ -57,8 +45,7 @@ const SAMPLES: Record<string, StudyMaterial> = {
 }
 
 const words = Deno.args.length ? Deno.args : ['delight', 'resilient', 'thorough']
-const usingKey = Boolean(Deno.env.get('GEMINI_API_KEY'))
-console.log(usingKey ? '· GEMINI_API_KEY found — generating real content' : '· no GEMINI_API_KEY — using bundled samples')
+console.log('· using bundled deterministic study-material samples')
 
 // Deterministic shuffle so previews are stable across runs.
 const rng = (() => { let s = 42; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280 } })()
@@ -67,9 +54,9 @@ const entries: { question: QuestionWithId; material: StudyMaterial; box: number 
 let i = 0
 for (const word of words) {
   const w = word.trim().toLowerCase()
-  const material = (usingKey ? await generateStudyMaterial(w) : null) ?? SAMPLES[w] ?? null
+  const material = SAMPLES[w] ?? null
   if (!material) {
-    console.log(`  ⚠️  skipped "${w}" (generation failed and no bundled sample)`)
+    console.log(`  ⚠️  skipped "${w}" (no bundled sample)`)
     continue
   }
   // Vary the exercise type: last word shown as a cloze (box 3), rest recognition.

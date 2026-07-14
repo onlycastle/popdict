@@ -6,8 +6,8 @@
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)
 
 PopDict is a macOS menu-bar dictionary for English learners. Press one hotkey to
-look up a word or idiom, hear pronunciation, and save words for later without
-leaving the app you are reading in.
+look up an English word, hear its pronunciation, see an optional translation,
+and save it for later without leaving the app you are reading in.
 
 ![PopDict demo: press the hotkey, type a word, read the definition](docs/demo.gif)
 
@@ -21,14 +21,15 @@ signed, notarized, and auto-updating.
 - Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
 - Optional select-to-lookup for highlighted text on macOS.
 - Free Dictionary API definitions with audio playback and text-to-speech fallback.
-- Idiom and phrase lookup through a Supabase Edge Function proxy.
 - Google sign-in for saved words, backed by Supabase.
+- Free signed-in translations in Korean, Japanese, Simplified Chinese, Spanish,
+  and Brazilian Portuguese, built from Wiktionary via Kaikki.
 - Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
 
 ## Requirements
 
 - macOS 11 (Big Sur) or newer for the desktop app (Apple Silicon or Intel).
-- Node.js 20.19 or newer (matches `engines` in package.json) to build from source.
+- Node.js 20.19+, 22.12+, or 24.x (matches `engines` in package.json) to build from source.
 
 ## Quick Start
 
@@ -38,10 +39,9 @@ cp .env.example .env.local
 npm start
 ```
 
-Basic dictionary lookup works without cloud configuration. Optional
-cloud-backed features such as saved words and idiom lookup require a separately
-configured compatible backend; `.env.example` lists the local variables consumed
-by development builds.
+Basic English dictionary lookup works without cloud configuration. Signed-in
+translations and saved words require a compatible Supabase backend;
+`.env.example` lists the local variables consumed by development builds.
 
 ## Development
 
@@ -53,7 +53,7 @@ npx tsc --noEmit          # TypeScript check
 npm run harness:validate  # deterministic quality gates (also run in CI)
 ```
 
-To build your own copy of the app from source for personal use:
+To build your own copy of the app from source:
 
 ```bash
 npm run package    # produces an unsigned app under out/
@@ -69,9 +69,11 @@ npm run package    # produces an unsigned app under out/
 ```text
 electron/    Electron main process, preload bridge, local store, updater
 src/         React renderer, hooks, services, styles, and shared types
-supabase/    Database migrations and the idiom Edge Function
+shared/      Types and validation shared across app processes
+data/        Generated multilingual dictionary dataset and notices
+supabase/    Database migrations and operational Edge Functions
 site/        Public Next.js landing and legal pages
-scripts/     Build and notarization helpers
+scripts/     Build, dataset, harness, and notarization helpers
 ```
 
 ## Contributing
@@ -87,8 +89,9 @@ secrets or private account data in public issues.
 ## Acknowledgements
 
 PopDict bundles the open-source fonts Fraunces and JetBrains Mono under the SIL
-Open Font License and uses third-party dictionary data (Free Dictionary /
-Wiktionary, STANDS4). Full attributions are in
+Open Font License. Definitions come from Free Dictionary / Wiktionary;
+translations come from English Wiktionary via Kaikki and use the NGSL-GR
+learner headword list. Full attributions and transformation details are in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Trademark
@@ -100,4 +103,7 @@ redistribute under your own name.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+PopDict application code is MIT licensed; see [LICENSE](LICENSE). The generated
+translation dataset and normalized 3,000-word NGSL-GR list in
+[`data/translations/`](data/translations/README.md) are separately licensed under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).

@@ -30,7 +30,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://popdict.space'
 
 const TITLE = 'PopDict — a macOS dictionary one keystroke away'
 const DESCRIPTION =
-  'A menu-bar dictionary for English learners. Look up any word or idiom, hear it pronounced, and save it to review — without leaving what you are reading.'
+  'A menu-bar dictionary for English learners. Look up an English word, hear it, save it, and see free signed-in translations in five languages.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -49,7 +49,8 @@ export const metadata: Metadata = {
     'menu bar dictionary',
     'pop-up dictionary',
     'English learners',
-    'idioms',
+    'multilingual dictionary',
+    'word translation',
     'pronunciation',
     'vocabulary',
     'look up words',

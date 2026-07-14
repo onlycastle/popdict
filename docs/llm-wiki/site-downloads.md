@@ -1,12 +1,12 @@
 ---
 title: Site & downloads
-last-verified: 2026-07-05
+last-verified: 2026-07-14
 ---
 
 # Site & downloads
 
 Next.js (App Router) site in `site/` — landing page, legal pages, OAuth
-handoff (`site/app/auth/`), download redirect, download stats. Deployed on
+handoff (`site/app/auth/`), download redirect, and download stats. Deployed on
 Vercel; the project's Root Directory is `site` (config:
 [site/vercel.json](../../site/vercel.json)), so git pushes to `main`
 auto-deploy and CLI deploys run from `site/`.

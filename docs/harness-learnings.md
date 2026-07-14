@@ -60,13 +60,25 @@ anything security-sensitive stay local-only.
 - Context: Worktree sessions symlink node_modules to the main checkout, and a trailing-slash ignore pattern (`node_modules/`) matches directories only — so `git add -A` staged the symlink, whose target is a machine-local absolute path that must not land in this public repo. The ignore pattern is now slash-free (`**/node_modules`), which matches the symlink too; reverting it reopens this learning.
 
 ## L-010: Fail-soft external-API integrations verified only against mocks
-- Status: Open
+- Status: Closed
 - Class: mocked-integration
-- Guard: (none — one-shot live smoke of generateStudyMaterial before first production send; watch sent/skipped counts on first cron runs)
-- Context: The study-digest generator returns null on any failure and every test injects a fake fetch, so a bad credential or model-access problem in production is indistinguishable from "no cache misses" — digests silently shrink or skip with no red gate anywhere. Fail-soft plus mock-only testing needs a live smoke at deploy time.
+- Guard: test:scripts/translations/schema.test.mjs::no live Stripe, Gemini, or STANDS4 network endpoint
+- Context: The live study-material model integration was removed. Quiz delivery now reads only cached material, and the runtime scan prevents retired external vendor endpoints from returning to application or backend code.
 
 ## L-011: Migration SQL is never parse-checked before a production push
 - Status: Open
 - Class: migration-hygiene
 - Guard: (none — dry-run only lists file names; consider a gate that parses new migrations, e.g. supabase db lint or a pg parser)
 - Context: A migration using the reserved word `similar` as a bare column name passed every gate, review, and `db push --dry-run` (which does not parse SQL), then failed live at apply time with a 42601 syntax error. No harness gate executes or parses migration SQL; until one does, new migrations get their first syntax check in production.
+
+## L-012: Unsupported Node runtime exits Forge packaging without an artifact
+- Status: Closed
+- Class: release-invariant
+- Guard: script:scripts/release-arm64.sh::NODE_SUPPORTED
+- Context: Electron Forge 7 reached package finalization under Node 26, then exited successfully without writing the app, DMG, or zip. The public release script now accepts Node 20.19+, 22.12+, or 24.x and rejects unsupported runtimes before doing release work.
+
+## L-013: Native DMG maker ABI fails only after app notarization
+- Status: Closed
+- Class: release-invariant
+- Guard: script:scripts/release-arm64.sh::macos-alias
+- Context: Switching from an unsupported Node runtime left the DMG maker's native alias module compiled for the wrong ABI. Forge signed and notarized the app before failing to make the DMG, so the release preflight now loads that module before any expensive release work.

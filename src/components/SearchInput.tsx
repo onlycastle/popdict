@@ -38,9 +38,9 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Look up a word or idiom…"
+          placeholder="Look up an English word…"
           className="search-field"
-          aria-label="Look up a word or idiom"
+          aria-label="Look up an English word"
           spellCheck={false}
           autoCorrect="off"
           autoCapitalize="off"

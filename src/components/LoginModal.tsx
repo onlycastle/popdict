@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { loginModalSubtitle } from './signInNudge'
+import type { TargetLanguage } from '../../shared/language'
+import { targetLanguageLabel } from '../../shared/language'
 
 interface LoginModalProps {
   configured: boolean
@@ -9,6 +11,8 @@ interface LoginModalProps {
   onClose: () => void
   onSignIn: () => void
   open: boolean
+  purpose?: 'save' | 'translate'
+  translationLanguage?: TargetLanguage | null
   word: string
 }
 
@@ -20,8 +24,14 @@ export default function LoginModal({
   onClose,
   onSignIn,
   open,
+  purpose = 'save',
+  translationLanguage = null,
   word,
 }: LoginModalProps) {
+  const subtitle = purpose === 'translate' && translationLanguage
+    ? `Sign in to see ${targetLanguageLabel(translationLanguage)} translations for “${word}”.`
+    : loginModalSubtitle(word)
+
   return (
     <AnimatePresence>
       {open && (
@@ -45,9 +55,9 @@ export default function LoginModal({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="login-modal-title" className="dict-headword text-xl">
-                  Sign in to save
+                  {purpose === 'translate' ? 'Sign in to translate' : 'Sign in to save'}
                 </h2>
-                <p className="mt-1 text-sm text-white/70">{loginModalSubtitle(word)}</p>
+                <p className="mt-1 text-sm text-white/70">{subtitle}</p>
               </div>
               <button
                 type="button"
