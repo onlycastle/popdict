@@ -11,6 +11,12 @@ export const PRODUCT_EVENT_NAMES = [
   'first_word_saved',
   'feedback_opened',
   'feedback_submitted',
+  'lookup_recovery_used',
+  'phrase_lookup_success',
+  'offline_cache_hit',
+  'saved_words_exported',
+  'review_reminder_enabled',
+  'review_session_completed',
 ] as const
 
 export type ProductEventName = (typeof PRODUCT_EVENT_NAMES)[number]

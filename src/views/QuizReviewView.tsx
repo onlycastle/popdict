@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 import { QuizSessionService } from '../services/QuizSessionService'
 import { initialQuizReviewState, quizReviewReducer } from './quizReview/quizReviewReducer'
+import { productAnalytics } from '../services/ProductAnalytics'
 
 export function QuizReviewView({ service }: { service?: QuizSessionService }): JSX.Element {
   const svc = useMemo(() => service ?? new QuizSessionService(), [service])
   const [state, dispatch] = useReducer(quizReviewReducer, initialQuizReviewState)
   const startedRef = useRef(false)
+  const completionTrackedRef = useRef(false)
 
   useEffect(() => {
     if (startedRef.current) return
@@ -14,6 +16,13 @@ export function QuizReviewView({ service }: { service?: QuizSessionService }): J
       .then((s) => dispatch({ type: 'loaded', cards: s.cards }))
       .catch(() => dispatch({ type: 'load_failed', message: 'Could not reach the review service. Check your connection.' }))
   }, [svc])
+
+  useEffect(() => {
+    if (state.phase === 'summary' && !completionTrackedRef.current) {
+      completionTrackedRef.current = true
+      void productAnalytics.track('review_session_completed')
+    }
+  }, [state.phase])
 
   const choose = async (card: { questionId: string }, index: number) => {
     dispatch({ type: 'choose', index })

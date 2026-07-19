@@ -1,7 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createProductAnalytics } from './ProductAnalytics'
+import { createProductAnalytics, PRODUCT_EVENT_NAMES } from './ProductAnalytics'
 
 describe('ProductAnalytics', () => {
+  it('keeps all P1 events payload-free and allowlisted', () => {
+    expect(PRODUCT_EVENT_NAMES).toEqual(expect.arrayContaining([
+      'lookup_recovery_used',
+      'phrase_lookup_success',
+      'offline_cache_hit',
+      'saved_words_exported',
+      'review_reminder_enabled',
+      'review_session_completed',
+    ]))
+  })
   it('sends only the allowlisted anonymous event envelope when enabled', async () => {
     const invoke = vi.fn().mockResolvedValue({ error: null })
     const analytics = createProductAnalytics({

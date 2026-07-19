@@ -2,6 +2,11 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { DEFAULT_HOTKEY } from '../shared/hotkey'
 import { isTargetLanguage, type TargetLanguage } from '../shared/language'
+import {
+  DEFAULT_REVIEW_REMINDER_SETTINGS,
+  reviewReminderSettings,
+  type ReviewReminderSettings,
+} from '../shared/reminders'
 
 export { DEFAULT_HOTKEY }
 const HISTORY_CAP = 12
@@ -18,6 +23,10 @@ export type StoredConfig = {
   analyticsEnabled: boolean
   /** Local-only counter used to time the one-time feedback nudge. */
   successfulLookupCount: number
+  /** Local notification schedule; vocabulary and due state never live here. */
+  reviewReminders: ReviewReminderSettings
+  /** Opaque cadence-window id used to suppress duplicate/catch-up notifications. */
+  reviewReminderLastWindow: string | null
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
@@ -28,6 +37,8 @@ const DEFAULT_CONFIG: StoredConfig = {
   translationLanguage: null,
   analyticsEnabled: true,
   successfulLookupCount: 0,
+  reviewReminders: { ...DEFAULT_REVIEW_REMINDER_SETTINGS },
+  reviewReminderLastWindow: null,
 }
 
 export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): string[] {
@@ -59,6 +70,10 @@ function withDefaults(raw: unknown): StoredConfig {
       typeof r.successfulLookupCount === 'number' && Number.isSafeInteger(r.successfulLookupCount)
         ? Math.max(0, r.successfulLookupCount)
         : 0,
+    reviewReminders: reviewReminderSettings(r.reviewReminders),
+    reviewReminderLastWindow:
+      typeof r.reviewReminderLastWindow === 'string' && r.reviewReminderLastWindow.length <= 100
+        ? r.reviewReminderLastWindow : null,
   }
 }
 

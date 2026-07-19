@@ -1,11 +1,15 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent, webFrame } from 'electron'
 import type { TargetLanguage } from '../shared/language'
+import type { LookupCacheWrite } from './lookupCache'
+import type { ReviewReminderSettings } from '../shared/reminders'
 
 type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
   translationLanguage: TargetLanguage | null
   analyticsEnabled: boolean
+  reviewReminders: ReviewReminderSettings
+  notificationsSupported: boolean
 }
 
 let openFeedbackCallback: (() => void) | null = null
@@ -36,6 +40,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addHistory: (word: string) => ipcRenderer.invoke('add-history', word),
   removeHistory: (word: string) => ipcRenderer.invoke('remove-history', word),
   clearHistory: () => ipcRenderer.invoke('clear-history'),
+  readLookupCache: (query: string) => ipcRenderer.invoke('read-lookup-cache', query),
+  writeLookupCache: (input: LookupCacheWrite) => ipcRenderer.invoke('write-lookup-cache', input),
+  clearLookupCache: () => ipcRenderer.invoke('clear-lookup-cache'),
+  exportSavedWordsCsv: (csv: string) => ipcRenderer.invoke('export-saved-words-csv', csv),
+  onReminderDueCountRequest: (callback: (nonce: string) => void) => {
+    const listener = (_event: IpcRendererEvent, nonce: string) => callback(nonce)
+    ipcRenderer.on('request-reminder-due-count', listener)
+    return () => ipcRenderer.removeListener('request-reminder-due-count', listener)
+  },
+  sendReminderDueCount: (nonce: string, count: number) => {
+    ipcRenderer.send('reminder-due-count-response', nonce, count)
+  },
+  getSpellingSuggestions: (word: string) => {
+    const value = typeof word === 'string' ? word.trim().slice(0, 160) : ''
+    if (!value || /\s/.test(value)) return []
+    return webFrame.getWordSuggestions(value).slice(0, 5)
+  },
   recordLookupSuccess: () => ipcRenderer.invoke('record-lookup-success'),
   openSettings: () => ipcRenderer.send('open-settings'),
   openSavedWords: () => ipcRenderer.send('open-saved-words'),

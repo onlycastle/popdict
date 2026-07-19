@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Notification, powerMonitor } from 'electron'
 import { randomUUID } from 'node:crypto'
 import * as path from 'path'
 import { createStore } from './store'
@@ -19,11 +19,17 @@ import { IpcRouter } from './ipc/IpcRouter'
 import { registerIpcHandlers } from './ipc/handlers'
 import { createLogger } from '../shared/logger'
 import { isAuthCallbackUrl, isQuizDeepLink } from '../shared/authUrl'
+import { LookupCache } from './lookupCache'
+import { DueCountBroker } from './reminders/DueCountBroker'
+import { ReviewReminderScheduler } from './reminders/ReviewReminderScheduler'
 
 const log = createLogger('Auth')
 const analyticsSessionId = randomUUID()
 
 let store: ReturnType<typeof createStore>
+let dueCountBroker: DueCountBroker | null = null
+let reminderScheduler: ReviewReminderScheduler | null = null
+let timezoneTimer: ReturnType<typeof setInterval> | null = null
 
 // Disable GPU acceleration for better transparency support.
 // This needs to be called before app is ready.
@@ -94,6 +100,31 @@ if (hasSingleInstanceLock) {
     registerAuthProtocol(log)
 
     store = createStore(path.join(app.getPath('userData'), 'popdict-config.json'))
+    const lookupCache = new LookupCache(
+      path.join(app.getPath('userData'), 'lookup-cache-v1.json')
+    )
+    dueCountBroker = new DueCountBroker()
+    reminderScheduler = new ReviewReminderScheduler({
+      getState: () => {
+        const config = store.getConfig()
+        return {
+          settings: config.reviewReminders,
+          lastFiredWindow: config.reviewReminderLastWindow,
+        }
+      },
+      markFired: (windowId) => { store.patch({ reviewReminderLastWindow: windowId }) },
+      requestDueCount: () => dueCountBroker!.request(windows.get('search')),
+      notify: (count) => {
+        if (!Notification.isSupported()) return
+        const notification = new Notification({
+          title: 'Words due for review',
+          body: `${count} ${count === 1 ? 'word is' : 'words are'} due.`,
+          silent: false,
+        })
+        notification.on('click', () => windows.open('review'))
+        notification.show()
+      },
+    })
 
     // tray is referenced from the updater hooks, which only fire after both
     // exist — declare first so the closures capture the binding.
@@ -127,9 +158,28 @@ if (hasSingleInstanceLock) {
       hotkey,
       tray,
       analyticsSessionId,
+      lookupCache,
+      dueCountBroker,
+      reminderScheduler,
     })
 
-    windows.open('search')
+    const searchWindow = windows.open('search')
+    if (searchWindow.webContents.isLoading()) {
+      searchWindow.webContents.once('did-finish-load', () => reminderScheduler?.recalculate())
+    } else {
+      reminderScheduler.recalculate()
+    }
+
+    powerMonitor.on('resume', () => reminderScheduler?.recalculate())
+    let timezoneOffset = new Date().getTimezoneOffset()
+    timezoneTimer = setInterval(() => {
+      const nextOffset = new Date().getTimezoneOffset()
+      if (nextOffset !== timezoneOffset) {
+        timezoneOffset = nextOffset
+        reminderScheduler?.recalculate()
+      }
+    }, 60_000)
+    timezoneTimer.unref?.()
 
     if (!store.getConfig().onboardingDone) {
       windows.open('onboarding')
@@ -171,4 +221,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   hotkey.unregisterAll()
+  reminderScheduler?.stop()
+  dueCountBroker?.clear()
+  if (timezoneTimer) clearInterval(timezoneTimer)
 })
