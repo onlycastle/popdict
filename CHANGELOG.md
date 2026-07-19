@@ -3,6 +3,22 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] - 2026-07-19
+
+### Added
+- Signed-out translations across all 5,049 valid NGSL-GR headwords.
+- Licensed phrase and idiom lookup with source attribution and recovery links.
+- Offline recent-lookup caching, spelling/base-form recovery, and clickable
+  synonyms and related words.
+- Saved Words cards with snapshots, translations, filters, mastery, tags,
+  private notes, lazy enrichment, and UTF-8 CSV export.
+- Deterministic eight-card review sessions and local cadence/quiet-hour
+  reminders.
+
+### Changed
+- Translation and lookup failures now use typed not-found, network, and
+  service states with explicit retry behavior.
+
 ## [1.7.0] - 2026-07-14
 
 ### Added

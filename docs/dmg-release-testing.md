@@ -26,18 +26,23 @@ by applying the quarantine attribute itself.
 ## Prerequisites
 
 - Apple Silicon Mac (the release is `arm64`; test x64 separately if ever shipped).
-- A built DMG at `out/make/PopDict-<version>-arm64.dmg`
-  (`npm run release:arm64` — signs, notarizes, staples; needs `.env.local` secrets).
+- Node 20.19+, 22.12+, or 24.x. If the active Node is unsupported, the script
+  will use an installed Homebrew version from that range and rebuild the native
+  DMG dependency before continuing.
+- Release signing and notarization credentials in `.env.local`. When the
+  version-matched DMG is missing, `scripts/test-dmg.sh` runs
+  `npm run release:arm64` automatically to sign, notarize, and staple it.
   An unsigned `npm run make:local` DMG is fine for *feature* testing but will **not**
   reproduce the Gatekeeper/notarization install flow.
 
 ## Quick start
 
 ```bash
-# Full guided run: verify → clean → install → interactive checklist
+# Full guided run: build if missing → verify → clean → install → checklist
 scripts/test-dmg.sh
 
 # Or a specific phase:
+scripts/test-dmg.sh build       # force a fresh signed/notarized release build
 scripts/test-dmg.sh verify      # signature + notarization checks only
 scripts/test-dmg.sh clean       # wipe to a first-run state (destructive, confirms)
 scripts/test-dmg.sh install     # quarantine + mount + copy to /Applications + launch
@@ -52,6 +57,7 @@ scripts/test-dmg.sh --dmg out/make/PopDict-1.2.0-arm64.dmg
 
 | Phase | Does |
 |-------|------|
+| `build` | Runs the signed/notarized arm64 release pipeline; `all` invokes this automatically when the expected DMG is missing |
 | `verify` | `spctl` acceptance + `xcrun stapler validate` on the DMG |
 | `clean` | Quits the app; removes `/Applications/PopDict.app`, `~/Library/Application Support/PopDict/`, and the login item (each confirmed) |
 | `install` | Applies the download quarantine bit, mounts the DMG, copies the app to `/Applications`, ejects, re-checks the installed app's signature/notarization/codesign, then launches it |
