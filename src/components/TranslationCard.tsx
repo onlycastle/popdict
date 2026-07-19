@@ -4,10 +4,9 @@ import { targetLanguageLabel } from '../../shared/language'
 type Props = {
   language: TargetLanguage
   word: string
-  state: 'loading' | 'ready' | 'error' | 'gated'
+  state: 'loading' | 'ready' | 'error'
   translations?: WordTranslation[]
   onRetry?: () => void
-  onSignIn?: () => void
 }
 
 export function wiktionaryEntryUrl(word: string): string {
@@ -20,7 +19,6 @@ export default function TranslationCard({
   state,
   translations = [],
   onRetry,
-  onSignIn,
 }: Props) {
   return (
     <section className="translation-card" aria-label={`${targetLanguageLabel(language)} translations`}>
@@ -28,12 +26,7 @@ export default function TranslationCard({
         <span className="dict-label">{targetLanguageLabel(language)}</span>
       </div>
 
-      {state === 'gated' ? (
-        <div className="translation-card-action">
-          <p>Sign in to see translations.</p>
-          <button type="button" className="btn-ghost text-xs" onClick={onSignIn}>Sign in</button>
-        </div>
-      ) : state === 'loading' ? (
+      {state === 'loading' ? (
         <div className="translation-skeleton" aria-label="Loading translations">
           <span />
           <span />
@@ -61,7 +54,7 @@ export default function TranslationCard({
           <a href={wiktionaryEntryUrl(word)} target="_blank" rel="noreferrer noopener">
             English Wiktionary via Kaikki
           </a>
-          {' — filtered and ranked by PopDict · '}
+          {' — filtered, ranked, and completed by PopDict · '}
           <a
             href="https://creativecommons.org/licenses/by-sa/4.0/"
             target="_blank"

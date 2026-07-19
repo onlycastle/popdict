@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { savedWords } from '../services/SavedWordsRepository'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
+import { productAnalytics } from '../services/ProductAnalytics'
 import type { SearchResponse } from '../types/dictionary'
+import type { SavedWordDetails } from '../types/savedWords'
+import type { TargetLanguage, WordTranslation } from '../../shared/language'
+import { savedWordDetailsFromLookup } from '../services/savedWordDetails'
 
 /** The word a Save action targets: the canonical headword, else the raw query. */
 export function getWordToSave(response: SearchResponse | null, fallback: string): string {
@@ -14,11 +18,62 @@ export function shouldPromptQuizOptIn(count: number, hasPreferences: boolean): b
   return count === 5 && !hasPreferences
 }
 
+type TranslationStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+
+export function translationIsSettledForSave(
+  language: TargetLanguage | null,
+  status: TranslationStatus,
+  translationRequired = true,
+): boolean {
+  return !translationRequired || language === null || (status !== 'idle' && status !== 'loading')
+}
+
+export type PreparedSaveIntent = {
+  word: string
+  source: SearchResponse['source']
+  details: SavedWordDetails | null
+}
+
+/** Capture the exact displayed lookup before auth or navigation can change it. */
+export function prepareSaveIntent(input: {
+  response: SearchResponse | null
+  fallback: string
+  translationLanguage: TargetLanguage | null
+  translationStatus: TranslationStatus
+  translationRequired: boolean
+  translations: WordTranslation[]
+}): PreparedSaveIntent | null {
+  if (!input.response) return null
+  const word = getWordToSave(input.response, input.fallback)
+  if (!word || !translationIsSettledForSave(
+    input.translationLanguage,
+    input.translationStatus,
+    input.translationRequired,
+  )) return null
+
+  return {
+    word,
+    source: input.response.source,
+    details: savedWordDetailsFromLookup({
+      response: input.response,
+      language: input.translationLanguage,
+      translations: input.translations,
+      translationComplete: input.translationRequired && (
+        input.translationStatus === 'ready' || input.translationStatus === 'empty'
+      ),
+    }),
+  }
+}
+
 interface UseSaveWordArgs {
   user: User | null
   response: SearchResponse | null
   searchedTerm: string
   query: string
+  translationLanguage: TargetLanguage | null
+  translationStatus: TranslationStatus
+  translationRequired: boolean
+  translations: WordTranslation[]
 }
 
 /**
@@ -26,9 +81,18 @@ interface UseSaveWordArgs {
  * login when signed out, auto-saving once signed in, and surfacing durable
  * "Saved" state across sessions. Extracted from App so the view only renders.
  */
-export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWordArgs) {
+export function useSaveWord({
+  user,
+  response,
+  searchedTerm,
+  query,
+  translationLanguage,
+  translationStatus,
+  translationRequired,
+  translations,
+}: UseSaveWordArgs) {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false)
-  const [pendingSaveWord, setPendingSaveWord] = useState('')
+  const [pendingSave, setPendingSave] = useState<PreparedSaveIntent | null>(null)
   const [saveError, setSaveError] = useState('')
   const [savedWord, setSavedWord] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,6 +101,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   const maybePromptQuizOptIn = useCallback(async (u: User) => {
     try {
       const [count, prefs] = await Promise.all([savedWords.count(u), quizPreferences.get(u)])
+      if (count === 1) void productAnalytics.track('first_word_saved')
       if (shouldPromptQuizOptIn(count, prefs !== null)) setQuizPromptOpen(true)
     } catch {
       // best-effort — never block or fail a save over the prompt
@@ -67,51 +132,76 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
 
   const wordToSave = getWordToSave(response, searchedTerm || query)
 
-  const saveCurrentWord = useCallback(
-    async (word: string) => {
-      if (!user || !response) return
+  const savePreparedIntent = useCallback(
+    async (intent: PreparedSaveIntent, completesPendingAuth = false) => {
+      if (!user) return
       const savingUser = user
 
       setSaving(true)
       setSaveError('')
 
       try {
-        await savedWords.save({ source: response.source, user: savingUser, word })
-        setSavedWord(word)
-        setPendingSaveWord('')
+        await savedWords.save({ ...intent, user: savingUser })
+        if (completesPendingAuth) void productAnalytics.track('pending_save_completed')
+        setSavedWord(intent.word)
+        setPendingSave(null)
         setLoginPromptOpen(false)
         void maybePromptQuizOptIn(savingUser)
       } catch (saveWordError) {
         setSaveError(saveWordError instanceof Error ? saveWordError.message : 'Could not save word')
-        setPendingSaveWord('')
+        setPendingSave(null)
       } finally {
         setSaving(false)
       }
     },
-    [user, response, maybePromptQuizOptIn]
+    [user, maybePromptQuizOptIn]
   )
 
   const handleSaveClick = useCallback(() => {
-    const word = getWordToSave(response, searchedTerm || query)
-    if (!word) return
+    const intent = prepareSaveIntent({
+      response,
+      fallback: searchedTerm || query,
+      translationLanguage,
+      translationStatus,
+      translationRequired,
+      translations,
+    })
+    if (!intent) return
 
     setSaveError('')
 
     if (!user) {
-      setPendingSaveWord(word)
+      void productAnalytics.track('save_intent_signed_out')
+      setPendingSave(intent)
       setLoginPromptOpen(true)
       return
     }
 
-    void saveCurrentWord(word)
-  }, [user, query, response, saveCurrentWord, searchedTerm])
+    void savePreparedIntent(intent)
+  }, [
+    user,
+    query,
+    response,
+    savePreparedIntent,
+    searchedTerm,
+    translationLanguage,
+    translationRequired,
+    translationStatus,
+    translations,
+  ])
 
   // Finish a pending save once the user signs in.
   useEffect(() => {
-    if (user && pendingSaveWord && !saving) {
-      void saveCurrentWord(pendingSaveWord)
+    if (user && pendingSave && !saving) {
+      void savePreparedIntent(pendingSave, true)
     }
-  }, [user, pendingSaveWord, saveCurrentWord, saving])
+  }, [user, pendingSave, savePreparedIntent, saving])
+
+  const openLoginPrompt = useCallback(() => setLoginPromptOpen(true), [])
+  const dismissLoginPrompt = useCallback(() => {
+    setPendingSave(null)
+    setLoginPromptOpen(false)
+  }, [])
 
   // Clear any save error when the target word changes.
   useEffect(() => {
@@ -141,14 +231,15 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
 
   return {
     wordToSave,
-    pendingSaveWord,
+    pendingSaveWord: pendingSave?.word ?? '',
     savedWord,
     saveError,
     saving,
     alreadySaved,
     saveLabel,
     loginPromptOpen,
-    setLoginPromptOpen,
+    openLoginPrompt,
+    dismissLoginPrompt,
     handleSaveClick,
     quizPromptOpen,
     setQuizPromptOpen,

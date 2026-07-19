@@ -19,20 +19,22 @@
 //           QUIZ_FROM (default PopDict <quiz@mail.popdict.space>)
 
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.108.2'
 import {
   bearerToken,
+  answerRouteAllowsQuestion,
   buildExercise,
   buildDigestEmailHtml,
   buildSessionCards,
-  leitnerNext,
+  eligibleStudyEntries,
   masteryBuckets,
-  nextStreak,
+  revealedMaterialFromStudyMaterial,
+  validateRevealedMaterial,
   type Question,
   type QuestionWithId,
+  type QuizAnswerRoute,
   type ReviewRow,
   type SavedWordRow,
-  selectDueWords,
   type SessionCard,
 } from './lib.ts'
 import { validateStudyMaterial, type StudyMaterial } from './materials.ts'
@@ -90,17 +92,17 @@ async function prepareEntries(
   db: ReturnType<typeof admin>,
   userId: string,
   now: Date
-): Promise<{ pending: PendingEntry[]; reviews: ReviewRow[] }> {
+): Promise<{ pending: PendingEntry[]; reviews: ReviewRow[]; saved: SavedWordRow[] }> {
   const [{ data: saved }, { data: reviews }] = await Promise.all([
-    db.from('saved_words').select('word, normalized_word, created_at').eq('user_id', userId),
+    db.from('saved_words')
+      .select('word, normalized_word, created_at, definition, example, synonyms, antonyms')
+      .eq('user_id', userId),
     db.from('word_reviews').select('normalized_word, box, next_due_at').eq('user_id', userId),
   ])
   const reviewRows = (reviews ?? []) as ReviewRow[]
-  const candidates = selectDueWords((saved ?? []) as SavedWordRow[], reviewRows, now)
-  if (candidates.length === 0) return { pending: [], reviews: reviewRows }
-
-  const reviewByWord = new Map(reviewRows.map((r) => [r.normalized_word, r]))
-  const words = candidates.map((c) => c.normalized_word)
+  const savedRows = (saved ?? []) as SavedWordRow[]
+  if (savedRows.length === 0) return { pending: [], reviews: reviewRows, saved: savedRows }
+  const words = savedRows.map((candidate) => candidate.normalized_word)
   const { data: cached } = await db
     .from('word_study_materials')
     .select('word, definition, examples, similar, recognition_distractors, cloze')
@@ -110,17 +112,18 @@ async function prepareEntries(
     const m = validateStudyMaterial(row.word, row)
     if (m) materials.set(row.word, m)
   }
-  const pending: PendingEntry[] = candidates
-    .filter((c) => materials.has(c.normalized_word))
-    .map((c) => {
-      const box = reviewByWord.get(c.normalized_word)?.box ?? 1
-      return {
-        box,
-        material: materials.get(c.normalized_word)!,
-        question: buildExercise(c, materials.get(c.normalized_word)!, box, Math.random),
-      }
-    })
-  return { pending, reviews: reviewRows }
+  const pending: PendingEntry[] = eligibleStudyEntries(
+    savedRows,
+    reviewRows,
+    materials,
+    now,
+    8
+  ).map(({ candidate, material, box }) => ({
+    box,
+    material,
+    question: buildExercise(candidate, material, box, Math.random),
+  }))
+  return { pending, reviews: reviewRows, saved: savedRows }
 }
 
 // Persist a quiz + its questions, attaching the db-generated question ids (each
@@ -145,6 +148,7 @@ async function persistQuiz(
       normalized_word: e.question.normalized_word,
       options: e.question.options,
       correct_index: e.question.correct_index,
+      material: revealedMaterialFromStudyMaterial(e.material),
     })))
     .select('id, normalized_word')
   if (qError || !inserted) {
@@ -174,11 +178,57 @@ async function requireUser(db: ReturnType<typeof admin>, req: Request): Promise<
   return userId
 }
 
+async function questionMatchesAnswerRoute(
+  db: ReturnType<typeof admin>,
+  questionId: string,
+  route: QuizAnswerRoute,
+  requestUserId: string | null,
+): Promise<boolean> {
+  const { data: question, error: questionError } = await db
+    .from('quiz_questions')
+    .select('quiz_id, user_id')
+    .eq('id', questionId)
+    .maybeSingle()
+  if (questionError || !question) return false
+  const { data: quiz, error: quizError } = await db
+    .from('quizzes')
+    .select('source')
+    .eq('id', question.quiz_id)
+    .maybeSingle()
+  if (quizError || !quiz) return false
+  return answerRouteAllowsQuestion({
+    route,
+    quizSource: quiz.source,
+    requestUserId,
+    questionUserId: question.user_id,
+  })
+}
+
 // Study card for the in-app reveal (definition/examples/similar only).
 async function fetchMaterial(
   db: ReturnType<typeof admin>,
+  userId: string,
   normalizedWord: string
 ): Promise<{ definition: string; examples: string[]; similar: { phrase: string; nuance: string }[] } | null> {
+  const { data: saved } = await db
+    .from('saved_words')
+    .select('definition, example, synonyms, antonyms')
+    .eq('user_id', userId).eq('normalized_word', normalizedWord).maybeSingle()
+  if (typeof saved?.definition === 'string' && saved.definition.trim()) {
+    const similar = [
+      ...(Array.isArray(saved.synonyms) ? saved.synonyms : [])
+        .filter((word: unknown): word is string => typeof word === 'string')
+        .map((phrase: string) => ({ phrase, nuance: 'related word' })),
+      ...(Array.isArray(saved.antonyms) ? saved.antonyms : [])
+        .filter((word: unknown): word is string => typeof word === 'string')
+        .map((phrase: string) => ({ phrase, nuance: 'opposite' })),
+    ].slice(0, 3)
+    return {
+      definition: saved.definition,
+      examples: typeof saved.example === 'string' && saved.example.trim() ? [saved.example] : [],
+      similar,
+    }
+  }
   const { data: material } = await db
     .from('word_study_materials')
     .select('word, definition, examples, similar, recognition_distractors, cloze')
@@ -193,75 +243,53 @@ async function applyAnswer(
   db: ReturnType<typeof admin>,
   q: string,
   c: number,
-  touchStreak: boolean
-): Promise<{ status: number; payload: Record<string, unknown>; normalizedWord?: string }> {
-  const now = new Date()
-  const { data: question } = await db
-    .from('quiz_questions')
-    .select('id, quiz_id, user_id, word, normalized_word, options, correct_index, chosen_index, answered_at')
-    .eq('id', q).maybeSingle()
-  if (!question) return { status: 404, payload: { error: 'not_found' } }
-
-  const { data: pref } = await db
-    .from('quiz_preferences').select('streak').eq('user_id', question.user_id).maybeSingle()
-  let streak = pref?.streak ?? 0
-
-  if (question.answered_at) {
-    return {
-      status: 200,
-      normalizedWord: question.normalized_word,
-      payload: {
-        word: question.word,
-        correct: question.chosen_index === question.correct_index,
-        correctAnswer: question.options[question.correct_index],
-        streak,
-        alreadyAnswered: true,
-      },
-    }
+): Promise<{
+  status: number
+  payload: Record<string, unknown>
+  normalizedWord?: string
+  userId?: string
+  material?: unknown
+}> {
+  const { data, error } = await db.rpc('record_quiz_answer', {
+    p_question_id: q,
+    p_choice: c,
+    // Retained only for compatibility with the deployed RPC signature. The
+    // database derives streak behavior from the persisted quiz source.
+    p_touch_streak: false,
+  })
+  if (error) {
+    console.error('record quiz answer failed', error)
+    return { status: 500, payload: { error: 'answer_not_saved' } }
   }
-
-  const correct = c === question.correct_index
-  await db.from('quiz_questions')
-    .update({ chosen_index: c, answered_at: now.toISOString() }).eq('id', question.id)
-
-  const { data: review } = await db
-    .from('word_reviews').select('box')
-    .eq('user_id', question.user_id).eq('normalized_word', question.normalized_word).maybeSingle()
-  const next = leitnerNext(review?.box ?? 1, correct)
-  await db.from('word_reviews').upsert({
-    user_id: question.user_id,
-    normalized_word: question.normalized_word,
-    box: next.box,
-    next_due_at: new Date(now.getTime() + next.days * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: now.toISOString(),
-  }, { onConflict: 'user_id,normalized_word' })
-
-  const { data: quiz } = await db
-    .from('quizzes').select('id, sent_at, answered_at').eq('id', question.quiz_id).single()
-  if (quiz && !quiz.answered_at) {
-    await db.from('quizzes').update({ answered_at: now.toISOString() }).eq('id', quiz.id)
-    if (touchStreak) {
-      const { data: prev } = await db
-        .from('quizzes').select('answered_at')
-        .eq('user_id', question.user_id)
-        .eq('source', 'email')
-        .lt('sent_at', quiz.sent_at)
-        .order('sent_at', { ascending: false })
-        .limit(1).maybeSingle()
-      streak = nextStreak(prev ? Boolean(prev.answered_at) : null, streak)
-      await db.from('quiz_preferences').update({ streak, updated_at: now.toISOString() }).eq('user_id', question.user_id)
-    }
-  }
-
+  const result = data as {
+    found?: boolean
+    word?: unknown
+    normalizedWord?: unknown
+    userId?: unknown
+    correct?: unknown
+    correctAnswer?: unknown
+    streak?: unknown
+    alreadyAnswered?: unknown
+    material?: unknown
+  } | null
+  if (!result?.found) return { status: 404, payload: { error: 'not_found' } }
+  if (
+    typeof result.word !== 'string' || typeof result.normalizedWord !== 'string' ||
+    typeof result.userId !== 'string' || typeof result.correct !== 'boolean' ||
+    typeof result.correctAnswer !== 'string' || !Number.isInteger(result.streak) ||
+    typeof result.alreadyAnswered !== 'boolean'
+  ) return { status: 500, payload: { error: 'invalid_answer_result' } }
   return {
     status: 200,
-    normalizedWord: question.normalized_word,
+    normalizedWord: result.normalizedWord,
+    userId: result.userId,
+    material: result.material,
     payload: {
-      word: question.word,
-      correct,
-      correctAnswer: question.options[question.correct_index],
-      streak,
-      alreadyAnswered: false,
+      word: result.word,
+      correct: result.correct,
+      correctAnswer: result.correctAnswer,
+      streak: result.streak,
+      alreadyAnswered: result.alreadyAnswered,
     },
   }
 }
@@ -288,22 +316,25 @@ async function handleCount(req: Request): Promise<Response> {
   const db = admin()
   const uid = await requireUser(db, req)
   if (typeof uid !== 'string') return uid
-  const [{ data: saved }, { data: reviews }] = await Promise.all([
-    db.from('saved_words').select('word, normalized_word, created_at').eq('user_id', uid),
-    db.from('word_reviews').select('normalized_word, box, next_due_at').eq('user_id', uid),
-  ])
-  const due = selectDueWords((saved ?? []) as SavedWordRow[], (reviews ?? []) as ReviewRow[], new Date())
-  return json({ due: due.length })
+  const { pending } = await prepareEntries(db, uid, new Date())
+  return json({ due: pending.length })
 }
 
-async function handleAnswerPost(body: { q?: unknown; c?: unknown }): Promise<Response> {
+async function handleAnswerPost(req: Request, body: { q?: unknown; c?: unknown }): Promise<Response> {
   const q = typeof body.q === 'string' ? body.q : ''
   const c = typeof body.c === 'number' ? body.c : Number(body.c)
   if (!UUID_RE.test(q) || !Number.isInteger(c) || c < 0 || c > 3) return json({ error: 'bad_request' }, 400)
   const db = admin()
-  const r = await applyAnswer(db, q, c, false)
+  const uid = await requireUser(db, req)
+  if (typeof uid !== 'string') return uid
+  if (!await questionMatchesAnswerRoute(db, q, 'app', uid)) {
+    return json({ error: 'not_found' }, 404)
+  }
+  const r = await applyAnswer(db, q, c)
   if (r.status !== 200) return json(r.payload, r.status)
-  const material = r.normalizedWord ? await fetchMaterial(db, r.normalizedWord) : null
+  const material = validateRevealedMaterial(r.material) ?? (
+    r.normalizedWord && r.userId ? await fetchMaterial(db, r.userId, r.normalizedWord) : null
+  )
   return json({ ...r.payload, material })
 }
 
@@ -328,7 +359,7 @@ async function handleSend(req: Request): Promise<Response> {
   let skipped = 0
   for (const pref of duePrefs ?? []) {
     try {
-      const { pending, reviews } = await prepareEntries(db, pref.user_id, now)
+      const { pending, reviews, saved } = await prepareEntries(db, pref.user_id, now)
       if (pending.length < 2) { skipped++; continue }
 
       const { data: userRes, error: userError } = await db.auth.admin.getUserById(pref.user_id)
@@ -345,7 +376,7 @@ async function handleSend(req: Request): Promise<Response> {
       const html = buildDigestEmailHtml({
         entries: built.entries,
         streak: pref.streak ?? 0,
-        buckets: masteryBuckets(reviews),
+        buckets: masteryBuckets(saved, reviews),
         linkBase: linkBase(),
         unsubscribeUrl,
       })
@@ -379,7 +410,10 @@ async function handleAnswer(url: URL): Promise<Response> {
     return json({ error: 'bad_request' }, 400)
   }
   const db = admin()
-  const r = await applyAnswer(db, q, c, true)
+  if (!await questionMatchesAnswerRoute(db, q, 'email', null)) {
+    return json({ error: 'not_found' }, 404)
+  }
+  const r = await applyAnswer(db, q, c)
   return json(r.payload, r.status)
 }
 
@@ -389,24 +423,21 @@ async function handleReview(url: URL): Promise<Response> {
   const db = admin()
   const { data: question } = await db
     .from('quiz_questions')
-    .select('id, user_id, word, normalized_word, options, correct_index, chosen_index, answered_at')
+    .select('id, user_id, word, normalized_word, options, correct_index, chosen_index, answered_at, material')
     .eq('id', q)
     .maybeSingle()
   if (!question || !question.answered_at) return json({ error: 'not_found' }, 404)
 
-  const [{ data: material }, { data: pref }] = await Promise.all([
-    db.from('word_study_materials')
-      .select('word, definition, examples, similar, recognition_distractors, cloze')
-      .eq('word', question.normalized_word).maybeSingle(),
+  const [fallbackMaterial, { data: pref }] = await Promise.all([
+    question.material ? Promise.resolve(null) : fetchMaterial(db, question.user_id, question.normalized_word),
     db.from('quiz_preferences').select('streak').eq('user_id', question.user_id).maybeSingle(),
   ])
-  const m = material ? validateStudyMaterial(material.word, material) : null
   return json({
     word: question.word,
     correct: question.chosen_index === question.correct_index,
     correctAnswer: question.options[question.correct_index],
     streak: pref?.streak ?? 0,
-    material: m ? { definition: m.definition, examples: m.examples, similar: m.similar } : null,
+    material: validateRevealedMaterial(question.material) ?? fallbackMaterial,
   })
 }
 
@@ -429,7 +460,7 @@ Deno.serve(async (req: Request) => {
       if (body.action === 'send') return await handleSend(req)
       if (body.action === 'session') return await handleSession(req)
       if (body.action === 'count') return await handleCount(req)
-      if (body.action === 'answer') return await handleAnswerPost(body)
+      if (body.action === 'answer') return await handleAnswerPost(req, body)
       return json({ error: 'unknown action' }, 400)
     }
     if (req.method === 'GET') {

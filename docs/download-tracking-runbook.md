@@ -8,7 +8,7 @@
     gateway JWT check must be disabled or every request 401s at the gateway.)
 3. Set function secrets (values NOT in this repo):
    `supabase secrets set GITHUB_REPO=onlycastle/popdict DOWNLOADS_RECORD_TOKEN=<rec> DOWNLOADS_STATS_TOKEN=<admin>`
-   Optional Slack notifications for each successful website download record:
+   Optional Slack notifications for each successful website redirect record:
    `supabase secrets set SLACK_DOWNLOAD_WEBHOOK_URL=https://hooks.slack.com/services/...`
    (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are provided to functions automatically.)
 4. Set Vercel (site) env for Production:
@@ -45,11 +45,21 @@ Or open the private dashboard:
 It is protected by HTTP Basic Auth with `DOWNLOADS_DASHBOARD_USER` and
 `DOWNLOADS_DASHBOARD_PASSWORD`.
 
+Interpret the dashboard as a funnel, not an additive total:
+
+- **GitHub DMG deliveries** are the canonical human-download metric.
+- **Website redirects** are download intent. A redirect normally ends in one of
+  the GitHub DMG deliveries, so the two numbers must never be added.
+- **Updater ZIP deliveries** are automatic-update traffic and remain separate.
+- `source` and `cta` tags explain which link initiated a website redirect. The
+  landing page tags `nav`, `hero`, and `closing`; the GitHub README tags
+  `source=github&cta=readme`.
+
 ## Notes
 
 - `stats` is ≤24h stale by design (reads the latest daily snapshot, not live GitHub).
 - The cron runs daily at 06:00 UTC (`site/vercel.json` → crons). Hobby plan allows daily.
 - `record` is best-effort; a site outage loses events but never breaks downloads.
-- Slack download notifications are opt-in via the `SLACK_DOWNLOAD_WEBHOOK_URL`
+- Slack download-redirect notifications are opt-in via the `SLACK_DOWNLOAD_WEBHOOK_URL`
   function secret. Notification failures are logged and ignored after the event is
   stored, so Slack outages do not break download tracking.

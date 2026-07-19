@@ -22,10 +22,7 @@ describe('TranslationCard', () => {
     expect(html).toContain(wiktionaryEntryUrl('bank'))
   })
 
-  it('renders sign-in gating and a retry action for failures', () => {
-    expect(renderToStaticMarkup(
-      <TranslationCard language="ko" word="bank" state="gated" onSignIn={() => undefined} />
-    )).toContain('Sign in to see translations')
+  it('renders a retry action for failures without sign-in gating', () => {
     expect(renderToStaticMarkup(
       <TranslationCard language="ko" word="bank" state="error" onRetry={() => undefined} />
     )).toContain('Retry')

@@ -1,15 +1,20 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import {
+  answerRouteAllowsQuestion,
   bearerToken,
   blankWord,
   buildDigestEmailHtml,
   buildExercise,
   buildSessionCards,
+  revealedMaterialFromStudyMaterial,
+  validateRevealedMaterial,
   escapeHtml,
+  eligibleStudyEntries,
   leitnerNext,
   masteryBuckets,
   nextStreak,
   selectDueWords,
+  studyMaterialFromSnapshot,
 } from './lib.ts'
 
 function seededRng(seed = 1): () => number {
@@ -62,6 +67,19 @@ Deno.test('nextStreak: continues on answered-previous or first quiz, resets on s
   assertEquals(nextStreak(false, 3), 1)  // previous quiz ignored
 })
 
+Deno.test('revealed material is snapshotted and malformed snapshots fail closed', () => {
+  const material = {
+    definition: 'A financial institution.',
+    examples: ['She visited the bank.'],
+    similar: [{ phrase: 'lender', nuance: 'related word' }],
+    recognition_distractors: ['a road', 'a meal', 'a fabric'],
+    cloze: { sentence: 'She visited the bank.', distractors: ['shop', 'park', 'school'] },
+  }
+  const snapshot = revealedMaterialFromStudyMaterial(material)
+  assertEquals(validateRevealedMaterial(snapshot), snapshot)
+  assertEquals(validateRevealedMaterial({ ...snapshot, examples: [null] }), null)
+})
+
 
 Deno.test('box 1-2 builds a recognition question with the definition as the answer', () => {
   const material = {
@@ -95,6 +113,41 @@ Deno.test('box 3+ builds a cloze with the word as the answer and a blanked promp
   assert(!q.prompt.toLowerCase().includes('delight'))
 })
 
+Deno.test('snapshot material uses other enriched saved words as deterministic distractors', () => {
+  const saved = [
+    { word: 'Bank', normalized_word: 'bank', created_at: '2026-07-01T00:00:00Z', definition: 'A financial institution.', example: 'I visited the bank.', synonyms: ['lender'] },
+    { word: 'Apple', normalized_word: 'apple', created_at: '', definition: 'A fruit.' },
+    { word: 'Bus', normalized_word: 'bus', created_at: '', definition: 'A road vehicle.' },
+    { word: 'Cloud', normalized_word: 'cloud', created_at: '', definition: 'Visible water droplets.' },
+  ]
+  const material = studyMaterialFromSnapshot(saved[0], saved)
+  assertEquals(material?.recognition_distractors, ['A fruit.', 'A road vehicle.', 'Visible water droplets.'])
+  assertEquals(material?.cloze.distractors, ['Apple', 'Bus', 'Cloud'])
+})
+
+Deno.test('box 3+ falls back to recognition when cloze is not whole-word valid', () => {
+  const material = {
+    definition: 'great pleasure', examples: ['A delightful day.'], similar: [],
+    recognition_distractors: ['fear', 'contract', 'light'],
+    cloze: { sentence: 'A delightful day.', distractors: ['fear', 'work', 'play'] },
+  }
+  const saved = { word: 'delight', normalized_word: 'delight', created_at: '' }
+  assertEquals(buildExercise(saved, material, 4, seededRng()).kind, 'recognition')
+})
+
+Deno.test('count/session eligibility is shared, skips ineligible due words, and caps at eight', () => {
+  const saved = Array.from({ length: 12 }, (_, index) => ({
+    word: `Word${index}`,
+    normalized_word: `word${index}`,
+    created_at: '2026-06-01T00:00:00Z',
+    definition: index === 0 ? null : `Definition ${index}`,
+    example: `This uses Word${index}.`,
+  }))
+  const entries = eligibleStudyEntries(saved, [], new Map(), NOW)
+  assertEquals(entries.length, 8)
+  assert(!entries.some((entry) => entry.candidate.normalized_word === 'word0'))
+})
+
 Deno.test('blankWord blanks case-insensitively and only whole words', () => {
   assertEquals(blankWord('A Delight, delightful day of delight.', 'delight'), 'A ____, delightful day of ____.')
 })
@@ -103,9 +156,18 @@ Deno.test('escapeHtml covers the five specials', () => {
   assertEquals(escapeHtml(`<a href="x">&'`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;')
 })
 
-Deno.test('masteryBuckets groups boxes 1-2 / 3-4 / 5', () => {
-  const r = (box: number) => ({ normalized_word: `w${box}`, box, next_due_at: '2026-07-01T00:00:00Z' })
-  assertEquals(masteryBuckets([r(1), r(2), r(3), r(5)]), { new: 2, learning: 1, mastered: 1 })
+Deno.test('masteryBuckets matches Saved Words: unreviewed / boxes 1-4 / box 5', () => {
+  const saved = [0, 1, 2, 3, 5].map((box) => ({
+    word: `w${box}`,
+    normalized_word: `w${box}`,
+    created_at: '2026-07-01T00:00:00Z',
+  }))
+  const reviews = [1, 2, 3, 5].map((box) => ({
+    normalized_word: `w${box}`,
+    box,
+    next_due_at: '2026-07-01T00:00:00Z',
+  }))
+  assertEquals(masteryBuckets(saved, reviews), { new: 1, learning: 3, mastered: 1 })
 })
 
 Deno.test('digest email renders card, exercise, escaped HTML, and answer links', () => {
@@ -196,4 +258,22 @@ Deno.test('bearerToken extracts the token or returns null', () => {
   assertEquals(bearerToken(null), null)
   assertEquals(bearerToken('Basic zzz'), null)
   assertEquals(bearerToken('Bearer    '), null)
+})
+
+Deno.test('answer routes accept only their persisted quiz source', () => {
+  assert(answerRouteAllowsQuestion({
+    route: 'email', quizSource: 'email', requestUserId: null, questionUserId: 'user-1',
+  }))
+  assert(!answerRouteAllowsQuestion({
+    route: 'email', quizSource: 'app', requestUserId: null, questionUserId: 'user-1',
+  }))
+  assert(answerRouteAllowsQuestion({
+    route: 'app', quizSource: 'app', requestUserId: 'user-1', questionUserId: 'user-1',
+  }))
+  assert(!answerRouteAllowsQuestion({
+    route: 'app', quizSource: 'email', requestUserId: 'user-1', questionUserId: 'user-1',
+  }))
+  assert(!answerRouteAllowsQuestion({
+    route: 'app', quizSource: 'app', requestUserId: 'user-2', questionUserId: 'user-1',
+  }))
 })

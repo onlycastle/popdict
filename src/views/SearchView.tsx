@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import FeedbackDialog from '../components/FeedbackDialog'
+import FeedbackNudge from '../components/FeedbackNudge'
 import LoginModal from '../components/LoginModal'
 import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import ReviewChip from '../components/ReviewChip'
@@ -13,47 +14,67 @@ import { shouldShowSignInNudge } from '../components/signInNudge'
 import WindowControls from '../components/WindowControls'
 import { useDictionarySearch } from '../hooks/useDictionarySearch'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
-import { useSaveWord } from '../hooks/useSaveWord'
+import { translationIsSettledForSave, useSaveWord } from '../hooks/useSaveWord'
 import { useTranslations } from '../hooks/useTranslations'
 import type { AppSettings } from '../types/electron'
-import { normalizeEnglishWord } from '../../shared/language'
-import {
-  shouldCloseTranslationLoginPrompt,
-  type LoginPromptPurpose,
-} from './loginPrompt'
+import { normalizeEnglishWord, type WordTranslation } from '../../shared/language'
 import { handleSearchWindowFocus } from './searchFocus'
+import { productAnalytics } from '../services/ProductAnalytics'
+import { QuizSessionService } from '../services/QuizSessionService'
+import { handleLookupSelection } from './lookupSelection'
 import '../App.css'
 
 // The login modal is absolutely positioned, so it contributes no layout height
 // for the ResizeObserver to measure — give it a fixed window height instead.
 const LOGIN_MODAL_HEIGHT = 440
 const FEEDBACK_MODAL_HEIGHT = 520
+const quizSessions = new QuizSessionService()
 
 export default function SearchView() {
   const [query, setQuery] = useState('')
-  const { response, loading, error, triggerSearch, searchedTerm } = useDictionarySearch(query)
+  const {
+    response,
+    loading,
+    failure,
+    recoverySuggestions,
+    cachedLookup,
+    triggerSearch,
+    searchedTerm,
+  } = useDictionarySearch(query)
   const auth = useSupabaseAuth()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [loginPromptPurpose, setLoginPromptPurpose] = useState<LoginPromptPurpose>('save')
+  const [feedbackNudgeOpen, setFeedbackNudgeOpen] = useState(false)
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const translationLanguage = settings?.translationLanguage ?? null
   const canonicalWord = normalizeEnglishWord(response?.dictionaryResults?.[0]?.word ?? '')
   const translationEligible = Boolean(
-    response && !loading && !error && canonicalWord && translationLanguage
+    response && !loading && !failure && canonicalWord && translationLanguage
   )
+  const cacheResolvedTranslations = useCallback((resolved: WordTranslation[]) => {
+    if (!response || response.provenance !== 'live' || !translationLanguage || !searchedTerm) return
+    void window.electronAPI?.writeLookupCache({
+      query: searchedTerm,
+      response,
+      translationLanguage,
+      translations: resolved,
+    })
+  }, [response, searchedTerm, translationLanguage])
   const translations = useTranslations({
     word: canonicalWord ?? '',
     language: translationLanguage,
-    enabled: translationEligible && Boolean(auth.user),
+    enabled: translationEligible,
+    cachedTranslations: translationLanguage
+      ? cachedLookup?.translations[translationLanguage]
+      : undefined,
+    cachedOnly: response?.provenance === 'cache',
+    onResolved: cacheResolvedTranslations,
   })
   const translationPanel = translationPanelState({
     language: translationLanguage,
     canonicalWord,
-    authLoading: auth.loading,
-    signedIn: Boolean(auth.user),
     lookupStatus: translations.status,
   })
 
@@ -66,12 +87,22 @@ export default function SearchView() {
     alreadySaved,
     saveLabel,
     loginPromptOpen,
-    setLoginPromptOpen,
+    openLoginPrompt,
+    dismissLoginPrompt,
     handleSaveClick,
     quizPromptOpen,
     enableQuizEmails,
     dismissQuizPrompt,
-  } = useSaveWord({ user: auth.user, response, searchedTerm, query })
+  } = useSaveWord({
+    user: auth.user,
+    response,
+    searchedTerm,
+    query,
+    translationLanguage,
+    translationStatus: translations.status,
+    translationRequired: translationEligible,
+    translations: translations.translations,
+  })
 
   const refreshSettings = useCallback(() => {
     void window.electronAPI?.getSettings().then(setSettings)
@@ -82,15 +113,13 @@ export default function SearchView() {
     refreshSettings()
   }, [refreshSettings])
 
-  useEffect(() => {
-    if (shouldCloseTranslationLoginPrompt({
-      open: loginPromptOpen,
-      purpose: loginPromptPurpose,
-      signedIn: Boolean(auth.user),
-    })) {
-      setLoginPromptOpen(false)
-    }
-  }, [auth.user, loginPromptOpen, loginPromptPurpose, setLoginPromptOpen])
+  useEffect(() => window.electronAPI.onReminderDueCountRequest((nonce) => {
+    void quizSessions.dueCount().then((count) => {
+      window.electronAPI.sendReminderDueCount(nonce, count)
+    }, () => {
+      window.electronAPI.sendReminderDueCount(nonce, 0)
+    })
+  }), [])
 
   const dismissSignInNudge = useCallback(() => {
     const dismissedAt = Date.now()
@@ -101,10 +130,18 @@ export default function SearchView() {
   // Record the term that produced the current result (not the live query,
   // which runs ahead of the debounced search).
   useEffect(() => {
-    if (response && !error && searchedTerm) {
+    if (response && !failure && searchedTerm) {
       window.electronAPI?.addHistory(searchedTerm).then(setHistory)
+      void productAnalytics.track('lookup_success')
+      if (response.provenance === 'cache') void productAnalytics.track('offline_cache_hit')
+      if (response.source === 'kaikki-phrases' || response.source === 'combined') {
+        void productAnalytics.track('phrase_lookup_success')
+      }
+      void window.electronAPI?.recordLookupSuccess().then((count) => {
+        if (count === 3) setFeedbackNudgeOpen(true)
+      })
     }
-  }, [response, error, searchedTerm])
+  }, [response, failure, searchedTerm])
 
   // Focus search input when window is shown
   useEffect(() => {
@@ -135,7 +172,7 @@ export default function SearchView() {
           return
         }
         if (loginPromptOpen) {
-          setLoginPromptOpen(false)
+          dismissLoginPrompt()
           return
         }
         if (feedbackOpen) {
@@ -150,7 +187,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [feedbackOpen, loginPromptOpen, setLoginPromptOpen, quizPromptOpen, dismissQuizPrompt])
+  }, [feedbackOpen, loginPromptOpen, quizPromptOpen, dismissLoginPrompt, dismissQuizPrompt])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -231,13 +268,26 @@ export default function SearchView() {
               <SearchResults
                 response={response}
                 loading={loading}
-                error={error}
+                failure={failure}
                 query={query}
-                onSave={response && !loading && !error ? () => {
-                  setLoginPromptPurpose('save')
-                  void handleSaveClick()
-                } : undefined}
-                saveDisabled={saving || alreadySaved}
+                recoverySuggestions={recoverySuggestions}
+                onRecoveryLookup={(word) => handleLookupSelection('recovery', word, {
+                  setQuery,
+                  focusSearch: () => searchInputRef.current?.focus(),
+                  trackRecovery: () => { void productAnalytics.track('lookup_recovery_used') },
+                })}
+                onRelatedLookup={(word) => handleLookupSelection('related', word, {
+                  setQuery,
+                  focusSearch: () => searchInputRef.current?.focus(),
+                  trackRecovery: () => { void productAnalytics.track('lookup_recovery_used') },
+                })}
+                onRetry={triggerSearch}
+                onSave={response && !loading && !failure ? () => void handleSaveClick() : undefined}
+                saveDisabled={saving || alreadySaved || !translationIsSettledForSave(
+                  translationLanguage,
+                  translations.status,
+                  translationEligible,
+                )}
                 saveFeedback={
                   saveError || (savedWord.toLowerCase() === wordToSave.toLowerCase() ? 'Saved' : '')
                 }
@@ -248,17 +298,7 @@ export default function SearchView() {
           </AnimatePresence>
 
           {translationPanel !== 'hidden' && translationLanguage && canonicalWord && (
-            translationPanel === 'gated' ? (
-              <TranslationCard
-                language={translationLanguage}
-                word={canonicalWord}
-                state="gated"
-                onSignIn={() => {
-                  setLoginPromptPurpose('translate')
-                  setLoginPromptOpen(true)
-                }}
-              />
-            ) : translations.status !== 'empty' && translations.status !== 'idle' ? (
+            translations.status !== 'empty' && translations.status !== 'idle' ? (
               <TranslationCard
                 language={translationLanguage}
                 word={canonicalWord}
@@ -281,10 +321,7 @@ export default function SearchView() {
               >
                 {showSignInNudge ? (
                   <SignInChip
-                    onSignIn={() => {
-                      setLoginPromptPurpose('save')
-                      setLoginPromptOpen(true)
-                    }}
+                    onSignIn={openLoginPrompt}
                     onDismiss={dismissSignInNudge}
                   />
                 ) : (
@@ -334,19 +371,25 @@ export default function SearchView() {
             )}
           </AnimatePresence>
 
+          {feedbackNudgeOpen && !feedbackOpen && (
+            <FeedbackNudge
+              onDismiss={() => setFeedbackNudgeOpen(false)}
+              onShare={() => {
+                setFeedbackNudgeOpen(false)
+                setFeedbackOpen(true)
+              }}
+            />
+          )}
+
           <LoginModal
             configured={auth.configured}
             error={auth.error || saveError}
             loading={auth.loading || saving}
             message={auth.message}
-            onClose={() => setLoginPromptOpen(false)}
+            onClose={dismissLoginPrompt}
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
-            purpose={loginPromptPurpose}
-            translationLanguage={translationLanguage}
-            word={loginPromptPurpose === 'translate'
-              ? canonicalWord ?? query.trim()
-              : pendingSaveWord || wordToSave}
+            word={pendingSaveWord || wordToSave}
           />
 
           <QuizOptInPrompt

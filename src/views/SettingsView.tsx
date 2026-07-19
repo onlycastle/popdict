@@ -5,6 +5,8 @@ import FeedbackDialog from '../components/FeedbackDialog'
 import HotkeyField from '../components/HotkeyField'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
 import { TARGET_LANGUAGE_OPTIONS } from '../../shared/language'
+import { productAnalytics } from '../services/ProductAnalytics'
+import type { ReviewReminderSettings } from '../../shared/reminders'
 
 export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -54,6 +56,7 @@ export default function SettingsView() {
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
     window.electronAPI.getAppVersion().then(setVersion)
+    return window.electronAPI.onOpenFeedback(() => setFeedbackOpen(true))
   }, [])
 
   if (!settings)
@@ -66,6 +69,13 @@ export default function SettingsView() {
 
   const update = (patch: Partial<AppSettings>) =>
     window.electronAPI.setSettings(patch).then(setSettings)
+  const updateReminder = (patch: Partial<ReviewReminderSettings>) => {
+    const next = { ...settings.reviewReminders, ...patch }
+    if (settings.reviewReminders.cadence === 'off' && next.cadence !== 'off') {
+      void productAnalytics.track('review_reminder_enabled')
+    }
+    return update({ reviewReminders: next })
+  }
   const accountName =
     auth.user?.user_metadata?.full_name ??
     auth.user?.user_metadata?.name ??
@@ -132,7 +142,7 @@ export default function SettingsView() {
             ))}
           </select>
           <p className="text-xs text-white/45">
-            Signed-in users see up to three Wiktionary equivalents. The app interface stays in English.
+            Everyone sees up to three Wiktionary equivalents. The app interface stays in English.
           </p>
         </section>
 
@@ -152,6 +162,66 @@ export default function SettingsView() {
           </section>
         )}
 
+        <section className="space-y-3 border-b border-white/10 pb-5">
+          <div>
+            <h2 className="dict-label mb-1.5">Local review reminders</h2>
+            <p className="text-xs text-white/45">
+              PopDict must be running for reminders to fire. Launch at Login keeps it available.
+            </p>
+          </div>
+          {!settings.notificationsSupported && (
+            <p className="notice">Notifications are not supported on this Mac.</p>
+          )}
+          <label className="block space-y-1">
+            <span className="text-xs text-white/60">Cadence</span>
+            <select
+              className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80"
+              value={settings.reviewReminders.cadence}
+              onChange={(event) => void updateReminder({
+                cadence: event.target.value as ReviewReminderSettings['cadence'],
+              })}
+            >
+              <option value="off">Off</option>
+              <option value="daily">Daily</option>
+              <option value="three-weekly">Three times weekly (Mon/Wed/Fri)</option>
+              <option value="weekly">Weekly (Monday)</option>
+            </select>
+          </label>
+          {settings.reviewReminders.cadence !== 'off' && (
+            <>
+              <label className="block space-y-1">
+                <span className="text-xs text-white/60">Reminder time</span>
+                <input
+                  type="time"
+                  value={settings.reviewReminders.time}
+                  onChange={(event) => void updateReminder({ time: event.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block space-y-1">
+                  <span className="text-xs text-white/60">Quiet hours start</span>
+                  <input
+                    type="time"
+                    value={settings.reviewReminders.quietStart}
+                    onChange={(event) => void updateReminder({ quietStart: event.target.value })}
+                    className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80"
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-xs text-white/60">Quiet hours end</span>
+                  <input
+                    type="time"
+                    value={settings.reviewReminders.quietEnd}
+                    onChange={(event) => void updateReminder({ quietEnd: event.target.value })}
+                    className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80"
+                  />
+                </label>
+              </div>
+            </>
+          )}
+        </section>
+
         <HotkeyField
           value={settings.hotkey}
           onChange={(hotkey) => setSettings((s) => (s ? { ...s, hotkey } : s))}
@@ -166,12 +236,28 @@ export default function SettingsView() {
           <span className="text-sm text-white/80">Launch at login</span>
         </label>
 
+        <section className="space-y-2 border-t border-white/10 pt-5">
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={settings.analyticsEnabled}
+              onChange={(event) => update({ analyticsEnabled: event.target.checked })}
+            />
+            <span>
+              <span className="block text-sm text-white/80">Share anonymous product analytics</span>
+              <span className="mt-1 block text-xs text-white/45">
+                Sends allowlisted actions only—never lookup text, account identity, or saved words.
+              </span>
+            </span>
+          </label>
+        </section>
+
         <div className="flex items-center justify-between pt-2">
           <button
             onClick={() => window.electronAPI.clearHistory().then(() => setStatus('History cleared'))}
             className="text-sm text-white/70 underline"
           >
-            Clear search history
+            Clear recent lookups and offline cache
           </button>
           <button
             onClick={() => setFeedbackOpen(true)}

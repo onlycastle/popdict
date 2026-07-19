@@ -4,14 +4,12 @@ import { translationPanelState } from './translationPresentation'
 const base = {
   language: 'ko' as const,
   canonicalWord: 'bank',
-  authLoading: false,
-  signedIn: true,
   lookupStatus: 'ready' as const,
 }
 
 describe('translationPanelState', () => {
-  it('gates translations behind sign-in', () => {
-    expect(translationPanelState({ ...base, signedIn: false })).toBe('gated')
+  it('shows translations identically for signed-out lookups', () => {
+    expect(translationPanelState(base)).toBe('ready')
   })
 
   it('falls back silently when the dataset has no rows', () => {
@@ -22,8 +20,7 @@ describe('translationPanelState', () => {
     expect(translationPanelState({ ...base, lookupStatus: 'error' })).toBe('error')
   })
 
-  it('never shows for a phrase or while auth is unresolved', () => {
+  it('never shows when there is no canonical single word', () => {
     expect(translationPanelState({ ...base, canonicalWord: null })).toBe('hidden')
-    expect(translationPanelState({ ...base, authLoading: true })).toBe('hidden')
   })
 })

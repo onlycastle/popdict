@@ -33,6 +33,17 @@ Deno.test('rejects wrong distractor counts', () => {
   )
 })
 
+Deno.test('rejects duplicate distractors and distractors equal to the answer', () => {
+  assertEquals(validateStudyMaterial('delight', {
+    ...good,
+    recognition_distractors: [good.definition, 'one', 'one', 'two'],
+  }), null)
+  assertEquals(validateStudyMaterial('delight', {
+    ...good,
+    cloze: { ...good.cloze, distractors: ['delight', 'one', 'one', 'two'] },
+  }), null)
+})
+
 Deno.test('rejects a cloze sentence that does not contain the word', () => {
   assertEquals(
     validateStudyMaterial('delight', { ...good, cloze: { ...good.cloze, sentence: 'No target here.' } }),

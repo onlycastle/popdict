@@ -13,18 +13,23 @@ and save it for later without leaving the app you are reading in.
 
 ## Install
 
-[**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest) —
+[**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest?source=github&cta=readme) —
 signed, notarized, and auto-updating.
 
 ## Features
 
 - Global hotkey popup, defaulting to `CommandOrControl+Shift+Space`.
-- Optional select-to-lookup for highlighted text on macOS.
 - Free Dictionary API definitions with audio playback and text-to-speech fallback.
+- Licensed English phrase and idiom definitions from Wiktionary via Kaikki.
 - Google sign-in for saved words, backed by Supabase.
-- Free signed-in translations in Korean, Japanese, Simplified Chinese, Spanish,
-  and Brazilian Portuguese, built from Wiktionary via Kaikki.
+- Free translations without sign-in in Korean, Japanese, Simplified Chinese,
+  Spanish, and Brazilian Portuguese, built from Wiktionary via Kaikki.
+- Offline fallback for recent lookups, clickable synonyms and antonyms, and
+  spelling/base-form recovery when a word is not found.
+- Saved Words cards with definitions, examples, translations, tags, private
+  notes, CSV export, deterministic reviews, and local reminders.
 - Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
+- Private in-app feedback with no account required.
 
 ## Requirements
 
@@ -39,8 +44,9 @@ cp .env.example .env.local
 npm start
 ```
 
-Basic English dictionary lookup works without cloud configuration. Signed-in
-translations and saved words require a compatible Supabase backend;
+Basic English dictionary lookup works without cloud configuration. Phrase
+lookup, translations, and saved words require a compatible Supabase backend;
+only saved words and account-based review features require sign-in.
 `.env.example` lists the local variables consumed by development builds.
 
 ## Development
@@ -78,8 +84,9 @@ scripts/     Build, dataset, harness, and notarization helpers
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Product bugs
-and feature requests should go through GitHub Issues.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. App users can
+send private feedback from PopDict’s menu bar or Settings; public, reproducible bug
+reports and contributor proposals can still use GitHub Issues.
 
 ## Security
 
@@ -104,6 +111,7 @@ redistribute under your own name.
 ## License
 
 PopDict application code is MIT licensed; see [LICENSE](LICENSE). The generated
-translation dataset and normalized 3,000-word NGSL-GR list in
-[`data/translations/`](data/translations/README.md) are separately licensed under
+translation dataset and normalized 5,049-word NGSL-GR list in
+[`data/translations/`](data/translations/README.md), plus the phrase dataset in
+[`data/phrases/`](data/phrases/README.md), are separately licensed under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).

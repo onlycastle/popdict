@@ -10,7 +10,9 @@ Start with the top-level [README.md](../README.md) (install, run, configure) and
 - [dmg-release-testing.md](dmg-release-testing.md) — how to sanity-check a
   packaged `.dmg` build before it ships.
 - [download-tracking-runbook.md](download-tracking-runbook.md) — how the
-  private download metric is wired end to end.
+  private download funnel metrics are wired end to end.
+- [product-metrics-runbook.md](product-metrics-runbook.md) — canonical signup,
+  activation, feedback, and attributed-download KPI definitions.
 - [../data/translations/README.md](../data/translations/README.md) — dataset
   sources, licensing, filtering, and reproducible generation.
 
@@ -22,9 +24,9 @@ electron/    Electron main process — windows, IPC, global hotkey, tray,
 src/         React renderer — the lookup UI, hooks, and services that call
              the dictionary sources and Supabase.
 shared/      Types and pure helpers shared by main and renderer (auth URL
-             parsing, feedback URLs) — unit-tested in isolation.
-supabase/    Postgres migrations (RLS-protected user/translation tables) and
-             Edge Functions (compatibility, downloads metric, quiz digest).
+             parsing and feedback payload validation) — unit-tested in isolation.
+supabase/    Postgres migrations (RLS-protected app tables) and Edge Functions
+             (downloads, private feedback, product events, quiz digest).
 site/        Next.js marketing + legal site (App Router) and the download
              redirect that serves the latest GitHub release.
 scripts/     Build, dataset generation, notarization, and quality gates.

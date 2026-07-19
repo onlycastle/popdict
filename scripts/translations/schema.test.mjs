@@ -2,7 +2,11 @@ import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const schemaPath = 'supabase/migrations/20260714121310_remove_idiom_usage_add_word_translations.sql'
+const schemaPath = 'supabase/migrations/20260716115322_p1_saved_words_phrases_access.sql'
+const savedWordsHardeningPath =
+  'supabase/migrations/20260719123529_harden_saved_word_text_arrays_and_tags.sql'
+const atomicQuizPath =
+  'supabase/migrations/20260719124500_atomic_quiz_answers_and_material_snapshots.sql'
 
 async function filesUnder(root) {
   const entries = await readdir(root, { withFileTypes: true })
@@ -17,19 +21,18 @@ async function filesUnder(root) {
 }
 
 describe('translation database boundary', () => {
-  it('permits authenticated reads while denying anonymous access and client writes', async () => {
+  it('permits public reads while denying all client writes', async () => {
     const sql = await readFile(schemaPath, 'utf8')
     expect(sql).toMatch(/enable row level security/i)
     expect(sql).toMatch(/revoke all privileges[\s\S]*from public, anon, authenticated/i)
-    expect(sql).toMatch(/grant select[\s\S]*to authenticated/i)
+    expect(sql).toMatch(/grant select[\s\S]*to anon, authenticated/i)
     expect(sql).not.toMatch(/grant\s+(?:insert|update|delete)[\s\S]*to authenticated/i)
-    expect(sql).toMatch(/is_anonymous/i)
-    expect(sql).toMatch(/auth\.uid\(\)/i)
+    expect(sql).toMatch(/to anon, authenticated[\s\S]*using \(true\)/i)
   })
 
   it('retires usage counters and leaves older phrase clients a no-upstream response', async () => {
     const [sql, idioms] = await Promise.all([
-      readFile(schemaPath, 'utf8'),
+      readFile('supabase/migrations/20260714121310_remove_idiom_usage_add_word_translations.sql', 'utf8'),
       readFile('supabase/functions/idioms/index.ts', 'utf8'),
     ])
     expect(sql).toMatch(/drop table if exists public\.idiom_usage/i)
@@ -40,6 +43,24 @@ describe('translation database boundary', () => {
     expect(idioms).toContain("error: 'upstream_disabled'")
     expect(idioms).not.toMatch(/\bfetch\s*\(/)
     expect(idioms).not.toMatch(/Deno\.env\.get/)
+  })
+
+  it('bounds normalized tags and related-word arrays at the database boundary', async () => {
+    const sql = await readFile(savedWordsHardeningPath, 'utf8')
+    expect(sql).toMatch(/tag\s*=\s*trim\(regexp_replace\(tag, '\\s\+'/i)
+    expect(sql).toMatch(/char_length\(tag\) between 1 and 40/i)
+    expect(sql).toMatch(/cardinality\(value\) <= 20/i)
+    expect(sql).toMatch(/char_length\(item\) not between 1 and 300/i)
+  })
+
+  it('records quiz answers atomically with persisted reveal material', async () => {
+    const sql = await readFile(atomicQuizPath, 'utf8')
+    expect(sql).toMatch(/add column if not exists material jsonb/i)
+    expect(sql).toMatch(/create or replace function public\.record_quiz_answer/i)
+    expect(sql).toMatch(/for update/i)
+    expect(sql).toMatch(/insert into public\.word_reviews/i)
+    expect(sql).toMatch(/update public\.quiz_questions/i)
+    expect(sql).toMatch(/revoke all[\s\S]*from public, anon, authenticated/i)
   })
 
   it('contains no live Stripe, Gemini, or STANDS4 network endpoint', async () => {

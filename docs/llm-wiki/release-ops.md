@@ -1,6 +1,6 @@
 ---
 title: Release ops
-last-verified: 2026-07-14
+last-verified: 2026-07-19
 ---
 
 # Release ops
@@ -19,17 +19,23 @@ The step-by-step runbook lives in the `deploy-popdict` skill
    app under Node 26 (learning L-012). After switching Node versions, run
    `npm rebuild macos-alias`; the preflight rejects a stale native ABI before
    signing begins (learning L-013).
-3. `set -a; source .env.local; set +a` — loads the three build vars
+3. Keep the release build vars in untracked `.env.local`
    (`POPDICT_GITHUB_REPO`, `POPDICT_MAC_SIGNING_IDENTITY`,
-   `POPDICT_NOTARY_PROFILE`). Without them the build silently produces an
-   UNSIGNED dmg (learning L-002) — the release script aborts if they're
-   missing.
-4. `npm run release:arm64` →
+   `POPDICT_NOTARY_PROFILE`, `VITE_SUPABASE_URL`, and a Supabase publishable
+   or legacy anon key). The release script aborts if any required value is
+   missing; this prevents unsigned or data-disconnected packages. Use
+   `scripts/test-dmg.sh build`, which loads dotenv with Node without evaluating
+   credentials as shell code.
+4. Rehearse migrations from zero, then exercise actual roles against the
+   disposable local database:
+   `supabase db reset` followed by
+   `docker exec -i supabase_db_PopDict psql -U postgres -d postgres < scripts/p1-rls-smoke.sql`.
+5. `npm run release:arm64` →
    [scripts/release-arm64.sh](../../scripts/release-arm64.sh): quality gates,
    forge build ([forge.config.ts](../../forge.config.ts)), DMG assembly
    ([create-dmg.js](../../create-dmg.js)), notarization + stapling
    ([scripts/notarize-dmg.js](../../scripts/notarize-dmg.js)), spctl verify.
-5. Commit + push the version bump, THEN `gh release create v<version>` with
+6. Commit + push the version bump, THEN `gh release create v<version>` with
    BOTH assets. Zip paths in `out/make/zip/` can be stale — verify the
    version in the filename.
 

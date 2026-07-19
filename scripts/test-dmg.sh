@@ -3,14 +3,14 @@
 # test-dmg.sh — guided QA for the PopDict release DMG.
 #
 # Automates every CLI-typeable step of testing a packaged build the way a real
-# user gets it (verify signature/notarization → wipe to a first-run state →
-# simulate a quarantined download install → launch), then walks you through the
-# GUI-only checks interactively.
+# user gets it (fresh build → verify signature/notarization → wipe to a
+# first-run state → simulate a quarantined download install → launch), then
+# walks you through the GUI-only checks interactively.
 #
 # See docs/dmg-release-testing.md for the full rationale.
 #
 # Usage:
-#   scripts/test-dmg.sh [all|verify|clean|install|checklist|uninstall] [--dmg PATH]
+#   scripts/test-dmg.sh [all|build|verify|clean|install|checklist|uninstall] [--dmg PATH]
 #
 # Default subcommand is `all`. DMG defaults to
 # out/make/PopDict-<package.json version>-arm64.dmg.
@@ -75,12 +75,13 @@ check() { # check "item" — interactive manual pass/fail/skip
 # --- arg parsing -----------------------------------------------------------
 CMD="all"
 DMG=""
+DMG_WAS_EXPLICIT=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    all|verify|clean|install|checklist|uninstall) CMD="$1"; shift ;;
-    --dmg) DMG="${2:-}"; shift 2 ;;
+    all|build|verify|clean|install|checklist|uninstall) CMD="$1"; shift ;;
+    --dmg) DMG="${2:-}"; DMG_WAS_EXPLICIT=1; shift 2 ;;
     -h|--help)
-      sed -n '2,20p' "$0" | sed 's/^#//'; exit 0 ;;
+      sed -n '2,16p' "$0" | sed 's/^#//'; exit 0 ;;
     *) die "unknown argument: $1 (see --help)" ;;
   esac
 done
@@ -92,6 +93,66 @@ if [ -z "$DMG" ]; then
 fi
 
 # --- phases ----------------------------------------------------------------
+node_is_supported() {
+  command -v node >/dev/null 2>&1 &&
+    [ "$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); Number((major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major === 24)" 2>/dev/null)" = "1" ]
+}
+
+select_release_node() {
+  local candidate formula
+  node_is_supported && return
+
+  if command -v brew >/dev/null 2>&1; then
+    for formula in node@24 node@22 node@20; do
+      candidate="$(brew --prefix "$formula" 2>/dev/null || true)/bin"
+      if [ -x "$candidate/node" ]; then
+        PATH="$candidate:$PATH"
+        export PATH
+        if node_is_supported; then
+          warn "active Node was unsupported; using $(node --version) from $candidate"
+          step "Rebuilding native DMG dependency for $(node --version)"
+          npm rebuild macos-alias || die "could not rebuild macos-alias for $(node --version)"
+          return
+        fi
+      fi
+    done
+  fi
+
+  die "Node 20.19+, 22.12+, or 24.x is required; switch Node versions and rerun $0"
+}
+
+phase_build() {
+  local force="${1:-0}"
+
+  if [ "$DMG_WAS_EXPLICIT" -eq 1 ]; then
+    [ -f "$DMG" ] || die "custom DMG not found: $DMG  (omit --dmg to build the current version)"
+    ok "using supplied DMG: $DMG"
+    return
+  fi
+
+  if [ "$force" -ne 1 ] && [ -f "$DMG" ]; then
+    ok "release DMG already exists: $DMG"
+    return
+  fi
+
+  select_release_node
+  step "Building signed, notarized ${APP_NAME} ${VERSION} release"
+
+  # Keep the one-command path ergonomic without treating dotenv as shell code.
+  # Node's parser preserves literal $, #, and spaces in credentials.
+  if [ -f .env.local ]; then
+    local npm_cli
+    npm_cli="$(command -v npm)"
+    node --env-file=.env.local "$npm_cli" run release:arm64 ||
+      die "release build failed; fix the preflight error above and rerun $0"
+  elif ! npm run release:arm64; then
+    die "release build failed; fix the preflight error above and rerun $0"
+  fi
+
+  [ -f "$DMG" ] || die "release build completed without expected DMG: $DMG"
+  ok "built release DMG: $DMG"
+}
+
 phase_verify() {
   step "Verifying signature & notarization: $DMG"
   [ -f "$DMG" ] || die "DMG not found: $DMG  (build it: npm run release:arm64)"
@@ -173,6 +234,17 @@ phase_checklist() {
   check "Secondary windows open to the correct view (Settings, Saved Words, onboarding)"
   check "Quit + relaunch: the rebound hotkey persists"
   check "Launch at login: toggle on, re-login/reboot, app auto-starts (then turn off)"
+  check "Signed out: a single-word lookup shows the selected translation with no sign-in prompt"
+  check "Exact idiom/phrase lookup shows definitions, usage labels, and every source attribution"
+  check "A misspelled/inflected word offers working spelling/base-form recovery options"
+  check "Synonyms and antonyms are keyboard-accessible buttons that start a normal lookup"
+  check "After one live lookup, disconnecting shows the full cached entry + matching translation and TTS works"
+  check "Legacy Saved Words render immediately, then enrich; a failed row has a working manual Retry"
+  check "Saved Words filters (All/Due/New/Learning/Mastered/tag), notes, and tags persist after restart"
+  check "CSV export contains every saved row and safely preserves commas, quotes, and newlines"
+  check "The displayed due count equals the number of cards opened in Review"
+  check "Quiet hours suppress/defer reminders; clicking a notification opens a fresh Review window"
+  check "All packaged hash routes work: Settings, Saved Words, Review, and onboarding"
 }
 
 phase_uninstall() {
@@ -197,12 +269,14 @@ summary() {
 
 # --- run -------------------------------------------------------------------
 case "$CMD" in
+  build)     phase_build 1 ;;
   verify)    phase_verify ;;
   clean)     phase_clean ;;
   install)   phase_install ;;
   checklist) phase_checklist ;;
   uninstall) phase_uninstall ;;
   all)
+    phase_build 1
     phase_verify
     printf '\n'; confirm "Proceed to wipe state and install for a clean-room test?" || { warn "stopping before clean/install"; summary; exit $?; }
     phase_clean

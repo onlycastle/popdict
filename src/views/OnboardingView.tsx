@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
+import { productAnalytics } from '../services/ProductAnalytics'
 
 function prettyHotkey(accelerator: string): string {
   return accelerator
@@ -19,6 +20,7 @@ export default function OnboardingView() {
 
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
+    void productAnalytics.track('first_launch')
   }, [])
 
   const hotkey = settings ? prettyHotkey(settings.hotkey) : '⌘ ⇧ Space'

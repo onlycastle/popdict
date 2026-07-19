@@ -48,5 +48,6 @@ npm run build
 
 ## Support And Feedback
 
-Use GitHub Issues for bugs, feature requests, and product feedback. Do not include
+App users can send private feedback from PopDict’s menu bar or Settings. Use
+GitHub Issues for public, reproducible bugs and contributor proposals. Do not include
 secrets, tokens, private account data, or personal data in public issues.

@@ -1,6 +1,9 @@
-import { FormEvent, useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { FeedbackType } from '../../shared/feedback'
+import { feedbackService } from '../services/FeedbackService'
+import { productAnalytics } from '../services/ProductAnalytics'
 
 type FeedbackStatus = {
   kind: 'error' | 'success'
@@ -51,7 +54,7 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
   const [type, setType] = useState<FeedbackType>('bug')
   const [message, setMessage] = useState('')
   const [contact, setContact] = useState('')
-  const [includeContext, setIncludeContext] = useState(Boolean(context))
+  const [includeContext, setIncludeContext] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState<FeedbackStatus | null>(null)
 
@@ -59,8 +62,10 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
     if (!open) return
     setStatus(null)
     setSubmitting(false)
-    setIncludeContext(Boolean(context))
-    window.setTimeout(() => textareaRef.current?.focus(), 0)
+    setIncludeContext(false)
+    void productAnalytics.track('feedback_opened')
+    const focusTimer = window.setTimeout(() => textareaRef.current?.focus(), 0)
+    return () => window.clearTimeout(focusTimer)
   }, [context, open])
 
   useEffect(() => {
@@ -87,22 +92,25 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
     setSubmitting(true)
     setStatus(null)
     try {
-      const result = await window.electronAPI.sendFeedback({
+      const result = await feedbackService.submit({
         type,
         message: trimmedMessage,
         contact: contact.trim(),
         context: includeContext ? context : '',
       })
-      if ('message' in result) {
+      if (result.ok === false) {
         setStatus({ kind: 'error', text: result.message })
       } else {
-        setStatus({ kind: 'success', text: 'Opening GitHub...' })
-        window.setTimeout(onClose, 250)
+        void productAnalytics.track('feedback_submitted')
+        setStatus({ kind: 'success', text: 'Thanks — your feedback was sent privately.' })
+        setMessage('')
+        setContact('')
+        window.setTimeout(onClose, 700)
       }
     } catch (error) {
       setStatus({
         kind: 'error',
-        text: error instanceof Error ? error.message : 'Could not open feedback.',
+        text: error instanceof Error ? error.message : 'Could not send feedback.',
       })
     } finally {
       setSubmitting(false)
@@ -138,7 +146,7 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
                 <h2 id={titleId} className="dict-headword text-xl">
                   Send feedback
                 </h2>
-                <p className="mt-1 text-sm text-white/65">A public GitHub issue will open.</p>
+                <p className="mt-1 text-sm text-white/65">Sent privately. No account required.</p>
               </div>
               <button
                 type="button"
@@ -152,13 +160,12 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
 
             <div className="mt-5">
               <span className="dict-label mb-2 block">Category</span>
-              <div className="feedback-segments" role="tablist" aria-label="Feedback category">
+              <div className="feedback-segments" role="group" aria-label="Feedback category">
                 {FEEDBACK_OPTIONS.map((option) => (
                   <button
                     key={option.type}
                     type="button"
-                    role="tab"
-                    aria-selected={type === option.type}
+                    aria-pressed={type === option.type}
                     className="feedback-segment"
                     onClick={() => setType(option.type)}
                   >
@@ -187,7 +194,7 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
                 value={contact}
                 onChange={(event) => setContact(event.target.value)}
                 className="feedback-input"
-                placeholder="Email or GitHub username (optional)"
+                placeholder="Email or GitHub username (optional, kept private)"
               />
             </label>
 
@@ -213,7 +220,7 @@ export default function FeedbackDialog({ context, onClose, open }: FeedbackDialo
                 Cancel
               </button>
               <button type="submit" className="btn-primary text-sm" disabled={submitting}>
-                {submitting ? 'Opening...' : 'Send feedback'}
+                {submitting ? 'Sending...' : 'Send feedback'}
               </button>
             </div>
           </motion.form>

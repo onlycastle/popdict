@@ -1,12 +1,17 @@
 import { motion } from 'framer-motion'
-import { SearchResponse } from '../types/dictionary'
+import type { LookupFailure, SearchResponse } from '../types/dictionary'
 import { getAttributedAudio, pronounce } from '../utils/pronounce'
+import { wiktionarySearchUrl } from '../services/dictionary/recovery'
 
 interface SearchResultsProps {
   response: SearchResponse | null
   loading: boolean
-  error: string | null
+  failure: LookupFailure | null
   query: string
+  recoverySuggestions?: string[]
+  onRecoveryLookup?: (word: string) => void
+  onRelatedLookup?: (word: string) => void
+  onRetry?: () => void
   onSave?: () => void
   saveDisabled?: boolean
   saveFeedback?: string
@@ -17,8 +22,12 @@ interface SearchResultsProps {
 const SearchResults = ({
   response,
   loading,
-  error,
+  failure,
   query,
+  recoverySuggestions = [],
+  onRecoveryLookup,
+  onRelatedLookup,
+  onRetry,
   onSave,
   saveDisabled,
   saveFeedback,
@@ -41,11 +50,7 @@ const SearchResults = ({
     )
   }
 
-  // "No such word" is a normal outcome, not a failure — render it in the
-  // quiet no-entry voice. Red stays reserved for real errors (offline, 5xx).
-  const isNotFound = error !== null && /not found|no results/i.test(error)
-
-  if (error && !isNotFound) {
+  if (failure && failure.kind !== 'not-found') {
     return (
       <motion.div
         initial={{ opacity: 0, y: -6 }}
@@ -55,13 +60,19 @@ const SearchResults = ({
         className="results-container"
       >
         <div className="text-center py-10">
-          <p className="text-red-300 text-sm">{error}</p>
+          <p className="text-red-300 text-sm">{failure.message}</p>
+          {onRetry && (
+            <button type="button" className="btn-ghost mt-3 text-xs" onClick={onRetry}>
+              Retry
+            </button>
+          )}
         </div>
       </motion.div>
     )
   }
 
-  if (isNotFound || !response || !response.dictionaryResults) {
+  if (failure?.kind === 'not-found' || !response || !response.dictionaryResults) {
+    const isPhrase = /\s/.test(query.trim())
     return (
       <motion.div
         initial={{ opacity: 0, y: -6 }}
@@ -73,6 +84,30 @@ const SearchResults = ({
         <div className="text-center py-10">
           <p className="text-white/75 text-sm">No entry found for “{query}”</p>
           <p className="text-white/55 text-xs mt-2">Check the spelling or try the base form</p>
+          {recoverySuggestions.length > 0 && onRecoveryLookup && (
+            <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Suggestions">
+              {recoverySuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  className="related-word-button"
+                  onClick={() => onRecoveryLookup(suggestion)}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+          {isPhrase && (
+            <a
+              className="mt-4 inline-block text-xs text-amber-300/80 hover:text-amber-200"
+              href={wiktionarySearchUrl(query)}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Search Wiktionary
+            </a>
+          )}
         </div>
       </motion.div>
     )
@@ -81,6 +116,13 @@ const SearchResults = ({
   const { dictionaryResults } = response
   const firstResult = dictionaryResults?.[0]
   const attributedAudio = getAttributedAudio(firstResult)
+  const entryAttributions = firstResult?.attributions?.length
+    ? firstResult.attributions
+    : firstResult?.sourceUrls?.map((sourceUrl, index) => ({
+      label: firstResult.sourceUrls!.length > 1 ? `Entry source ${index + 1}` : 'Entry source',
+      sourceUrl,
+      ...(index === 0 && firstResult.license ? { license: firstResult.license } : {}),
+    })) ?? (firstResult?.license ? [{ label: 'Entry license', license: firstResult.license }] : [])
 
   return (
     <motion.div
@@ -93,6 +135,11 @@ const SearchResults = ({
       {/* Dictionary entry */}
       {firstResult && (
         <>
+          {response.provenance === 'cache' && response.cachedAt && (
+            <p className="cache-provenance" role="status">
+              Offline copy saved {new Date(response.cachedAt).toLocaleDateString()}
+            </p>
+          )}
           {/* Headword block */}
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -103,7 +150,10 @@ const SearchResults = ({
                 {firstResult.phonetic && <p className="dict-ipa">{firstResult.phonetic}</p>}
                 <button
                   type="button"
-                  onClick={() => pronounce(firstResult.word, attributedAudio?.url)}
+                  onClick={() => pronounce(
+                    firstResult.word,
+                    response.provenance === 'cache' ? undefined : attributedAudio?.url
+                  )}
                   aria-label={`Play pronunciation of ${firstResult.word}`}
                   title="Play pronunciation"
                   className="shrink-0 rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
@@ -155,15 +205,44 @@ const SearchResults = ({
                         {defIndex + 1}
                       </span>
                       <div className="min-w-0 flex-1">
+                        {def.usageLabels && def.usageLabels.length > 0 && (
+                          <p className="dict-label mb-1">{def.usageLabels.join(' · ')}</p>
+                        )}
                         <p className="text-white/90 text-sm leading-relaxed">{def.definition}</p>
                         {def.example && (
                           <p className="dict-example text-xs mt-2 leading-relaxed">{def.example}</p>
                         )}
                         {def.synonyms && def.synonyms.length > 0 && (
-                          <div className="mt-2 flex items-baseline gap-1.5">
+                          <div className="mt-2 flex items-start gap-1.5">
                             <span className="dict-label">Similar</span>
-                            <span className="text-white/75 text-xs">
-                              {def.synonyms.slice(0, 3).join(', ')}
+                            <span className="flex flex-wrap gap-1.5">
+                              {def.synonyms.slice(0, 5).map((word) => (
+                                <button
+                                  key={word}
+                                  type="button"
+                                  className="related-word-button"
+                                  onClick={() => onRelatedLookup?.(word)}
+                                >
+                                  {word}
+                                </button>
+                              ))}
+                            </span>
+                          </div>
+                        )}
+                        {def.antonyms && def.antonyms.length > 0 && (
+                          <div className="mt-2 flex items-start gap-1.5">
+                            <span className="dict-label">Opposite</span>
+                            <span className="flex flex-wrap gap-1.5">
+                              {def.antonyms.slice(0, 5).map((word) => (
+                                <button
+                                  key={word}
+                                  type="button"
+                                  className="related-word-button"
+                                  onClick={() => onRelatedLookup?.(word)}
+                                >
+                                  {word}
+                                </button>
+                              ))}
                             </span>
                           </div>
                         )}
@@ -175,24 +254,31 @@ const SearchResults = ({
             ))}
           </div>
 
-          {(firstResult.sourceUrls?.length || firstResult.license || attributedAudio) && (
+          {(entryAttributions.length > 0 || attributedAudio) && (
             <p className="dictionary-attribution">
-              {firstResult.sourceUrls?.slice(0, 1).map((url) => (
-                <a key={url} href={url} target="_blank" rel="noreferrer noopener">
-                  Entry source
-                </a>
+              {entryAttributions.map((attribution, index) => (
+                <span key={`${attribution.label}:${attribution.sourceUrl ?? index}`}>
+                  {index > 0 ? ' · ' : ''}
+                  {attribution.sourceUrl ? (
+                    <a href={attribution.sourceUrl} target="_blank" rel="noreferrer noopener">
+                      {attribution.label}
+                    </a>
+                  ) : attribution.label}
+                  {attribution.license && (
+                    <>
+                      {' · '}
+                      <a
+                        href={attribution.license.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        {attribution.license.name}
+                      </a>
+                    </>
+                  )}
+                </span>
               ))}
-              {firstResult.sourceUrls?.length && firstResult.license ? ' · ' : ''}
-              {firstResult.license && (
-                <a
-                  href={firstResult.license.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  {firstResult.license.name}
-                </a>
-              )}
-              {(firstResult.sourceUrls?.length || firstResult.license) && attributedAudio ? ' · ' : ''}
+              {entryAttributions.length > 0 && attributedAudio ? ' · ' : ''}
               {attributedAudio && (
                 <>
                   <a

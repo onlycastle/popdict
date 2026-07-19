@@ -4,7 +4,7 @@ import {
   type TargetLanguage,
   type WordTranslation,
 } from '../../shared/language'
-import { supabase } from './supabaseClient'
+import { publicSupabase } from './supabaseClient'
 
 type TranslationRow = {
   translation: unknown
@@ -20,7 +20,7 @@ export class TranslationLookupError extends Error {
 }
 
 export class TranslationService {
-  constructor(private client: SupabaseClient | null = supabase) {}
+  constructor(private client: SupabaseClient | null = publicSupabase) {}
 
   async lookup(word: string, language: TargetLanguage): Promise<WordTranslation[]> {
     const normalizedWord = normalizeEnglishWord(word)

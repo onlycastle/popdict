@@ -1,8 +1,8 @@
 // PopDict download tracker (Supabase Edge Function, Deno runtime).
 //
-// Counts downloads from two sources into Postgres:
-//   - website: /download/latest posts a `record` per redirect (server-to-server).
-//   - github:  a daily cron triggers `snapshot`, storing per-asset counts.
+// Measures two distinct funnel stages:
+//   - redirects: /download/latest posts a `record` per website redirect.
+//   - GitHub: a daily cron snapshots DMG and updater ZIP deliveries by asset.
 // Reads (`stats`, `timeseries`) are gated by an admin token. All DB access uses
 // the service-role key, so the RLS-with-no-policies tables stay sealed.
 //
@@ -12,13 +12,18 @@
 // Optional Slack: supabase secrets set SLACK_DOWNLOAD_WEBHOOK_URL=...
 
 // @ts-ignore - resolved by the Deno runtime, not the app's tsc
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.108.2'
 import {
   buildSlackDownloadPayload,
   buildTimeseries,
   countByCountry,
+  countByDimension,
+  DOWNLOAD_EVENT_PAGE_ORDER,
+  matchesBearerSecret,
+  matchesSecret,
   referrerHost,
   releasesToSnapshotRows,
+  SNAPSHOT_PAGE_ORDER,
   sumSnapshot,
   type DownloadNotificationRecord,
 } from './lib.ts'
@@ -50,6 +55,12 @@ function textOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+function attributionOrNull(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  return /^[a-z0-9][a-z0-9_-]{0,63}$/.test(normalized) ? normalized : null
+}
+
 async function postSlackDownloadNotification(record: DownloadNotificationRecord): Promise<void> {
   const webhookUrl = Deno.env.get('SLACK_DOWNLOAD_WEBHOOK_URL')
   if (!webhookUrl) return
@@ -72,7 +83,7 @@ async function postSlackDownloadNotification(record: DownloadNotificationRecord)
 }
 
 async function handleRecord(req: Request): Promise<Response> {
-  if (req.headers.get('x-record-token') !== Deno.env.get('DOWNLOADS_RECORD_TOKEN')) {
+  if (!matchesSecret(req.headers.get('x-record-token'), Deno.env.get('DOWNLOADS_RECORD_TOKEN'))) {
     return json({ error: 'unauthorized' }, 401)
   }
   const body = await req.json().catch(() => ({}))
@@ -81,6 +92,8 @@ async function handleRecord(req: Request): Promise<Response> {
     asset: textOrNull(body.asset),
     referrer_host: referrerHost(textOrNull(body.referrer)),
     country: textOrNull(body.country),
+    source: attributionOrNull(body.source) ?? 'website',
+    cta: attributionOrNull(body.cta),
   }
   const { error } = await admin().from('download_events').insert(record)
   if (error) return json({ error: 'record failed' }, 500)
@@ -89,7 +102,7 @@ async function handleRecord(req: Request): Promise<Response> {
 }
 
 async function handleSnapshot(req: Request): Promise<Response> {
-  if (req.headers.get('x-admin-token') !== Deno.env.get('DOWNLOADS_STATS_TOKEN')) {
+  if (!matchesSecret(req.headers.get('x-admin-token'), Deno.env.get('DOWNLOADS_STATS_TOKEN'))) {
     return json({ error: 'unauthorized' }, 401)
   }
   const repo = Deno.env.get('GITHUB_REPO')
@@ -110,7 +123,10 @@ async function handleSnapshot(req: Request): Promise<Response> {
 }
 
 function authorizedRead(req: Request): boolean {
-  return req.headers.get('authorization') === `Bearer ${Deno.env.get('DOWNLOADS_STATS_TOKEN')}`
+  return matchesBearerSecret(
+    req.headers.get('authorization'),
+    Deno.env.get('DOWNLOADS_STATS_TOKEN'),
+  )
 }
 
 async function handleStats(): Promise<Response> {
@@ -120,46 +136,86 @@ async function handleStats(): Promise<Response> {
     .order('captured_on', { ascending: false }).limit(1)
   if (e1) return json({ error: 'stats failed' }, 500)
   const asOf = latest?.[0]?.captured_on ?? null
-  let github = { total: 0, byAsset: {} as Record<string, number>, asOf }
+  let github = { dmg: 0, zip: 0, other: 0, byAsset: {} as Record<string, number>, asOf }
   if (asOf) {
     const { data: snap, error: e2 } = await db
       .from('github_snapshots').select('asset,download_count').eq('captured_on', asOf)
     if (e2) return json({ error: 'stats failed' }, 500)
     github = { ...sumSnapshot(snap ?? []), asOf }
   }
-  // One query serves both the lifetime total (exact even past the PostgREST
-  // row cap) and the per-country breakdown, which counts returned rows only.
-  // Move byCountry to a SQL group-by RPC if events ever near ~1000 rows.
-  const { data: events, count, error: e3 } = await db
-    .from('download_events').select('country', { count: 'exact' })
-  if (e3) return json({ error: 'stats failed' }, 500)
-  const website = count ?? 0
-  const byCountry = countByCountry(events ?? [])
-  return json({ combined: github.total + website, github, website: { total: website, byCountry } })
+  const { count, error: countError } = await db
+    .from('download_events').select('id', { count: 'exact', head: true })
+  if (countError) return json({ error: 'stats failed' }, 500)
+  const events: { id: string; country: string | null; source: string | null; cta: string | null }[] = []
+  const pageSize = 1_000
+  for (let from = 0; ; from += pageSize) {
+    let query = db
+      .from('download_events')
+      .select('id,country,source,cta')
+    for (const column of DOWNLOAD_EVENT_PAGE_ORDER) {
+      query = query.order(column, { ascending: true })
+    }
+    const { data, error } = await query.range(from, from + pageSize - 1)
+    if (error) return json({ error: 'stats failed' }, 500)
+    events.push(...(data ?? []))
+    if ((data?.length ?? 0) < pageSize) break
+  }
+  const redirects = count ?? 0
+  const byCountry = countByCountry(events)
+  const bySource = countByDimension(events, 'source')
+  const byCta = countByDimension(events, 'cta')
+  return json({ github, redirects: { total: redirects, byCountry, bySource, byCta } })
 }
 
 async function handleTimeseries(): Promise<Response> {
   const db = admin()
-  const { data: ghRows, error: te1 } = await db.from('github_snapshots').select('captured_on,download_count')
-  if (te1) return json({ error: 'timeseries failed' }, 500)
+  const ghRows: { captured_on: string; tag: string; asset: string; download_count: number }[] = []
+  const pageSize = 1_000
+  for (let from = 0; ; from += pageSize) {
+    let query = db
+      .from('github_snapshots')
+      .select('captured_on,tag,asset,download_count')
+    for (const column of SNAPSHOT_PAGE_ORDER) {
+      query = query.order(column, { ascending: true })
+    }
+    const { data, error } = await query.range(from, from + pageSize - 1)
+    if (error) return json({ error: 'timeseries failed' }, 500)
+    ghRows.push(...(data ?? []))
+    if ((data?.length ?? 0) < pageSize) break
+  }
   const ghMap = new Map<string, number>()
-  for (const r of ghRows ?? []) ghMap.set(r.captured_on, (ghMap.get(r.captured_on) ?? 0) + r.download_count)
+  for (const r of ghRows) {
+    if (String(r.asset).toLowerCase().endsWith('.dmg')) {
+      ghMap.set(r.captured_on, (ghMap.get(r.captured_on) ?? 0) + r.download_count)
+    }
+  }
   const githubDaily = [...ghMap.entries()]
-    .map(([date, total]) => ({ date, total }))
+    .map(([date, dmg]) => ({ date, dmg }))
     .sort((a, b) => (a.date < b.date ? -1 : 1))
 
-  const { data: evRows, error: te2 } = await db.from('download_events').select('occurred_at')
-  if (te2) return json({ error: 'timeseries failed' }, 500)
+  const evRows: { id: string; occurred_at: string }[] = []
+  for (let from = 0; ; from += pageSize) {
+    let query = db
+      .from('download_events')
+      .select('id,occurred_at')
+    for (const column of DOWNLOAD_EVENT_PAGE_ORDER) {
+      query = query.order(column, { ascending: true })
+    }
+    const { data, error } = await query.range(from, from + pageSize - 1)
+    if (error) return json({ error: 'timeseries failed' }, 500)
+    evRows.push(...(data ?? []))
+    if ((data?.length ?? 0) < pageSize) break
+  }
   const webMap = new Map<string, number>()
-  for (const r of evRows ?? []) {
+  for (const r of evRows) {
     const d = String(r.occurred_at).slice(0, 10)
     webMap.set(d, (webMap.get(d) ?? 0) + 1)
   }
-  const websiteDaily = [...webMap.entries()]
+  const redirectDaily = [...webMap.entries()]
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => (a.date < b.date ? -1 : 1))
 
-  return json(buildTimeseries(githubDaily, websiteDaily))
+  return json(buildTimeseries(githubDaily, redirectDaily))
 }
 
 Deno.serve(async (req: Request) => {

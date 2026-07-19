@@ -54,6 +54,8 @@ describe('createStore', () => {
     expect(cfg.hotkey).toBe(DEFAULT_HOTKEY)
     expect(cfg.history).toEqual([])
     expect(cfg.translationLanguage).toBeNull()
+    expect(cfg.analyticsEnabled).toBe(true)
+    expect(cfg.successfulLookupCount).toBe(0)
   })
   it('persists patched values across instances', () => {
     createStore(file).patch({ onboardingDone: true, hotkey: 'CommandOrControl+Shift+D' })
@@ -117,5 +119,26 @@ describe('signInNudgeDismissedAt', () => {
   it('coerces an invalid stored value to null', () => {
     fs.writeFileSync(file, JSON.stringify({ signInNudgeDismissedAt: 'yesterday' }))
     expect(createStore(file).getConfig().signInNudgeDismissedAt).toBeNull()
+  })
+})
+
+describe('product measurement settings', () => {
+  it('persists analytics opt-out and counts successful lookups locally', () => {
+    const store = createStore(file)
+    store.patch({ analyticsEnabled: false })
+    expect(store.recordLookupSuccess()).toBe(1)
+    expect(store.recordLookupSuccess()).toBe(2)
+    expect(createStore(file).getConfig()).toMatchObject({
+      analyticsEnabled: false,
+      successfulLookupCount: 2,
+    })
+  })
+
+  it('repairs invalid legacy measurement values', () => {
+    fs.writeFileSync(file, JSON.stringify({ analyticsEnabled: 'yes', successfulLookupCount: -4 }))
+    expect(createStore(file).getConfig()).toMatchObject({
+      analyticsEnabled: true,
+      successfulLookupCount: 0,
+    })
   })
 })

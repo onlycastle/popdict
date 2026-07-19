@@ -1,0 +1,21 @@
+{
+  "snapshotDate": "2026-07-09",
+  "wiktionaryDumpDate": "2026-07-06",
+  "kaikkiSourceUrl": "https://kaikki.org/dictionary/English/index.html",
+  "wiktionarySourceUrl": "https://en.wiktionary.org/",
+  "license": "CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "attribution": "English Wiktionary via Kaikki — filtered and ranked by PopDict",
+  "phraseCount": 15900,
+  "rowCount": 18705,
+  "kaikkiLineCount": 10736399,
+  "kaikkiCompressedBytes": 2840191881,
+  "kaikkiSha256": "e8a1d8e9470af8ee424bc5a2d74ad89aa158b913d924042dc5a90a62437906c6",
+  "filtering": [
+    "multi-word English senses tagged idiomatic",
+    "phrase, prepositional-phrase, and proverb parts of speech",
+    "archaic, obsolete, dated, rare, and nonstandard senses removed",
+    "regional, slang, vulgar, and offensive labels retained",
+    "duplicate definitions removed and at most three senses ranked per normalized phrase"
+  ]
+}

@@ -3,6 +3,7 @@ export interface Definition {
   example?: string
   synonyms?: string[]
   antonyms?: string[]
+  usageLabels?: string[]
 }
 
 export interface Meaning {
@@ -13,6 +14,12 @@ export interface Meaning {
 export interface DictionaryLicense {
   name: string
   url: string
+}
+
+export interface DictionaryAttribution {
+  label: string
+  sourceUrl?: string
+  license?: DictionaryLicense
 }
 
 export interface DictionaryResult {
@@ -28,11 +35,32 @@ export interface DictionaryResult {
   meanings: Meaning[]
   license?: DictionaryLicense
   sourceUrls?: string[]
+  attributions?: DictionaryAttribution[]
 }
 
-export type SearchSource = 'free-dictionary'
+export type SearchSource = 'free-dictionary' | 'kaikki-phrases' | 'combined'
+
+export type LookupFailureKind = 'not-found' | 'network' | 'service'
+
+export interface LookupFailure {
+  kind: LookupFailureKind
+  message: string
+  query: string
+}
 
 export interface SearchResponse {
   dictionaryResults: DictionaryResult[] | null
   source: SearchSource
+  provenance: 'live' | 'cache'
+  cachedAt?: string
+}
+
+export interface CachedLookup {
+  version: 1
+  query: string
+  normalizedQuery: string
+  response: SearchResponse
+  translations: Partial<Record<import('../../shared/language').TargetLanguage, import('../../shared/language').WordTranslation[]>>
+  savedAt: string
+  lastAccessedAt: string
 }

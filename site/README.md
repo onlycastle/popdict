@@ -27,13 +27,11 @@ npm run dev
 | `DOWNLOADS_DASHBOARD_USER` | Basic Auth username for `/admin/downloads`.                |
 | `DOWNLOADS_DASHBOARD_PASSWORD` | Basic Auth password for `/admin/downloads`.          |
 | `CRON_SECRET`          | Vercel Cron bearer secret for `/api/cron/snapshot`.           |
-| `SLACK_SIGNUP_WEBHOOK_URL` | Server-only Slack Incoming Webhook for signup/sign-in notifications. |
 
 ## Routes
 
 - `/` — hero, how-it-works, features, FAQ.
-- `/auth/callback` — OAuth handoff page that opens `popdict://auth/callback`, sends a best-effort Slack signup/sign-in notification via `/api/slack/signup`, and leaves
-  the browser on a completed page.
+- `/auth/callback` — OAuth handoff page that opens `popdict://auth/callback` and leaves the browser on a completed page. Actual account totals come from Supabase Auth; an OAuth callback is not assumed to be a new signup.
 - `/privacy` — privacy policy (link this in the Google OAuth consent screen).
 - `/terms` — terms of use.
 - `/download/latest` — 302 redirect to the latest release's `.dmg` asset.

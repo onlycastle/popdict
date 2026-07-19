@@ -1,7 +1,7 @@
 {
   "name": "popdict",
   "productName": "PopDict",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "PopDict desktop dictionary app",
   "main": ".vite/build/main.js",
   "homepage": "https://github.com/onlycastle/popdict#readme",
@@ -29,6 +29,7 @@
     "harness:validate": "node scripts/harness/validate.mjs",
     "harness:test": "vitest run scripts/harness",
     "data:translations": "node scripts/translations/build-dataset.mjs",
+    "data:phrases": "node scripts/phrases/build-dataset.mjs",
     "preview:digest": "deno run --allow-env --allow-read --allow-write --allow-net --allow-run scripts/preview-digest.ts",
     "test:ci": "tsc --noEmit && npm run lint && npm test && npm run harness:validate && cd site && npx tsc --noEmit && npx vitest run"
   },

@@ -4,6 +4,8 @@ import type { DictionaryResult } from '../../types/dictionary'
 import { FreeDictionarySource } from './FreeDictionarySource'
 import { DictionaryService } from './DictionaryService'
 import { DictionaryError } from './DictionaryError'
+import type { DictionarySource } from './DictionarySource'
+import { phraseRowsToResults } from './KaikkiPhraseSource'
 
 beforeEach(() => undefined)
 afterEach(() => {
@@ -30,7 +32,17 @@ describe('FreeDictionarySource error kinds', () => {
 })
 
 describe('DictionaryService.search', () => {
-  const service = () => new DictionaryService(new FreeDictionarySource())
+  const source = (
+    name: 'free-dictionary' | 'kaikki-phrases',
+    lookup: (query: string) => Promise<DictionaryResult[]>
+  ): DictionarySource<DictionaryResult[]> => ({ name, lookup })
+  const notFoundPhrases = source('kaikki-phrases', async () => {
+    throw new DictionaryError('not-found')
+  })
+  const service = (
+    free = new FreeDictionarySource() as DictionarySource<DictionaryResult[]>,
+    phrases = notFoundPhrases
+  ) => new DictionaryService(free, phrases)
 
   it('rejects an empty query', async () => {
     await expect(service().search('   ')).rejects.toThrow(/empty/i)
@@ -43,46 +55,90 @@ describe('DictionaryService.search', () => {
     const res = await service().search('hello')
 
     expect(res.source).toBe('free-dictionary')
-    expect(res.dictionaryResults).toEqual(entries)
+    expect(res).toMatchObject({ dictionaryResults: entries, provenance: 'live' })
   })
 
-  it('maps a single-word network failure to a connection message', async () => {
+  it('preserves a typed single-word network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')))
-    await expect(service().search('hello')).rejects.toThrow(/connection/i)
+    await expect(service().search('hello')).rejects.toMatchObject({ kind: 'network' })
   })
 
-  it('maps a single-word 404 to a not-found message', async () => {
+  it('preserves a typed single-word miss', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
-    await expect(service().search('asdfqwer')).rejects.toThrow(/not found/i)
+    await expect(service().search('asdfqwer')).rejects.toMatchObject({ kind: 'not-found' })
   })
 
-  it('uses only the normal dictionary source for a multi-word query', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async (): Promise<DictionaryResult[]> => [{ word: 'break the ice', meanings: [] }],
-      })
-    )
-    const res = await service().search('break the ice')
-
-    expect(res.source).toBe('free-dictionary')
+  it('runs both phrase sources and merges successful results', async () => {
+    const freeLookup = vi.fn(async () => [{
+      word: 'break the ice',
+      meanings: [{ partOfSpeech: 'verb', definitions: [{ definition: 'Free definition' }] }],
+      sourceUrls: ['https://dictionaryapi.dev/entry/break-the-ice'],
+      license: { name: 'Free license', url: 'https://example.test/free-license' },
+    }])
+    const phraseLookup = vi.fn(async () => [{
+      word: 'break the ice',
+      meanings: [{ partOfSpeech: 'phrase', definitions: [{ definition: 'Make people comfortable' }] }],
+      sourceUrls: ['https://en.wiktionary.org/wiki/break_the_ice'],
+      license: { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+    }])
+    const res = await service(
+      source('free-dictionary', freeLookup),
+      source('kaikki-phrases', phraseLookup)
+    ).search('break the ice')
+    expect(res.source).toBe('combined')
+    expect(res.dictionaryResults?.[0].meanings).toHaveLength(2)
+    expect(res.dictionaryResults?.[0].attributions).toEqual([
+      {
+        label: 'Wiktionary via Kaikki',
+        sourceUrl: 'https://en.wiktionary.org/wiki/break_the_ice',
+        license: {
+          name: 'CC BY-SA 4.0',
+          url: 'https://creativecommons.org/licenses/by-sa/4.0/',
+        },
+      },
+      {
+        label: 'Free Dictionary',
+        sourceUrl: 'https://dictionaryapi.dev/entry/break-the-ice',
+        license: { name: 'Free license', url: 'https://example.test/free-license' },
+      },
+    ])
+    expect(freeLookup).toHaveBeenCalledOnce()
+    expect(phraseLookup).toHaveBeenCalledOnce()
   })
 
-  it('uses normal no-results behavior when a phrase is not in the dictionary', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
-    await expect(service().search('break the ice')).rejects.toThrow(/no results/i)
+  it('returns typed not-found only when both phrase sources miss', async () => {
+    const miss = async (): Promise<DictionaryResult[]> => { throw new DictionaryError('not-found') }
+    await expect(service(source('free-dictionary', miss), source('kaikki-phrases', miss))
+      .search('break the ice')).rejects.toMatchObject({ kind: 'not-found' })
   })
 
-  it('maps a multi-word network failure to a connection message', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')))
-    await expect(service().search('break the ice')).rejects.toThrow(/connection/i)
+  it('prefers a typed network failure when one phrase source is unavailable', async () => {
+    const offline = async (): Promise<DictionaryResult[]> => { throw new DictionaryError('network') }
+    await expect(service(source('free-dictionary', offline), notFoundPhrases)
+      .search('break the ice')).rejects.toMatchObject({ kind: 'network' })
   })
 })
 
 describe('DictionaryError', () => {
   it('exposes the failure kind', () => {
     expect(new DictionaryError('network').kind).toBe('network')
+  })
+})
+
+describe('Kaikki phrase mapping', () => {
+  it('preserves legitimate regional and sensitive usage labels', () => {
+    expect(phraseRowsToResults([{
+      phrase: 'bloody hell',
+      part_of_speech: 'phrase',
+      sense_rank: 1,
+      definition: 'An exclamation of surprise.',
+      example: null,
+      synonyms: [],
+      antonyms: [],
+      usage_labels: ['UK', 'slang', 'vulgar'],
+      source_url: 'https://en.wiktionary.org/wiki/bloody_hell#English',
+      license_name: 'CC BY-SA 4.0',
+      license_url: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    }])[0].meanings[0].definitions[0].usageLabels).toEqual(['UK', 'slang', 'vulgar'])
   })
 })

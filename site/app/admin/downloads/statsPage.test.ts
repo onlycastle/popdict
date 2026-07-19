@@ -36,13 +36,13 @@ describe('fetchDashboardData', () => {
     process.env.DOWNLOADS_STATS_TOKEN = 'admin-token'
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(Response.json({ combined: 1, github: { total: 1, byAsset: {}, asOf: '2026-07-02' }, website: { total: 0 } }))
-      .mockResolvedValueOnce(Response.json([{ date: '2026-07-02', github: 1, website: 0, combined: 1 }]))
+      .mockResolvedValueOnce(Response.json({ github: { dmg: 1, zip: 0, other: 0, byAsset: {}, asOf: '2026-07-02' }, redirects: { total: 0 } }))
+      .mockResolvedValueOnce(Response.json([{ date: '2026-07-02', dmg: 1, redirects: 0 }]))
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(fetchDashboardData()).resolves.toEqual({
-      stats: { combined: 1, github: { total: 1, byAsset: {}, asOf: '2026-07-02' }, website: { total: 0 } },
-      timeseries: [{ date: '2026-07-02', github: 1, website: 0, combined: 1 }],
+      stats: { github: { dmg: 1, zip: 0, other: 0, byAsset: {}, asOf: '2026-07-02' }, redirects: { total: 0 } },
+      timeseries: [{ date: '2026-07-02', dmg: 1, redirects: 0 }],
     })
     expect(fetchMock).toHaveBeenCalledWith('https://fn.example/downloads?stats', expect.objectContaining({
       headers: expect.objectContaining({ authorization: 'Bearer admin-token' }),
@@ -59,11 +59,10 @@ describe('renderDashboardPage', () => {
   it('escapes asset names before rendering html', () => {
     const data: DownloadDashboardData = {
       stats: {
-        combined: 2,
-        github: { total: 1, byAsset: { '<script>alert(1)</script>.dmg': 1 }, asOf: '2026-07-02' },
-        website: { total: 1 },
+        github: { dmg: 1, zip: 0, other: 0, byAsset: { '<script>alert(1)</script>.dmg': 1 }, asOf: '2026-07-02' },
+        redirects: { total: 1 },
       },
-      timeseries: [{ date: '2026-07-02', github: 1, website: 1, combined: 2 }],
+      timeseries: [{ date: '2026-07-02', dmg: 1, redirects: 1 }],
     }
 
     const html = renderDashboardPage(data, new Date('2026-07-02T00:00:00Z'))
@@ -74,23 +73,23 @@ describe('renderDashboardPage', () => {
   it('renders an inline download curve and last-7-days deltas', () => {
     const data: DownloadDashboardData = {
       stats: {
-        combined: 34,
-        github: { total: 30, byAsset: { 'PopDict.dmg': 30 }, asOf: '2026-07-03' },
-        website: { total: 4 },
+        github: { dmg: 30, zip: 7, other: 0, byAsset: { 'PopDict.dmg': 30 }, asOf: '2026-07-03' },
+        redirects: { total: 4 },
       },
       timeseries: [
-        { date: '2026-07-03', github: 30, website: 4, combined: 34 },
-        { date: '2026-06-24', github: 5, website: 0, combined: 5 },
-        { date: '2026-07-01', github: 25, website: 2, combined: 27 },
+        { date: '2026-07-03', dmg: 30, redirects: 4 },
+        { date: '2026-06-24', dmg: 5, redirects: 0 },
+        { date: '2026-07-01', dmg: 25, redirects: 2 },
       ],
     }
 
     const html = renderDashboardPage(data, new Date('2026-07-03T00:00:00Z'))
 
     expect(html).toContain('Download Curve')
-    expect(html).toContain('aria-label="Daily cumulative download curve"')
+    expect(html).toContain('aria-label="Daily cumulative download funnel"')
     expect(html).toContain('Last 7 days through 2026-07-03')
-    expect(html).toContain('<div class="delta-value">+29</div>')
+    expect(html).toContain('<div class="delta-value">+25</div>')
+    expect(html).toContain('<div class="delta-value">+4</div>')
     expect(html).toContain('2026-06-24')
     expect(html).toContain('2026-07-03')
   })
@@ -98,9 +97,8 @@ describe('renderDashboardPage', () => {
   it('renders a chart empty state without daily snapshots', () => {
     const data: DownloadDashboardData = {
       stats: {
-        combined: 0,
-        github: { total: 0, byAsset: {}, asOf: null },
-        website: { total: 0 },
+        github: { dmg: 0, zip: 0, other: 0, byAsset: {}, asOf: null },
+        redirects: { total: 0 },
       },
       timeseries: [],
     }
@@ -108,33 +106,37 @@ describe('renderDashboardPage', () => {
     const html = renderDashboardPage(data, new Date('2026-07-03T00:00:00Z'))
 
     expect(html).toContain('No daily download data yet.')
-    expect(html).not.toContain('aria-label="Daily cumulative download curve"')
+    expect(html).not.toContain('aria-label="Daily cumulative download funnel"')
   })
 })
 
 describe('dailySeries', () => {
-  it('diffs consecutive cumulative points and drops the baseline day', () => {
+  it('keeps first-day redirects while treating the first DMG snapshot as a baseline', () => {
     expect(dailySeries([
-      { date: '2026-07-03', github: 47, website: 8, combined: 55 },
-      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
-      { date: '2026-07-04', github: 50, website: 10, combined: 60 },
+      { date: '2026-07-03', dmg: 47, redirects: 8 },
+      { date: '2026-07-02', dmg: 40, redirects: 5 },
+      { date: '2026-07-04', dmg: 50, redirects: 10 },
     ])).toEqual([
-      { date: '2026-07-03', github: 7, website: 3, combined: 10 },
-      { date: '2026-07-04', github: 3, website: 2, combined: 5 },
+      { date: '2026-07-02', dmg: 0, redirects: 5 },
+      { date: '2026-07-03', dmg: 7, redirects: 3 },
+      { date: '2026-07-04', dmg: 3, redirects: 2 },
     ])
   })
 
-  it('returns empty for fewer than two points', () => {
-    expect(dailySeries([{ date: '2026-07-02', github: 40, website: 5, combined: 45 }])).toEqual([])
+  it('returns the known redirect delta for a single first point', () => {
+    expect(dailySeries([{ date: '2026-07-02', dmg: 40, redirects: 5 }])).toEqual([
+      { date: '2026-07-02', dmg: 0, redirects: 5 },
+    ])
     expect(dailySeries([])).toEqual([])
   })
 
-  it('derives combined from clamped parts when a counter is corrected downward', () => {
+  it('clamps each stage independently when a counter is corrected downward', () => {
     expect(dailySeries([
-      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
-      { date: '2026-07-03', github: 38, website: 8, combined: 46 },
+      { date: '2026-07-02', dmg: 40, redirects: 5 },
+      { date: '2026-07-03', dmg: 38, redirects: 8 },
     ])).toEqual([
-      { date: '2026-07-03', github: 0, website: 3, combined: 3 },
+      { date: '2026-07-02', dmg: 0, redirects: 5 },
+      { date: '2026-07-03', dmg: 0, redirects: 3 },
     ])
   })
 })
@@ -142,14 +144,13 @@ describe('dailySeries', () => {
 describe('renderDashboardPage chart toggle', () => {
   const data: DownloadDashboardData = {
     stats: {
-      combined: 60,
-      github: { total: 50, byAsset: { 'PopDict.dmg': 50 }, asOf: '2026-07-04' },
-      website: { total: 10 },
+      github: { dmg: 50, zip: 12, other: 0, byAsset: { 'PopDict.dmg': 50 }, asOf: '2026-07-04' },
+      redirects: { total: 10 },
     },
     timeseries: [
-      { date: '2026-07-02', github: 40, website: 5, combined: 45 },
-      { date: '2026-07-03', github: 47, website: 8, combined: 55 },
-      { date: '2026-07-04', github: 50, website: 10, combined: 60 },
+      { date: '2026-07-02', dmg: 40, redirects: 5 },
+      { date: '2026-07-03', dmg: 47, redirects: 8 },
+      { date: '2026-07-04', dmg: 50, redirects: 10 },
     ],
   }
 
@@ -157,20 +158,20 @@ describe('renderDashboardPage chart toggle', () => {
     const html = renderDashboardPage(data, new Date('2026-07-04T00:00:00Z'))
     expect(html).toContain('id="view-cumulative"')
     expect(html).toContain('id="view-daily"')
-    expect(html).toContain('aria-label="Daily cumulative download curve"')
+    expect(html).toContain('aria-label="Daily cumulative download funnel"')
     expect(html).toContain('aria-label="Daily new downloads"')
-    expect(html).toContain('Daily new downloads from 2026-07-03')
+    expect(html).toContain('Daily funnel movement from 2026-07-02')
     expect(html).not.toContain('<script')
   })
 
-  it('shows the daily empty state with fewer than two days', () => {
+  it('shows first-day redirects even with a single cumulative point', () => {
     const single: DownloadDashboardData = {
       ...data,
-      timeseries: [{ date: '2026-07-02', github: 40, website: 5, combined: 45 }],
+      timeseries: [{ date: '2026-07-02', dmg: 40, redirects: 5 }],
     }
     const html = renderDashboardPage(single, new Date('2026-07-04T00:00:00Z'))
-    expect(html).toContain('Daily view needs at least two days of data.')
-    expect(html).not.toContain('aria-label="Daily new downloads"')
+    expect(html).toContain('Daily funnel movement from 2026-07-02')
+    expect(html).toContain('aria-label="Daily new downloads"')
   })
 
   it('keeps the radios before the chart head and views so :checked ~ selectors reach them', () => {
@@ -181,14 +182,13 @@ describe('renderDashboardPage chart toggle', () => {
   })
 
   it('centers the date tick under a single daily bar', () => {
-    const twoDays: DownloadDashboardData = {
+    const oneDay: DownloadDashboardData = {
       ...data,
       timeseries: [
-        { date: '2026-07-02', github: 40, website: 5, combined: 45 },
-        { date: '2026-07-03', github: 47, website: 8, combined: 55 },
+        { date: '2026-07-02', dmg: 40, redirects: 5 },
       ],
     }
-    const html = renderDashboardPage(twoDays, new Date('2026-07-03T00:00:00Z'))
+    const html = renderDashboardPage(oneDay, new Date('2026-07-03T00:00:00Z'))
     const daily = html.slice(html.indexOf('aria-label="Daily new downloads"'))
     expect(daily.slice(0, daily.indexOf('</svg>'))).toContain('text-anchor="middle"')
   })
@@ -197,20 +197,24 @@ describe('renderDashboardPage chart toggle', () => {
 describe('renderDashboardPage countries', () => {
   const base: DownloadDashboardData = {
     stats: {
-      combined: 60,
-      github: { total: 42, byAsset: { 'PopDict.dmg': 42 }, asOf: '2026-07-04' },
-      website: { total: 18, byCountry: { KR: 11, US: 6, unknown: 1 } },
+      github: { dmg: 42, zip: 9, other: 0, byAsset: { 'PopDict.dmg': 42 }, asOf: '2026-07-04' },
+      redirects: {
+        total: 18,
+        byCountry: { KR: 11, US: 6, unknown: 1 },
+        bySource: { website: 13, github: 5 },
+        byCta: { hero: 10, readme: 5, nav: 3 },
+      },
     },
     timeseries: [
-      { date: '2026-07-03', github: 40, website: 15, combined: 55 },
-      { date: '2026-07-04', github: 42, website: 18, combined: 60 },
+      { date: '2026-07-03', dmg: 40, redirects: 15 },
+      { date: '2026-07-04', dmg: 42, redirects: 18 },
     ],
   }
 
   it('renders a shaded map with tooltips and a ranked list', () => {
     const html = renderDashboardPage(base, new Date('2026-07-04T00:00:00Z'))
-    expect(html).toContain('aria-label="Website downloads by country"')
-    expect(html).toContain('Website downloads, all time — GitHub does not report geography.')
+    expect(html).toContain('aria-label="Website redirects by country"')
+    expect(html).toContain('Website redirects, all time — GitHub does not report geography.')
     expect(html).toContain('<title>South Korea: 11</title>')
     expect(html).toContain('fill="#d9862f"')
     expect(html).toContain('🇰🇷')
@@ -220,7 +224,7 @@ describe('renderDashboardPage countries', () => {
   it('escapes hostile country codes from the api', () => {
     const hostile: DownloadDashboardData = {
       ...base,
-      stats: { ...base.stats, website: { total: 1, byCountry: { '<img src=x>': 1 } } },
+      stats: { ...base.stats, redirects: { total: 1, byCountry: { '<img src=x>': 1 } } },
     }
     const html = renderDashboardPage(hostile, new Date('2026-07-04T00:00:00Z'))
     expect(html).toContain('&lt;img src=x&gt;')
@@ -230,18 +234,26 @@ describe('renderDashboardPage countries', () => {
   it('renders the countries empty state when byCountry is absent or empty', () => {
     const absent: DownloadDashboardData = {
       ...base,
-      stats: { ...base.stats, website: { total: 18 } },
+      stats: { ...base.stats, redirects: { total: 18 } },
     }
     const html = renderDashboardPage(absent, new Date('2026-07-04T00:00:00Z'))
     expect(html).toContain('No country data yet.')
-    expect(html).not.toContain('aria-label="Website downloads by country"')
+    expect(html).not.toContain('aria-label="Website redirects by country"')
 
     const empty: DownloadDashboardData = {
       ...base,
-      stats: { ...base.stats, website: { total: 18, byCountry: {} } },
+      stats: { ...base.stats, redirects: { total: 18, byCountry: {} } },
     }
     const emptyHtml = renderDashboardPage(empty, new Date('2026-07-04T00:00:00Z'))
     expect(emptyHtml).toContain('No country data yet.')
-    expect(emptyHtml).not.toContain('aria-label="Website downloads by country"')
+    expect(emptyHtml).not.toContain('aria-label="Website redirects by country"')
+  })
+
+  it('renders source and CTA attribution without calling redirects installs', () => {
+    const html = renderDashboardPage(base, new Date('2026-07-04T00:00:00Z'))
+    expect(html).toContain('Redirect attribution')
+    expect(html).toContain('These are download intents, not additional installs.')
+    expect(html).toContain('<td>github</td><td class="num">5</td>')
+    expect(html).toContain('<td>hero</td><td class="num">10</td>')
   })
 })

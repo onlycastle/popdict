@@ -1,13 +1,17 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, dialog, Notification, shell } from 'electron'
+import * as fs from 'node:fs/promises'
 import type { IpcRouter } from './IpcRouter'
 import type { Store } from '../store'
 import type { WindowManager } from '../windows/WindowManager'
 import type { AuthCallbackBroker } from '../auth/AuthCallbackBroker'
 import type { HotkeyManager } from '../hotkey/HotkeyManager'
 import type { TrayMenu } from '../tray/TrayMenu'
+import type { LookupCache, LookupCacheWrite } from '../lookupCache'
+import type { DueCountBroker } from '../reminders/DueCountBroker'
+import type { ReviewReminderScheduler } from '../reminders/ReviewReminderScheduler'
 import { createLogger } from '../../shared/logger'
 import { describeExternalAuthUrl, isAllowedExternalAuthUrl } from '../../shared/authUrl'
-import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
+import { dismissOwningWindow } from './dismissOwningWindow'
 
 const log = createLogger('Auth')
 
@@ -17,7 +21,10 @@ export interface IpcDeps {
   broker: AuthCallbackBroker
   hotkey: HotkeyManager
   tray: TrayMenu
-  openFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult> | FeedbackOpenResult
+  analyticsSessionId: string
+  lookupCache: LookupCache
+  dueCountBroker: DueCountBroker
+  reminderScheduler: ReviewReminderScheduler
 }
 
 /** The settings shape the renderer expects, merging stored config with OS state. */
@@ -28,6 +35,9 @@ function settingsPayload(store: Store) {
     launchAtLogin: app.getLoginItemSettings().openAtLogin,
     signInNudgeDismissedAt: cfg.signInNudgeDismissedAt,
     translationLanguage: cfg.translationLanguage,
+    analyticsEnabled: cfg.analyticsEnabled,
+    reviewReminders: cfg.reviewReminders,
+    notificationsSupported: Notification.isSupported(),
   }
 }
 
@@ -41,25 +51,70 @@ function seedSearch(windows: WindowManager, word: string): void {
 
 /** Register every IPC channel, wiring renderer requests to the injected services. */
 export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
-  const { store, windows, broker, hotkey, tray, openFeedback } = deps
+  const {
+    store, windows, broker, hotkey, tray, analyticsSessionId, lookupCache,
+    dueCountBroker, reminderScheduler,
+  } = deps
 
   router.handle('get-settings', () => settingsPayload(store))
   router.handle('get-app-version', () => app.getVersion())
+  router.handle('get-analytics-session-id', () => analyticsSessionId)
 
   router.handle('set-settings', (_e, partial) => {
-    const { launchAtLogin, hotkey: _ignoredHotkey, ...storable } = partial ?? {}
+    const previousReminders = store.getConfig().reviewReminders
+    const {
+      launchAtLogin,
+      hotkey: _ignoredHotkey,
+      notificationsSupported: _ignoredNotificationsSupported,
+      ...storable
+    } = partial ?? {}
     if (typeof launchAtLogin === 'boolean') {
       app.setLoginItemSettings({ openAtLogin: launchAtLogin })
     }
     store.patch(storable)
     tray.rebuild()
+    if (storable.reviewReminders) {
+      const nextReminders = store.getConfig().reviewReminders
+      const changedCadenceWindow = previousReminders.cadence !== nextReminders.cadence ||
+        previousReminders.time !== nextReminders.time ||
+        previousReminders.weeklyDay !== nextReminders.weeklyDay ||
+        previousReminders.threeWeeklyDays.join(',') !== nextReminders.threeWeeklyDays.join(',')
+      reminderScheduler.recalculate(changedCadenceWindow)
+    }
     return settingsPayload(store)
   })
 
   router.handle('get-history', () => store.getConfig().history)
   router.handle('add-history', (_e, word: string) => store.addHistory(word))
   router.handle('remove-history', (_e, word: string) => store.removeHistory(word))
-  router.handle('clear-history', () => { store.clearHistory() })
+  router.handle('clear-history', async () => {
+    store.clearHistory()
+    await lookupCache.clear()
+  })
+  router.handle('read-lookup-cache', (_e, query: string) => lookupCache.read(query))
+  router.handle('write-lookup-cache', (_e, input: LookupCacheWrite) => lookupCache.write(input))
+  router.handle('clear-lookup-cache', () => lookupCache.clear())
+  router.handle('export-saved-words-csv', async (_e, csv: string) => {
+    if (typeof csv !== 'string' || Buffer.byteLength(csv, 'utf8') > 10 * 1024 * 1024) {
+      throw new Error('CSV export is too large.')
+    }
+    const owner = windows.get('saved') ?? undefined
+    const result = await dialog.showSaveDialog(owner, {
+      title: 'Export Saved Words',
+      defaultPath: 'PopDict Saved Words.csv',
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+      properties: ['createDirectory', 'showOverwriteConfirmation'],
+    })
+    if (result.canceled || !result.filePath) return false
+    const filePath = result.filePath.toLowerCase().endsWith('.csv')
+      ? result.filePath : `${result.filePath}.csv`
+    await fs.writeFile(filePath, csv, 'utf8')
+    return true
+  })
+  router.on('reminder-due-count-response', (event, nonce: string, count: number) => {
+    dueCountBroker.resolve(event.sender, nonce, count)
+  })
+  router.handle('record-lookup-success', () => store.recordLookupSuccess())
 
   router.handle('change-hotkey', (_e, accelerator: string) => {
     const ok = hotkey.register(accelerator)
@@ -72,7 +127,6 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     return ok
   })
 
-  router.handle('send-feedback', (_e, payload?: FeedbackPayload) => openFeedback(payload))
   router.on('open-settings', () => windows.open('settings'))
   router.on('open-saved-words', () => windows.open('saved'))
   router.on('open-review', () => windows.open('review'))
@@ -96,8 +150,12 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     log.event('external url opened', describeExternalAuthUrl(url))
   })
 
-  router.on('hide-window', () => {
-    windows.get('search')?.hide()
+  router.on('hide-window', (event) => {
+    dismissOwningWindow(
+      event.sender,
+      BrowserWindow.fromWebContents,
+      windows.get('search'),
+    )
   })
 
   router.on('set-window-height', (_e, height: number) => {

@@ -26,18 +26,23 @@ by applying the quarantine attribute itself.
 ## Prerequisites
 
 - Apple Silicon Mac (the release is `arm64`; test x64 separately if ever shipped).
-- A built DMG at `out/make/PopDict-<version>-arm64.dmg`
-  (`npm run release:arm64` — signs, notarizes, staples; needs `.env.local` secrets).
+- Node 20.19+, 22.12+, or 24.x. If the active Node is unsupported, the script
+  will use an installed Homebrew version from that range and rebuild the native
+  DMG dependency before continuing.
+- Release signing and notarization credentials in `.env.local`. When the
+  full `scripts/test-dmg.sh` run invokes `npm run release:arm64` to create a
+  fresh signed, notarized, and stapled build every time.
   An unsigned `npm run make:local` DMG is fine for *feature* testing but will **not**
   reproduce the Gatekeeper/notarization install flow.
 
 ## Quick start
 
 ```bash
-# Full guided run: verify → clean → install → interactive checklist
+# Full guided run: fresh build → verify → clean → install → checklist
 scripts/test-dmg.sh
 
 # Or a specific phase:
+scripts/test-dmg.sh build       # force a fresh signed/notarized release build
 scripts/test-dmg.sh verify      # signature + notarization checks only
 scripts/test-dmg.sh clean       # wipe to a first-run state (destructive, confirms)
 scripts/test-dmg.sh install     # quarantine + mount + copy to /Applications + launch
@@ -52,6 +57,7 @@ scripts/test-dmg.sh --dmg out/make/PopDict-1.2.0-arm64.dmg
 
 | Phase | Does |
 |-------|------|
+| `build` | Runs the signed/notarized arm64 release pipeline; `all` always invokes a fresh build |
 | `verify` | `spctl` acceptance + `xcrun stapler validate` on the DMG |
 | `clean` | Quits the app; removes `/Applications/PopDict.app`, `~/Library/Application Support/PopDict/`, and the login item (each confirmed) |
 | `install` | Applies the download quarantine bit, mounts the DMG, copies the app to `/Applications`, ejects, re-checks the installed app's signature/notarization/codesign, then launches it |
@@ -75,6 +81,14 @@ These can't be automated — you watch the app and answer pass/fail:
 9. **Persistence** — quit + relaunch; the rebound hotkey survives (stored in
    `popdict-config.json`).
 10. **Launch at login** — toggle on, log out/in or reboot, confirm auto-start, then turn off.
+11. **Guest translations** — signed-out lookups show the selected translation without a sign-in prompt.
+12. **Phrase data** — exact idioms show definitions, labels, and all source attribution.
+13. **Recovery and related words** — misspelling/base-form options and keyboard-accessible synonym/antonym lookup work.
+14. **Offline cache** — after a live lookup, disconnect and confirm the complete entry, matching translation, cached date, and TTS fallback.
+15. **Saved Words 2.0** — legacy enrichment, filters, tags, notes, per-row retry, CSV export, and restart persistence work.
+16. **Review reliability** — due count equals opened cards; finishing and reopening starts a fresh Review window.
+17. **Local reminders** — quiet hours defer notifications and clicking one opens Review.
+18. **Packaged routes** — Settings, Saved Words, Review, and onboarding all open the right hash route.
 
 ## Gatekeeper: what "good" looks like
 

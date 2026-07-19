@@ -14,6 +14,6 @@ export function shouldShowSignInNudge(s: SignInNudgeState): boolean {
 export function loginModalSubtitle(word: string): string {
   const trimmed = word.trim()
   return trimmed
-    ? `Save “${trimmed}” to your account.`
-    : 'Save words you look up and review them weekly.'
+    ? `Save “${trimmed}” now, sync it, and build a personalized weekly review.`
+    : 'Sync saved words and get a personalized weekly review after five saves.'
 }

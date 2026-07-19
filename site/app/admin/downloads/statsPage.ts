@@ -3,23 +3,25 @@ import { countryDisplayName, countryShade, rankCountries, type CountryRow } from
 import { WORLD_MAP_PATHS, WORLD_MAP_VIEWBOX } from './worldMapPaths'
 
 export type DownloadStats = {
-  combined: number
   github: {
-    total: number
+    dmg: number
+    zip: number
+    other: number
     byAsset: Record<string, number>
     asOf: string | null
   }
-  website: {
+  redirects: {
     total: number
     byCountry?: Record<string, number>
+    bySource?: Record<string, number>
+    byCta?: Record<string, number>
   }
 }
 
 export type DownloadDayPoint = {
   date: string
-  github: number
-  website: number
-  combined: number
+  dmg: number
+  redirects: number
 }
 
 export type DownloadDashboardData = {
@@ -29,23 +31,23 @@ export type DownloadDashboardData = {
 
 export type DailyPoint = {
   date: string
-  github: number
-  website: number
-  combined: number
+  dmg: number
+  redirects: number
 }
 
-// Per-day new downloads from consecutive cumulative points. The first point
-// is a baseline (GitHub's first snapshot means "all downloads ever, to that
-// date"), so it is dropped rather than shown as a fake spike.
+// Per-day funnel movement from cumulative points. GitHub's first snapshot is
+// a lifetime baseline, so its first DMG delta is zero. Redirect tracking starts
+// at zero, making the first cumulative redirect value a real first-day delta.
 export function dailySeries(points: DownloadDayPoint[]): DailyPoint[] {
   const ordered = [...points].sort((a, b) => a.date.localeCompare(b.date))
-  return ordered.slice(1).map((point, index) => {
-    const prev = ordered[index]
-    const github = Math.max(0, point.github - prev.github)
-    const website = Math.max(0, point.website - prev.website)
-    // combined is derived, not independently clamped: the stacked bar's height
-    // (github + website) must equal the value the axis is scaled against.
-    return { date: point.date, github, website, combined: github + website }
+  return ordered.map((point, index) => {
+    if (index === 0) {
+      return { date: point.date, dmg: 0, redirects: Math.max(0, point.redirects) }
+    }
+    const prev = ordered[index - 1]
+    const dmg = Math.max(0, point.dmg - prev.dmg)
+    const redirects = Math.max(0, point.redirects - prev.redirects)
+    return { date: point.date, dmg, redirects }
   })
 }
 
@@ -102,7 +104,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
   const orderedTimeseries = [...timeseries].sort((a, b) => a.date.localeCompare(b.date))
   const assets = Object.entries(stats.github.byAsset)
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-  const maxCombined = Math.max(1, ...orderedTimeseries.map((point) => point.combined))
+  const maxDmg = Math.max(1, ...orderedTimeseries.map((point) => point.dmg))
   const recent = downloadDelta(orderedTimeseries, 7)
   const daily = dailySeries(orderedTimeseries)
 
@@ -231,7 +233,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
     }
     .delta-strip {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       margin-top: 14px;
       border-top: 1px solid var(--line);
     }
@@ -386,6 +388,13 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
     }
     .country-row .bar-track { min-width: 0; margin-top: 4px; height: 6px; }
     .country-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .breakdown-grid h3 { margin: 0 0 8px; font-size: 14px; }
     @media (max-width: 720px) {
       header { align-items: flex-start; flex-direction: column; }
       .actions { justify-content: flex-start; }
@@ -397,6 +406,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       th.optional, td.optional { display: none; }
       .countries-card { grid-template-columns: 1fr; }
       .country-list { border-left: 0; padding-left: 0; }
+      .breakdown-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -414,9 +424,9 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
     </header>
 
     <section class="grid" aria-label="Summary">
-      ${metric('Combined', stats.combined)}
-      ${metric('GitHub', stats.github.total)}
-      ${metric('Website', stats.website.total)}
+      ${metric('DMG deliveries', stats.github.dmg)}
+      ${metric('Website redirects', stats.redirects.total)}
+      ${metric('Updater ZIP deliveries', stats.github.zip)}
     </section>
 
     <section>
@@ -427,7 +437,7 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
           <div>
             <h2>Download Curve</h2>
             <div class="muted small view-sub view-sub-cumulative">${recent ? `Last 7 days through ${escapeHtml(recent.to)}` : 'No daily snapshots yet'}</div>
-            <div class="muted small view-sub view-sub-daily">${daily.length > 0 ? `Daily new downloads from ${escapeHtml(daily[0].date)} (first snapshot day is the baseline)` : 'Daily view needs at least two days of data.'}</div>
+            <div class="muted small view-sub view-sub-daily">${daily.length > 0 ? `Daily funnel movement from ${escapeHtml(daily[0].date)} (the first GitHub DMG snapshot is a baseline)` : 'No daily data yet.'}</div>
           </div>
           <div class="chart-actions-col">
             <div class="chart-switch" aria-label="Chart view">
@@ -435,9 +445,8 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
               <label for="view-daily">Daily</label>
             </div>
             <div class="legend" aria-label="Chart legend">
-              ${legendItem('Combined', '#d9862f')}
-              ${legendItem('GitHub', '#303036')}
-              ${legendItem('Website', '#7b735f')}
+              ${legendItem('GitHub DMG', '#d9862f')}
+              ${legendItem('Website redirects', '#303036')}
             </div>
           </div>
         </div>
@@ -447,7 +456,9 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
       </div>
     </section>
 
-    ${renderCountriesSection(stats.website.byCountry)}
+    ${renderAttributionSection(stats.redirects.bySource, stats.redirects.byCta)}
+
+    ${renderCountriesSection(stats.redirects.byCountry)}
 
     <section>
       <h2>Assets</h2>
@@ -465,14 +476,13 @@ export function renderDashboardPage(data: DownloadDashboardData, generatedAt = n
         <thead>
           <tr>
             <th>Date</th>
-            <th class="num optional">GitHub</th>
-            <th class="num optional">Website</th>
-            <th class="num">Combined</th>
-            <th>Trend</th>
+            <th class="num optional">GitHub DMG</th>
+            <th class="num">Website redirects</th>
+            <th>DMG trend</th>
           </tr>
         </thead>
         <tbody>
-          ${orderedTimeseries.map((point) => dayRow(point, maxCombined)).join('')}
+          ${orderedTimeseries.map((point) => dayRow(point, maxDmg)).join('')}
         </tbody>
       </table>
     </section>
@@ -508,9 +518,8 @@ function legendItem(label: string, color: string): string {
 }
 
 type DownloadDelta = {
-  combined: number
-  github: number
-  website: number
+  dmg: number
+  redirects: number
   to: string
 }
 
@@ -530,18 +539,16 @@ function downloadDelta(points: DownloadDayPoint[], days: number): DownloadDelta 
   }
 
   return {
-    combined: Math.max(0, latest.combined - (baseline?.combined ?? 0)),
-    github: Math.max(0, latest.github - (baseline?.github ?? 0)),
-    website: Math.max(0, latest.website - (baseline?.website ?? 0)),
+    dmg: Math.max(0, latest.dmg - (baseline?.dmg ?? 0)),
+    redirects: Math.max(0, latest.redirects - (baseline?.redirects ?? 0)),
     to: latest.date,
   }
 }
 
 function renderDeltaStrip(delta: DownloadDelta): string {
   return `<div class="delta-strip" aria-label="Last 7 days download changes">
-    ${deltaItem('Combined', delta.combined)}
-    ${deltaItem('GitHub', delta.github)}
-    ${deltaItem('Website', delta.website)}
+    ${deltaItem('GitHub DMG', delta.dmg)}
+    ${deltaItem('Website redirects', delta.redirects)}
   </div>`
 }
 
@@ -559,9 +566,31 @@ function renderCountriesSection(byCountry: Record<string, number> | undefined): 
       </div>`
   return `<section>
       <h2>Countries</h2>
-      <div class="muted small">Website downloads, all time — GitHub does not report geography.</div>
+      <div class="muted small">Website redirects, all time — GitHub does not report geography.</div>
       ${body}
     </section>`
+}
+
+function renderAttributionSection(
+  bySource: Record<string, number> | undefined,
+  byCta: Record<string, number> | undefined,
+): string {
+  return `<section>
+    <h2>Redirect attribution</h2>
+    <div class="muted small">Where visitors initiated the website redirect. These are download intents, not additional installs.</div>
+    <div class="breakdown-grid">
+      ${renderBreakdownTable('Source', bySource)}
+      ${renderBreakdownTable('CTA', byCta)}
+    </div>
+  </section>`
+}
+
+function renderBreakdownTable(label: string, values: Record<string, number> | undefined): string {
+  const rows = Object.entries(values ?? {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  const body = rows.length === 0
+    ? '<tr><td colspan="2" class="muted">No attributed redirects yet.</td></tr>'
+    : rows.map(([name, count]) => `<tr><td>${escapeHtml(name)}</td><td class="num">${formatNumber(count)}</td></tr>`).join('')
+  return `<div><h3>${escapeHtml(label)}</h3><table><thead><tr><th>${escapeHtml(label)}</th><th class="num">Redirects</th></tr></thead><tbody>${body}</tbody></table></div>`
 }
 
 // Max over real countries only: 'unknown' has no geography and must not
@@ -581,7 +610,7 @@ function renderWorldMap(rows: CountryRow[]): string {
       : `<title>${escapeHtml(row ? `${row.name}: ${row.count}` : countryDisplayName(code))}</title>`
     return `<path d="${d}" fill="${fill}" stroke="#ffffff" stroke-width="0.5">${tooltip}</path>`
   }).join('')
-  return `<svg class="world-map" viewBox="${WORLD_MAP_VIEWBOX}" role="img" aria-label="Website downloads by country">${paths}</svg>`
+  return `<svg class="world-map" viewBox="${WORLD_MAP_VIEWBOX}" role="img" aria-label="Website redirects by country">${paths}</svg>`
 }
 
 function countryRowHtml(row: CountryRow, max: number): string {
@@ -609,33 +638,31 @@ function renderDownloadCurve(points: DownloadDayPoint[]): string {
   const bottom = 42
   const plotWidth = width - left - right
   const plotHeight = height - top - bottom
-  const maxValue = Math.max(1, ...points.map((point) => point.combined))
+  const maxValue = Math.max(1, ...points.flatMap((point) => [point.dmg, point.redirects]))
   const yBase = top + plotHeight
-  const combined = chartPoints(points, 'combined', left, top, plotWidth, plotHeight, maxValue)
-  const github = chartPoints(points, 'github', left, top, plotWidth, plotHeight, maxValue)
-  const website = chartPoints(points, 'website', left, top, plotWidth, plotHeight, maxValue)
-  const areaPath = `M ${left} ${yBase} L ${combined.map((point) => `${point.x} ${point.y}`).join(' L ')} L ${left + plotWidth} ${yBase} Z`
+  const dmg = chartPoints(points, 'dmg', left, top, plotWidth, plotHeight, maxValue)
+  const redirects = chartPoints(points, 'redirects', left, top, plotWidth, plotHeight, maxValue)
   const grid = gridLines(maxValue, left, top, plotWidth, plotHeight)
   const ticks = axisTicks(points, left, yBase, plotWidth)
-  const lastCombined = combined[combined.length - 1]
+  const lastDmg = dmg[dmg.length - 1]
+  const lastRedirect = redirects[redirects.length - 1]
 
-  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily cumulative download curve">
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily cumulative download funnel">
     <rect x="0" y="0" width="${width}" height="${height}" fill="#fff" rx="8" />
     ${grid}
-    <path d="${areaPath}" fill="#fff2df" />
-    ${polyline(combined, '#d9862f', 4)}
-    ${polyline(github, '#303036', 2.5)}
-    ${polyline(website, '#7b735f', 2.5)}
-    <circle cx="${lastCombined.x}" cy="${lastCombined.y}" r="4.5" fill="#d9862f" />
+    ${polyline(dmg, '#d9862f', 3.5)}
+    ${polyline(redirects, '#303036', 2.5)}
+    <circle cx="${lastDmg.x}" cy="${lastDmg.y}" r="4.5" fill="#d9862f" />
+    <circle cx="${lastRedirect.x}" cy="${lastRedirect.y}" r="3.5" fill="#303036" />
     ${ticks}
   </svg>`
 }
 
-// Stacked bars: GitHub (charcoal) below, website (olive) on top, so the full
-// bar height reads as combined new downloads that day.
+// Paired bars preserve the funnel distinction. A website redirect that ends in
+// a GitHub DMG delivery may appear in both stages and must not be stacked.
 function renderDailyBars(points: DailyPoint[]): string {
   if (points.length === 0) {
-    return '<div class="empty-chart">Daily view needs at least two days of data.</div>'
+    return '<div class="empty-chart">No daily data yet.</div>'
   }
 
   const width = 760
@@ -646,19 +673,21 @@ function renderDailyBars(points: DailyPoint[]): string {
   const bottom = 42
   const plotWidth = width - left - right
   const plotHeight = height - top - bottom
-  const maxValue = Math.max(1, ...points.map((point) => point.combined))
+  const maxValue = Math.max(1, ...points.flatMap((point) => [point.dmg, point.redirects]))
   const yBase = top + plotHeight
   const slot = plotWidth / points.length
-  const barWidth = round(Math.min(48, slot * 0.55))
+  const barWidth = round(Math.min(28, slot * 0.3))
 
   const bars = points.map((point, index) => {
-    const x = round(left + slot * index + (slot - barWidth) / 2)
-    const githubHeight = round((point.github / maxValue) * plotHeight)
-    const websiteHeight = round((point.website / maxValue) * plotHeight)
+    const center = left + slot * (index + 0.5)
+    const dmgX = round(center - barWidth - 1)
+    const redirectX = round(center + 1)
+    const dmgHeight = round((point.dmg / maxValue) * plotHeight)
+    const redirectHeight = round((point.redirects / maxValue) * plotHeight)
     return `<g>
-      <rect x="${x}" y="${round(yBase - githubHeight)}" width="${barWidth}" height="${githubHeight}" fill="#303036" />
-      <rect x="${x}" y="${round(yBase - githubHeight - websiteHeight)}" width="${barWidth}" height="${websiteHeight}" fill="#7b735f" />
-      <title>${escapeHtml(point.date)}: +${formatNumber(point.combined)} (GitHub +${formatNumber(point.github)}, website +${formatNumber(point.website)})</title>
+      <rect x="${dmgX}" y="${round(yBase - dmgHeight)}" width="${barWidth}" height="${dmgHeight}" fill="#d9862f" />
+      <rect x="${redirectX}" y="${round(yBase - redirectHeight)}" width="${barWidth}" height="${redirectHeight}" fill="#303036" />
+      <title>${escapeHtml(point.date)}: GitHub DMG +${formatNumber(point.dmg)}, website redirects +${formatNumber(point.redirects)}</title>
     </g>`
   }).join('')
 
@@ -683,7 +712,7 @@ function dailyAxisTicks(points: DailyPoint[], left: number, y: number, slot: num
   }).join('')
 }
 
-type ChartMetric = 'combined' | 'github' | 'website'
+type ChartMetric = 'dmg' | 'redirects'
 
 type ChartPoint = {
   x: number
@@ -732,14 +761,13 @@ function polyline(points: ChartPoint[], color: string, width: number): string {
   return `<polyline points="${points.map((point) => `${point.x},${point.y}`).join(' ')}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" />`
 }
 
-function dayRow(point: DownloadDayPoint, maxCombined: number): string {
-  const width = Math.max(2, Math.round((point.combined / maxCombined) * 100))
+function dayRow(point: DownloadDayPoint, maxDmg: number): string {
+  const width = Math.max(2, Math.round((point.dmg / maxDmg) * 100))
   return `<tr>
     <td>${escapeHtml(point.date)}</td>
-    <td class="num optional">${formatNumber(point.github)}</td>
-    <td class="num optional">${formatNumber(point.website)}</td>
-    <td class="num">${formatNumber(point.combined)}</td>
-    <td><div class="bar-track" aria-label="${formatNumber(point.combined)} combined downloads"><div class="bar" style="width:${width}%"></div></div></td>
+    <td class="num optional">${formatNumber(point.dmg)}</td>
+    <td class="num">${formatNumber(point.redirects)}</td>
+    <td><div class="bar-track" aria-label="${formatNumber(point.dmg)} GitHub DMG deliveries"><div class="bar" style="width:${width}%"></div></div></td>
   </tr>`
 }
 

@@ -4,20 +4,26 @@ import { deriveRecordContext, postDownloadRecord } from './record'
 describe('deriveRecordContext', () => {
   it('pulls referrer + country from headers with release info', () => {
     const headers = new Headers({ referer: 'https://x.com/a', 'x-vercel-ip-country': 'US' })
-    expect(deriveRecordContext(headers, { tag: 'v1.1.1', assetName: 'PopDict.dmg' })).toEqual({
-      action: 'record', version: 'v1.1.1', asset: 'PopDict.dmg', referrer: 'https://x.com/a', country: 'US',
+    expect(deriveRecordContext(headers, { tag: 'v1.1.1', assetName: 'PopDict.dmg' }, 'https://popdict.space/download/latest?source=github&cta=readme')).toEqual({
+      action: 'record', version: 'v1.1.1', asset: 'PopDict.dmg', referrer: 'https://x.com/a', country: 'US', source: 'github', cta: 'readme',
     })
   })
 
   it('tolerates missing headers', () => {
-    expect(deriveRecordContext(new Headers(), { tag: 'v1', assetName: 'a.dmg' })).toEqual({
-      action: 'record', version: 'v1', asset: 'a.dmg', referrer: null, country: null,
+    expect(deriveRecordContext(new Headers(), { tag: 'v1', assetName: 'a.dmg' }, 'https://popdict.space/download/latest')).toEqual({
+      action: 'record', version: 'v1', asset: 'a.dmg', referrer: null, country: null, source: 'website', cta: null,
+    })
+  })
+
+  it('rejects malformed attribution instead of storing arbitrary text', () => {
+    expect(deriveRecordContext(new Headers(), { tag: 'v1', assetName: 'a.dmg' }, 'https://popdict.space/download/latest?source=%3Cscript%3E&cta=too%20long')).toEqual({
+      action: 'record', version: 'v1', asset: 'a.dmg', referrer: null, country: null, source: 'website', cta: null,
     })
   })
 })
 
 describe('postDownloadRecord', () => {
-  const payload = { action: 'record', version: 'v1', asset: 'a.dmg', referrer: null, country: null } as const
+  const payload = { action: 'record', version: 'v1', asset: 'a.dmg', referrer: null, country: null, source: 'website', cta: 'hero' } as const
   beforeEach(() => {
     process.env.DOWNLOADS_FN_URL = 'https://fn.example/downloads'
     process.env.DOWNLOADS_RECORD_TOKEN = 'sekret'

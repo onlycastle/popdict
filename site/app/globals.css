@@ -302,6 +302,55 @@ a:hover {
   letter-spacing: 0.05em;
   color: var(--ink-faint);
 }
+.trust-strip {
+  display: inline-flex;
+  align-items: stretch;
+  margin-top: 24px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--paper-2) 88%, var(--marker-soft));
+  border: 1px solid var(--edge-strong);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px -24px rgba(26, 23, 20, 0.75);
+}
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  color: var(--ink);
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+.trust-item + .trust-item {
+  border-left: 1px solid var(--edge);
+}
+.trust-item:hover {
+  background: var(--marker-soft);
+  color: var(--ink);
+  text-decoration: none;
+}
+.trust-item > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.trust-item strong {
+  font-size: 0.83rem;
+  font-weight: 650;
+}
+.trust-item small {
+  margin-top: 3px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+}
+.trust-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--marker-ink);
+}
 
 /* ------------------------------------------------------ the stage (the scene) */
 
@@ -612,6 +661,17 @@ footer {
   .nav-link {
     display: none;
   }
+  .trust-strip {
+    align-items: stretch;
+    width: min(100%, 310px);
+  }
+  .trust-item {
+    flex: 1;
+    padding: 10px 12px;
+  }
+  .trust-item strong {
+    font-size: 0.76rem;
+  }
   .senses {
     grid-template-columns: 1fr;
   }
@@ -622,6 +682,16 @@ footer {
   .footer-inner {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 360px) {
+  .trust-strip {
+    flex-direction: column;
+  }
+  .trust-item + .trust-item {
+    border-top: 1px solid var(--edge);
+    border-left: 0;
   }
 }
 
