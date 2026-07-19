@@ -140,7 +140,7 @@ text-to-speech.
 Attribution: **English Wiktionary via Kaikki — filtered and ranked by PopDict.**
 
 The generated `data/translations/word-translations.csv` dataset and normalized
-`data/translations/ngsl-gr-3000.txt` learner headword list are licensed
+`data/translations/ngsl-gr-5049.txt` learner headword list are licensed
 separately from PopDict application code under
 [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
 
@@ -156,7 +156,7 @@ Pinned source inputs:
   SHA-256:
   `5c4f7bb84b5d74d7481d43483b811f1591bd667b86a6131f1566fdf07cade91e`.
 
-PopDict’s deterministic changes are: select the first 3,000 distinct
+PopDict’s deterministic changes are: select all 5,049 distinct valid
 normalized single English NGSL-GR headwords; retain Korean, Japanese,
 Simplified Chinese, Spanish, and Brazilian Portuguese; remove archaic,
 obsolete, dated, rare, and nonstandard candidates using entry tags and leading
@@ -171,6 +171,23 @@ the filtering summary is at `data/translations/manifest.json`. Wiktextract is
 developed by Tatu Ylonen and contributors; Kaikki requests links to its pages
 and citation of Tatu Ylonen, “Wiktextract: Wiktionary as Machine-Readable
 Structured Data,” LREC 2022, for academic use.
+
+---
+
+## English phrase dataset — CC BY-SA 4.0
+
+Attribution: **English Wiktionary via Kaikki — filtered and ranked by PopDict.**
+
+The generated `data/phrases/phrase-entries.csv` dataset is licensed separately
+from PopDict application code under
+[Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
+It comes from the same pinned Kaikki snapshot and English Wiktionary dump listed
+above. PopDict includes multi-word idiomatic senses and phrase,
+prepositional-phrase, and proverb entries; removes archaic, obsolete, dated,
+rare, and nonstandard senses; preserves regional and sensitive usage labels;
+deduplicates definitions; and ranks at most three senses per normalized phrase.
+Exact counts, checksums, and filtering rules are recorded in
+`data/phrases/manifest.json`.
 
 ---
 

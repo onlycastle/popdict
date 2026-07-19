@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const schemaPath = 'supabase/migrations/20260714121310_remove_idiom_usage_add_word_translations.sql'
+const schemaPath = 'supabase/migrations/20260716115322_p1_saved_words_phrases_access.sql'
 
 async function filesUnder(root) {
   const entries = await readdir(root, { withFileTypes: true })
@@ -17,19 +17,18 @@ async function filesUnder(root) {
 }
 
 describe('translation database boundary', () => {
-  it('permits authenticated reads while denying anonymous access and client writes', async () => {
+  it('permits public reads while denying all client writes', async () => {
     const sql = await readFile(schemaPath, 'utf8')
     expect(sql).toMatch(/enable row level security/i)
     expect(sql).toMatch(/revoke all privileges[\s\S]*from public, anon, authenticated/i)
-    expect(sql).toMatch(/grant select[\s\S]*to authenticated/i)
+    expect(sql).toMatch(/grant select[\s\S]*to anon, authenticated/i)
     expect(sql).not.toMatch(/grant\s+(?:insert|update|delete)[\s\S]*to authenticated/i)
-    expect(sql).toMatch(/is_anonymous/i)
-    expect(sql).toMatch(/auth\.uid\(\)/i)
+    expect(sql).toMatch(/to anon, authenticated[\s\S]*using \(true\)/i)
   })
 
   it('retires usage counters and leaves older phrase clients a no-upstream response', async () => {
     const [sql, idioms] = await Promise.all([
-      readFile(schemaPath, 'utf8'),
+      readFile('supabase/migrations/20260714121310_remove_idiom_usage_add_word_translations.sql', 'utf8'),
       readFile('supabase/functions/idioms/index.ts', 'utf8'),
     ])
     expect(sql).toMatch(/drop table if exists public\.idiom_usage/i)

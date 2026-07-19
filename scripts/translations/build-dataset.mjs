@@ -39,11 +39,12 @@ export function normalizeHeadword(value) {
   return normalized && /^[a-z]+(?:['-][a-z]+)*$/.test(normalized) ? normalized : null
 }
 
-export function parseNgslCsv(text, limit = 3000) {
+export function parseNgslCsv(text, limit = null) {
   const rows = text.split(/\r?\n/)
   const seen = new Set()
   const words = []
-  for (let index = 1; index < rows.length && words.length < limit; index += 1) {
+  for (let index = 1; index < rows.length; index += 1) {
+    if (limit !== null && words.length >= limit) break
     if (!rows[index].trim()) continue
     const comma = rows[index].indexOf(',')
     if (comma < 0) throw new Error(`Malformed NGSL-GR row ${index + 1}`)
@@ -52,7 +53,7 @@ export function parseNgslCsv(text, limit = 3000) {
     seen.add(normalized)
     words.push(normalized)
   }
-  if (words.length !== limit) {
+  if (limit !== null && words.length !== limit) {
     throw new Error(`Expected ${limit} distinct NGSL-GR headwords, found ${words.length}`)
   }
   return words
@@ -363,7 +364,7 @@ function argsFrom(argv) {
     outManifest: required('--out-manifest'),
     snapshotDate: args.get('--snapshot-date') ?? 'unknown',
     wiktionaryDumpDate: args.get('--wiktionary-dump-date') ?? 'unknown',
-    limit: Number(args.get('--headwords') ?? '3000'),
+    limit: args.has('--headwords') ? Number(args.get('--headwords')) : null,
     replaceExisting: args.get('--replace-existing') === 'true',
   }
 }
@@ -390,7 +391,7 @@ export async function buildDataset(options) {
     kaikkiSha256: await sha256(kaikkiPaths),
     ngslSha256: await sha256(options.ngsl),
     filteringChanges: [
-      'first 3,000 distinct normalized single English NGSL-GR headwords',
+      `all ${headwords.length.toLocaleString('en-US')} distinct valid NGSL-GR headwords`,
       'five target languages only',
       'archaic, obsolete, dated, rare, and nonstandard forms and source senses removed',
       'Brazilian Portuguese and Simplified Chinese regional/script filtering',

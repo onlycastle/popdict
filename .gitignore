@@ -43,6 +43,7 @@ site/.env
 site/.env.*
 !site/.env.example
 supabase/.temp/
+supabase/.branches/
 
 # Private keys, certificates, and signing material
 *.pem

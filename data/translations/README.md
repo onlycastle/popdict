@@ -1,7 +1,7 @@
 # PopDict translation dataset
 
 The files in this directory are data artifacts, not MIT-licensed application
-code. `word-translations.csv` and `ngsl-gr-3000.txt` are distributed under the
+code. `word-translations.csv` and `ngsl-gr-5049.txt` are distributed under the
 [Creative Commons Attribution-ShareAlike 4.0 International License](LICENSE.md).
 
 Attribution: **English Wiktionary via Kaikki — filtered and ranked by PopDict.**
@@ -21,7 +21,7 @@ Exact SHA-256 checksums, record counts, and the snapshot date are recorded in
 
 The deterministic generator:
 
-1. takes the first 3,000 distinct normalized, single English headwords from
+1. takes all 5,049 distinct valid normalized, single English headwords from
    NGSL-GR;
 2. keeps Korean, Japanese, Simplified Chinese, Spanish, and Brazilian
    Portuguese translations from English Wiktionary entries;

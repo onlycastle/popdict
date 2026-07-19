@@ -52,6 +52,7 @@ const sqlRows = rows.map((row) => ({
 
 describe('generated translation dataset', () => {
   it('matches its manifest and rank/deduplication invariants', () => {
+    expect(manifest.headwordCount).toBe(5049)
     expect(rows).toHaveLength(manifest.rowCount)
     expect(new Set(rows.map((row) => row.languageCode))).toEqual(new Set(TARGET_LANGUAGES))
     const groups = new Map()
@@ -76,7 +77,7 @@ describe('generated translation dataset', () => {
 
   it('matches the final corrective migration exactly', () => {
     const migration = readFileSync(
-      'supabase/migrations/20260714235400_correct_translation_dataset.sql',
+      'supabase/migrations/20260716115341_replace_translation_data_all_ngsl.sql',
       'utf8'
     )
     expect(migration).toBe(sqlForRows(sqlRows, manifest, true))
