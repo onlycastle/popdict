@@ -8,8 +8,19 @@ import {
   countByCountry,
   countByDimension,
   DOWNLOAD_EVENT_PAGE_ORDER,
+  matchesBearerSecret,
+  matchesSecret,
   SNAPSHOT_PAGE_ORDER,
 } from './lib.ts'
+
+Deno.test('download secrets fail closed when unset or blank', () => {
+  assertEquals(matchesSecret(null, undefined), false)
+  assertEquals(matchesSecret('', ''), false)
+  assertEquals(matchesSecret('record-token', 'record-token'), true)
+  assertEquals(matchesBearerSecret('Bearer undefined', undefined), false)
+  assertEquals(matchesBearerSecret('Bearer ', ''), false)
+  assertEquals(matchesBearerSecret('Bearer stats-token', 'stats-token'), true)
+})
 
 Deno.test('referrerHost strips path and query, tolerates junk', () => {
   assertEquals(referrerHost('https://news.ycombinator.com/item?id=1'), 'news.ycombinator.com')

@@ -27,6 +27,22 @@ export type SlackWebhookPayload = {
 export const DOWNLOAD_EVENT_PAGE_ORDER = ['occurred_at', 'id'] as const
 export const SNAPSHOT_PAGE_ORDER = ['captured_on', 'asset', 'tag'] as const
 
+// Missing or blank server secrets must always fail closed. In particular,
+// interpolating an absent value into a bearer header would otherwise make the
+// literal string `Bearer undefined` a valid credential.
+export function matchesSecret(candidate: string | null, expected: string | undefined): boolean {
+  return typeof expected === 'string' && expected.length > 0 && candidate === expected
+}
+
+export function matchesBearerSecret(
+  authorization: string | null,
+  expected: string | undefined,
+): boolean {
+  return typeof expected === 'string'
+    && expected.length > 0
+    && authorization === `Bearer ${expected}`
+}
+
 // Reduce a Referer header to its host, dropping path/query. null when absent/unparseable.
 export function referrerHost(referer: string | null): string | null {
   if (!referer) return null

@@ -19,6 +19,8 @@ import {
   countByCountry,
   countByDimension,
   DOWNLOAD_EVENT_PAGE_ORDER,
+  matchesBearerSecret,
+  matchesSecret,
   referrerHost,
   releasesToSnapshotRows,
   SNAPSHOT_PAGE_ORDER,
@@ -81,7 +83,7 @@ async function postSlackDownloadNotification(record: DownloadNotificationRecord)
 }
 
 async function handleRecord(req: Request): Promise<Response> {
-  if (req.headers.get('x-record-token') !== Deno.env.get('DOWNLOADS_RECORD_TOKEN')) {
+  if (!matchesSecret(req.headers.get('x-record-token'), Deno.env.get('DOWNLOADS_RECORD_TOKEN'))) {
     return json({ error: 'unauthorized' }, 401)
   }
   const body = await req.json().catch(() => ({}))
@@ -100,7 +102,7 @@ async function handleRecord(req: Request): Promise<Response> {
 }
 
 async function handleSnapshot(req: Request): Promise<Response> {
-  if (req.headers.get('x-admin-token') !== Deno.env.get('DOWNLOADS_STATS_TOKEN')) {
+  if (!matchesSecret(req.headers.get('x-admin-token'), Deno.env.get('DOWNLOADS_STATS_TOKEN'))) {
     return json({ error: 'unauthorized' }, 401)
   }
   const repo = Deno.env.get('GITHUB_REPO')
@@ -121,7 +123,10 @@ async function handleSnapshot(req: Request): Promise<Response> {
 }
 
 function authorizedRead(req: Request): boolean {
-  return req.headers.get('authorization') === `Bearer ${Deno.env.get('DOWNLOADS_STATS_TOKEN')}`
+  return matchesBearerSecret(
+    req.headers.get('authorization'),
+    Deno.env.get('DOWNLOADS_STATS_TOKEN'),
+  )
 }
 
 async function handleStats(): Promise<Response> {
