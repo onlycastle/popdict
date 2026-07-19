@@ -41,8 +41,11 @@ export function useTranslations(options: {
   word: string
   language: TargetLanguage | null
   enabled: boolean
+  cachedTranslations?: WordTranslation[]
+  cachedOnly?: boolean
+  onResolved?: (translations: WordTranslation[]) => void
 }) {
-  const { word, language, enabled } = options
+  const { word, language, enabled, cachedTranslations, cachedOnly, onResolved } = options
   const [state, dispatch] = useReducer(translationReducer, INITIAL_TRANSLATION_STATE)
   const [retryToken, setRetryToken] = useState(0)
   const requestKey = enabled && word && language ? `${word}\u0000${language}` : ''
@@ -55,9 +58,16 @@ export function useTranslations(options: {
 
     let active = true
     dispatch({ type: 'begin', requestKey })
+    if (cachedOnly) {
+      dispatch({ type: 'resolve', requestKey, translations: cachedTranslations ?? [] })
+      return
+    }
     void translationService.lookup(word, language).then(
       (translations) => {
-        if (active) dispatch({ type: 'resolve', requestKey, translations })
+        if (active) {
+          dispatch({ type: 'resolve', requestKey, translations })
+          onResolved?.(translations)
+        }
       },
       () => {
         if (active) dispatch({ type: 'fail', requestKey })
@@ -66,7 +76,7 @@ export function useTranslations(options: {
     return () => {
       active = false
     }
-  }, [language, requestKey, retryToken, word])
+  }, [cachedOnly, cachedTranslations, language, onResolved, requestKey, retryToken, word])
 
   return {
     ...state,

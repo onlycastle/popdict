@@ -1,4 +1,5 @@
 export { DictionaryService, dictionaryService } from './DictionaryService'
-export { DictionaryError, toUserError, type DictionaryErrorKind } from './DictionaryError'
+export { DictionaryError, toLookupFailure } from './DictionaryError'
 export { FreeDictionarySource } from './FreeDictionarySource'
+export { KaikkiPhraseSource } from './KaikkiPhraseSource'
 export type { DictionarySource } from './DictionarySource'

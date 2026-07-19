@@ -30,9 +30,29 @@ export interface DictionaryResult {
   sourceUrls?: string[]
 }
 
-export type SearchSource = 'free-dictionary'
+export type SearchSource = 'free-dictionary' | 'kaikki-phrases' | 'combined'
+
+export type LookupFailureKind = 'not-found' | 'network' | 'service'
+
+export interface LookupFailure {
+  kind: LookupFailureKind
+  message: string
+  query: string
+}
 
 export interface SearchResponse {
   dictionaryResults: DictionaryResult[] | null
   source: SearchSource
+  provenance: 'live' | 'cache'
+  cachedAt?: string
+}
+
+export interface CachedLookup {
+  version: 1
+  query: string
+  normalizedQuery: string
+  response: SearchResponse
+  translations: Partial<Record<import('../../shared/language').TargetLanguage, import('../../shared/language').WordTranslation[]>>
+  savedAt: string
+  lastAccessedAt: string
 }

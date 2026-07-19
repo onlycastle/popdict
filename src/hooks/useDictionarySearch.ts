@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { SearchResponse } from '../types/dictionary'
+import type { CachedLookup, LookupFailure, SearchResponse } from '../types/dictionary'
 import { dictionaryService } from '../services/dictionary'
+import { toLookupFailure } from '../services/dictionary/DictionaryError'
+import { mergeRecoverySuggestions } from '../services/dictionary/recovery'
 
 // Simple debounce function
 function useDebounce<T>(value: T, delay: number): T {
@@ -22,7 +24,9 @@ function useDebounce<T>(value: T, delay: number): T {
 export function useDictionarySearch(query: string) {
   const [response, setResponse] = useState<SearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [failure, setFailure] = useState<LookupFailure | null>(null)
+  const [recoverySuggestions, setRecoverySuggestions] = useState<string[]>([])
+  const [cachedLookup, setCachedLookup] = useState<CachedLookup | null>(null)
   const [searchedTerm, setSearchedTerm] = useState('')
   // Monotonic id so a slow earlier lookup can't overwrite a newer one.
   const requestIdRef = useRef(0)
@@ -35,22 +39,46 @@ export function useDictionarySearch(query: string) {
 
     if (!trimmed) {
       setResponse(null)
-      setError(null)
+      setFailure(null)
+      setRecoverySuggestions([])
+      setCachedLookup(null)
       setLoading(false)
       return
     }
 
     setLoading(true)
-    setError(null)
+    setFailure(null)
+    setRecoverySuggestions([])
+    setCachedLookup(null)
 
     try {
       const result = await dictionaryService.search(trimmed)
       if (requestId !== requestIdRef.current) return // a newer search superseded this one
       setResponse(result)
       setSearchedTerm(trimmed)
+      void window.electronAPI?.writeLookupCache({ query: trimmed, response: result })
     } catch (err) {
       if (requestId !== requestIdRef.current) return
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const nextFailure = toLookupFailure(err, trimmed)
+      if (nextFailure.kind !== 'not-found') {
+        const cached = await window.electronAPI?.readLookupCache(trimmed).catch((): null => null)
+        if (requestId !== requestIdRef.current) return
+        if (cached) {
+          setCachedLookup(cached)
+          setResponse({
+            ...cached.response,
+            provenance: 'cache',
+            cachedAt: cached.savedAt,
+          })
+          setSearchedTerm(trimmed)
+          return
+        }
+      }
+      if (nextFailure.kind === 'not-found' && !/\s/.test(trimmed)) {
+        const spelling = window.electronAPI?.getSpellingSuggestions(trimmed) ?? []
+        setRecoverySuggestions(mergeRecoverySuggestions(trimmed, spelling))
+      }
+      setFailure(nextFailure)
       setResponse(null)
     } finally {
       if (requestId === requestIdRef.current) setLoading(false)
@@ -67,5 +95,13 @@ export function useDictionarySearch(query: string) {
     searchDictionary(query)
   }, [query, searchDictionary])
 
-  return { response, loading, error, triggerSearch, searchedTerm }
+  return {
+    response,
+    loading,
+    failure,
+    recoverySuggestions,
+    cachedLookup,
+    triggerSearch,
+    searchedTerm,
+  }
 }

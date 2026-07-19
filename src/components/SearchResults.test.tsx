@@ -8,9 +8,10 @@ describe('SearchResults attribution', () => {
       <SearchResults
         query="bank"
         loading={false}
-        error={null}
+        failure={null}
         response={{
           source: 'free-dictionary',
+          provenance: 'live',
           dictionaryResults: [{
             word: 'bank',
             meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'A financial institution.' }] }],
@@ -34,9 +35,10 @@ describe('SearchResults attribution', () => {
       <SearchResults
         query="bank"
         loading={false}
-        error={null}
+        failure={null}
         response={{
           source: 'free-dictionary',
+          provenance: 'live',
           dictionaryResults: [{
             word: 'bank',
             meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'A financial institution.' }] }],
