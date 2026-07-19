@@ -16,9 +16,23 @@ const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 // Accept an array with at least `min` non-empty strings, then normalize down
 // to the first `max`. The LLM doesn't reliably honor exact counts, so we take
 // what it gives (as long as there's enough) rather than dropping the card.
-function stringArraySlice(u: unknown, min: number, max: number): string[] | null {
+function distinctStringArray(
+  u: unknown,
+  min: number,
+  max: number,
+  excluded: string[] = []
+): string[] | null {
   if (!Array.isArray(u)) return null
-  const items = u.filter(nonEmpty)
+  const seen = new Set(excluded.map((value) => value.trim().toLocaleLowerCase('en')))
+  const items: string[] = []
+  for (const raw of u) {
+    if (!nonEmpty(raw)) continue
+    const value = raw.trim()
+    const key = value.toLocaleLowerCase('en')
+    if (seen.has(key)) continue
+    seen.add(key)
+    items.push(value)
+  }
   return items.length >= min ? items.slice(0, max) : null
 }
 
@@ -28,7 +42,7 @@ export function validateStudyMaterial(word: string, u: unknown): StudyMaterial |
   const m = u as Record<string, unknown>
   if (!nonEmpty(m.definition) || (m.definition as string).length > 400) return null
 
-  const examples = stringArraySlice(m.examples, 1, 2)
+  const examples = distinctStringArray(m.examples, 1, 2)
   if (!examples) return null
 
   if (!Array.isArray(m.similar)) return null
@@ -41,12 +55,17 @@ export function validateStudyMaterial(word: string, u: unknown): StudyMaterial |
   if (similar.length < 2) return null
   const similarTrimmed = similar.slice(0, 3)
 
-  const recognition = stringArraySlice(m.recognition_distractors, 3, 3)
+  const recognition = distinctStringArray(
+    m.recognition_distractors,
+    3,
+    3,
+    [m.definition as string]
+  )
   if (!recognition) return null
 
   const c = m.cloze as Record<string, unknown> | null
   if (typeof c !== 'object' || c === null || !nonEmpty(c.sentence)) return null
-  const clozeDistractors = stringArraySlice(c.distractors, 3, 3)
+  const clozeDistractors = distinctStringArray(c.distractors, 3, 3, [word])
   if (!clozeDistractors) return null
   if (!new RegExp('\\b' + escapeRegExp(word) + '\\b', 'i').test(c.sentence as string)) return null
 

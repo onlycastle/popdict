@@ -33,6 +33,38 @@ export type SessionCard = {
   options: string[]
 }
 
+export type RevealedMaterial = {
+  definition: string
+  examples: string[]
+  similar: { phrase: string; nuance: string }[]
+}
+
+export function revealedMaterialFromStudyMaterial(material: StudyMaterial): RevealedMaterial {
+  return {
+    definition: material.definition,
+    examples: [...material.examples],
+    similar: material.similar.map((item) => ({ ...item })),
+  }
+}
+
+export function validateRevealedMaterial(value: unknown): RevealedMaterial | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const material = value as Partial<RevealedMaterial>
+  if (typeof material.definition !== 'string' || !material.definition.trim()) return null
+  if (!Array.isArray(material.examples) || !material.examples.every((item) => typeof item === 'string')) {
+    return null
+  }
+  if (!Array.isArray(material.similar) || !material.similar.every((item) =>
+    item && typeof item === 'object' &&
+    typeof item.phrase === 'string' && typeof item.nuance === 'string'
+  )) return null
+  return {
+    definition: material.definition,
+    examples: [...material.examples],
+    similar: material.similar.map((item) => ({ phrase: item.phrase, nuance: item.nuance })),
+  }
+}
+
 /**
  * Client payload for an in-app quiz session. The correct index is deliberately
  * omitted: the app must not know the answer until it submits (same trust model
@@ -188,10 +220,21 @@ export function buildExercise(
   box: number,
   rng: () => number
 ): Question {
-  const canCloze = material.cloze.distractors.length >= 3 &&
+  const recognitionDistractors = distinctStrings(
+    material.recognition_distractors,
+    material.definition
+  ).slice(0, 3)
+  if (recognitionDistractors.length < 3) {
+    throw new Error('study material requires three distinct recognition distractors')
+  }
+  const clozeDistractors = distinctStrings(
+    material.cloze.distractors,
+    candidate.word
+  ).slice(0, 3)
+  const canCloze = clozeDistractors.length === 3 &&
     new RegExp(`\\b${escapeRegExp(candidate.word)}\\b`, 'i').test(material.cloze.sentence)
   if (box <= 2 || !canCloze) {
-    const options = shuffle([material.definition, ...material.recognition_distractors], rng)
+    const options = shuffle([material.definition, ...recognitionDistractors], rng)
     return {
       word: candidate.word,
       normalized_word: candidate.normalized_word,
@@ -201,7 +244,7 @@ export function buildExercise(
       correct_index: options.indexOf(material.definition),
     }
   }
-  const options = shuffle([candidate.word, ...material.cloze.distractors], rng)
+  const options = shuffle([candidate.word, ...clozeDistractors], rng)
   return {
     word: candidate.word,
     normalized_word: candidate.normalized_word,
@@ -221,11 +264,16 @@ export function escapeHtml(s: string): string {
     .replaceAll("'", '&#39;')
 }
 
-export function masteryBuckets(reviews: ReviewRow[]): { new: number; learning: number; mastered: number } {
+export function masteryBuckets(
+  saved: SavedWordRow[],
+  reviews: ReviewRow[]
+): { new: number; learning: number; mastered: number } {
   const b = { new: 0, learning: 0, mastered: 0 }
-  for (const r of reviews) {
-    if (r.box <= 2) b.new++
-    else if (r.box <= 4) b.learning++
+  const reviewByWord = new Map(reviews.map((review) => [review.normalized_word, review]))
+  for (const word of saved) {
+    const review = reviewByWord.get(word.normalized_word)
+    if (!review) b.new++
+    else if (review.box <= 4) b.learning++
     else b.mastered++
   }
   return b

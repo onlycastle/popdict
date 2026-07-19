@@ -5,6 +5,8 @@ import {
   buildDigestEmailHtml,
   buildExercise,
   buildSessionCards,
+  revealedMaterialFromStudyMaterial,
+  validateRevealedMaterial,
   escapeHtml,
   eligibleStudyEntries,
   leitnerNext,
@@ -62,6 +64,19 @@ Deno.test('nextStreak: continues on answered-previous or first quiz, resets on s
   assertEquals(nextStreak(null, 0), 1)   // first quiz ever
   assertEquals(nextStreak(true, 3), 4)   // previous quiz answered
   assertEquals(nextStreak(false, 3), 1)  // previous quiz ignored
+})
+
+Deno.test('revealed material is snapshotted and malformed snapshots fail closed', () => {
+  const material = {
+    definition: 'A financial institution.',
+    examples: ['She visited the bank.'],
+    similar: [{ phrase: 'lender', nuance: 'related word' }],
+    recognition_distractors: ['a road', 'a meal', 'a fabric'],
+    cloze: { sentence: 'She visited the bank.', distractors: ['shop', 'park', 'school'] },
+  }
+  const snapshot = revealedMaterialFromStudyMaterial(material)
+  assertEquals(validateRevealedMaterial(snapshot), snapshot)
+  assertEquals(validateRevealedMaterial({ ...snapshot, examples: [null] }), null)
 })
 
 
@@ -140,9 +155,18 @@ Deno.test('escapeHtml covers the five specials', () => {
   assertEquals(escapeHtml(`<a href="x">&'`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;')
 })
 
-Deno.test('masteryBuckets groups boxes 1-2 / 3-4 / 5', () => {
-  const r = (box: number) => ({ normalized_word: `w${box}`, box, next_due_at: '2026-07-01T00:00:00Z' })
-  assertEquals(masteryBuckets([r(1), r(2), r(3), r(5)]), { new: 2, learning: 1, mastered: 1 })
+Deno.test('masteryBuckets matches Saved Words: unreviewed / boxes 1-4 / box 5', () => {
+  const saved = [0, 1, 2, 3, 5].map((box) => ({
+    word: `w${box}`,
+    normalized_word: `w${box}`,
+    created_at: '2026-07-01T00:00:00Z',
+  }))
+  const reviews = [1, 2, 3, 5].map((box) => ({
+    normalized_word: `w${box}`,
+    box,
+    next_due_at: '2026-07-01T00:00:00Z',
+  }))
+  assertEquals(masteryBuckets(saved, reviews), { new: 1, learning: 3, mastered: 1 })
 })
 
 Deno.test('digest email renders card, exercise, escaped HTML, and answer links', () => {

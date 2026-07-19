@@ -11,6 +11,7 @@ import type { DueCountBroker } from '../reminders/DueCountBroker'
 import type { ReviewReminderScheduler } from '../reminders/ReviewReminderScheduler'
 import { createLogger } from '../../shared/logger'
 import { describeExternalAuthUrl, isAllowedExternalAuthUrl } from '../../shared/authUrl'
+import { dismissOwningWindow } from './dismissOwningWindow'
 
 const log = createLogger('Auth')
 
@@ -149,8 +150,12 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     log.event('external url opened', describeExternalAuthUrl(url))
   })
 
-  router.on('hide-window', () => {
-    windows.get('search')?.hide()
+  router.on('hide-window', (event) => {
+    dismissOwningWindow(
+      event.sender,
+      BrowserWindow.fromWebContents,
+      windows.get('search'),
+    )
   })
 
   router.on('set-window-height', (_e, height: number) => {
