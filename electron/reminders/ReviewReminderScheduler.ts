@@ -36,6 +36,13 @@ export class ReviewReminderScheduler {
     if (!plan) return
     this.timer = setTimeout(() => {
       if (generation !== this.generation) return
+      const wakeTime = this.deps.now?.() ?? new Date()
+      if (wakeTime.getTime() < plan.fireAt.getTime()) {
+        // Long waits are deliberately capped so clock/timezone changes are
+        // noticed. A capped wake-up is only a recheck, not the reminder itself.
+        this.recalculate(true)
+        return
+      }
       void this.fire(plan.windowId)
     }, timerDelay(now, plan.fireAt))
     this.timer.unref?.()

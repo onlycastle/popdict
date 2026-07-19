@@ -22,6 +22,7 @@ import { isAuthCallbackUrl, isQuizDeepLink } from '../shared/authUrl'
 import { LookupCache } from './lookupCache'
 import { DueCountBroker } from './reminders/DueCountBroker'
 import { ReviewReminderScheduler } from './reminders/ReviewReminderScheduler'
+import { timezoneFingerprint } from './reminders/timezone'
 
 const log = createLogger('Auth')
 const analyticsSessionId = randomUUID()
@@ -171,11 +172,11 @@ if (hasSingleInstanceLock) {
     }
 
     powerMonitor.on('resume', () => reminderScheduler?.recalculate())
-    let timezoneOffset = new Date().getTimezoneOffset()
+    let currentTimezone = timezoneFingerprint()
     timezoneTimer = setInterval(() => {
-      const nextOffset = new Date().getTimezoneOffset()
-      if (nextOffset !== timezoneOffset) {
-        timezoneOffset = nextOffset
+      const nextTimezone = timezoneFingerprint()
+      if (nextTimezone !== currentTimezone) {
+        currentTimezone = nextTimezone
         reminderScheduler?.recalculate()
       }
     }, 60_000)
