@@ -7,6 +7,76 @@ import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 export const TARGET_LANGUAGES = ['ko', 'ja', 'zh-Hans', 'es', 'pt-BR']
+// Kaikki occasionally has no translation-bearing entry for an inflected,
+// regional, or spelling variant in NGSL-GR. Aliased rows are limited to one
+// vetted sense per language; ambiguous grammar/senses use explicit equivalents
+// contributed to the same CC BY-SA dataset. Fallbacks are used only when the
+// exact headword has no row.
+export const TRANSLATION_FALLBACKS = {
+  could: { source: 'can', sensePattern: /able to|know how|permitted|possibility/i },
+  upon: { source: 'on', sensePattern: /positioned|date of|dealing with|location|time|contact/i },
+  favorite: { source: 'favourite' },
+  labor: { source: 'labour' },
+  neighbor: { source: 'neighbour' },
+  forth: { manual: { ko: '앞으로', ja: '前へ', 'zh-Hans': '向前', es: 'adelante', 'pt-BR': 'adiante' } },
+  criteria: { source: 'criterion' },
+  anymore: { manual: { ko: '더 이상', ja: 'もう', 'zh-Hans': '再', es: 'ya', 'pt-BR': 'mais' } },
+  mom: { source: 'mother', sensePattern: /female \(human\)|parents a child/i },
+  adviser: { source: 'advisor' },
+  exam: { source: 'examination' },
+  whilst: { source: 'while', sensePattern: /during the same time|although/i },
+  humor: { source: 'humour' },
+  catalog: { source: 'catalogue' },
+  alright: { source: 'okay' },
+  afterward: { source: 'afterwards' },
+  behalf: { source: 'sake', sensePattern: /benefit|cause, interest|purpose or end/i },
+  traveler: { source: 'traveller' },
+  upward: { source: 'upwards' },
+  trousers: { source: 'pants', sensePattern: /garment covering the body from the waist/i },
+  sharply: { manual: { ko: '급격히', ja: '急激に', 'zh-Hans': '急剧地', es: 'bruscamente', 'pt-BR': 'bruscamente' } },
+  par: { manual: { ko: '기준 타수', ja: 'パー', 'zh-Hans': '标准杆', es: 'par', 'pt-BR': 'par' } },
+  electrical: { source: 'electric', sensePattern: /^electrical$/i },
+  policeman: { manual: { ko: '경찰관', ja: '警察官', 'zh-Hans': '警察', es: 'policía', 'pt-BR': 'policial' } },
+  fiber: { source: 'fibre' },
+  steadily: { manual: { ko: '꾸준히', ja: '着実に', 'zh-Hans': '稳步地', es: 'constantemente', 'pt-BR': 'constantemente' } },
+  lab: { source: 'laboratory' },
+  dot: { manual: { ko: '점', ja: '点', 'zh-Hans': '点', es: 'punto', 'pt-BR': 'ponto' } },
+  kilometer: { source: 'kilometre' },
+  teen: { source: 'teenager' },
+  lately: { source: 'recently' },
+  bacteria: { source: 'bacterium' },
+  enquiry: { source: 'inquiry' },
+  petrol: { source: 'gasoline' },
+  favorable: { source: 'favourable' },
+  tonne: { manual: { ko: '미터톤', ja: 'メートルトン', 'zh-Hans': '公吨', es: 'tonelada métrica', 'pt-BR': 'tonelada métrica' } },
+  utilize: { manual: { ko: '활용하다', ja: '利用する', 'zh-Hans': '利用', es: 'utilizar', 'pt-BR': 'utilizar' } },
+  seemingly: { source: 'apparently' },
+  poorly: { source: 'badly' },
+  broadly: { source: 'widely' },
+  jewelry: { source: 'jewellery' },
+  aide: { source: 'assistant', sensePattern: /person who assists/i },
+  non: { manual: { ko: '비-', ja: '非-', 'zh-Hans': '非-', es: 'no', 'pt-BR': 'não' } },
+  utterly: { source: 'completely' },
+  lyric: { source: 'lyrics' },
+  wholly: { source: 'entirely' },
+  auto: { source: 'car', sensePattern: /automobile, a vehicle/i },
+  grocery: { source: 'groceries' },
+  globalization: { source: 'globalisation' },
+  nationwide: { manual: { ko: '전국적으로', ja: '全国的に', 'zh-Hans': '全国范围内', es: 'a nivel nacional', 'pt-BR': 'em todo o país' } },
+  standardize: { source: 'standardise' },
+  ax: { source: 'axe' },
+  rightly: { source: 'correctly' },
+  aluminum: { source: 'aluminium' },
+  midst: { source: 'middle', sensePattern: /centre, midpoint|part between beginning and end/i },
+  tech: { source: 'technology' },
+  insufficient: { source: 'inadequate' },
+  lorry: { source: 'truck', sensePattern: /heavier motor vehicle designed to carry goods/i },
+  foremost: { manual: { ko: '가장 중요한', ja: '最も重要な', 'zh-Hans': '最重要的', es: 'principal', 'pt-BR': 'principal' } },
+  presently: { source: 'currently' },
+  neatly: { manual: { ko: '깔끔하게', ja: 'きちんと', 'zh-Hans': '整齐地', es: 'pulcramente', 'pt-BR': 'ordenadamente' } },
+  plow: { source: 'plough' },
+  geographical: { source: 'geographic' },
+}
 const KAIKKI_SOURCE_URL = 'https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz'
 const NGSL_SOURCE_URL = 'https://www.newgeneralservicelist.com/s/NGSL-GR_rank.csv'
 const WIKTIONARY_SOURCE_URL = 'https://en.wiktionary.org/'
@@ -373,17 +443,80 @@ export async function buildDataset(options) {
   const ngslText = await readFile(options.ngsl, 'utf8')
   const headwords = parseNgslCsv(ngslText, options.limit)
   const kaikkiPaths = Array.isArray(options.kaikki) ? options.kaikki : [options.kaikki]
-  const { candidates, lineCount } = await readKaikkiCandidates(kaikkiPaths, new Set(headwords))
-  const rows = rankCandidates(candidates)
+  const targetHeadwords = new Set(headwords)
+  const sourceHeadwords = new Set([
+    ...headwords,
+    ...Object.entries(TRANSLATION_FALLBACKS)
+      .filter(([target]) => targetHeadwords.has(target))
+      .map(([, fallback]) => fallback.source)
+      .filter(Boolean),
+  ])
+  const { candidates, lineCount } = await readKaikkiCandidates(kaikkiPaths, sourceHeadwords)
+  const exactRows = rankCandidates(candidates.filter(
+    (candidate) => targetHeadwords.has(candidate.normalizedWord)
+  ))
+  const coveredExactly = new Set(
+    exactRows.map((row) => row.normalized_word)
+  )
+  const fallbackHeadwords = headwords.filter((headword) => !coveredExactly.has(headword))
+  const fallbackRows = fallbackHeadwords.flatMap((headword) => {
+    const fallback = TRANSLATION_FALLBACKS[headword]
+    if (!fallback) return []
+    if (fallback.manual) {
+      return TARGET_LANGUAGES.flatMap((language) => {
+        const translation = fallback.manual[language]
+        return translation ? [{
+          normalized_word: headword,
+          language_code: language,
+          rank: 1,
+          translation,
+          sense_label: null,
+        }] : []
+      })
+    }
+    const aliasedCandidates = candidates
+      .filter((candidate) =>
+        candidate.normalizedWord === fallback.source &&
+        (!fallback.sensePattern || fallback.sensePattern.test(candidate.senseLabel ?? ''))
+      )
+      .map((candidate) => ({ ...candidate, normalizedWord: headword }))
+    // A fallback is deliberately narrower than an exact entry: retain one
+    // manually reviewed source sense per language, then re-rank as the target.
+    return rankCandidates(aliasedCandidates).filter((row) => row.rank === 1)
+  })
+  const rows = [...exactRows, ...fallbackRows].sort((a, b) =>
+    (a.normalized_word < b.normalized_word ? -1 : a.normalized_word > b.normalized_word ? 1 : 0) ||
+    TARGET_LANGUAGES.indexOf(a.language_code) - TARGET_LANGUAGES.indexOf(b.language_code) ||
+    a.rank - b.rank
+  )
+  const coveredHeadwords = new Set(rows.map((row) => row.normalized_word))
+  const uncoveredHeadwords = headwords.filter((headword) => !coveredHeadwords.has(headword))
+  if (uncoveredHeadwords.length > 0) {
+    throw new Error(
+      `No licensed translation or configured fallback for: ${uncoveredHeadwords.join(', ')}`
+    )
+  }
+  const coverageByLanguage = Object.fromEntries(TARGET_LANGUAGES.map((language) => [
+    language,
+    new Set(rows
+      .filter((row) => row.language_code === language)
+      .map((row) => row.normalized_word)).size,
+  ]))
   const metadata = {
     snapshotDate: options.snapshotDate,
     wiktionaryDumpDate: options.wiktionaryDumpDate,
     kaikkiSourceUrl: KAIKKI_SOURCE_URL,
     ngslSourceUrl: NGSL_SOURCE_URL,
     wiktionarySourceUrl: WIKTIONARY_SOURCE_URL,
-    attribution: 'English Wiktionary via Kaikki — filtered and ranked by PopDict',
+    attribution: 'English Wiktionary via Kaikki — filtered, ranked, and completed by PopDict',
     license: 'CC BY-SA 4.0',
     headwordCount: headwords.length,
+    coveredHeadwordCount: coveredHeadwords.size,
+    fallbackHeadwordCount: fallbackHeadwords.length,
+    manualFallbackHeadwordCount: fallbackHeadwords.filter(
+      (headword) => Boolean(TRANSLATION_FALLBACKS[headword]?.manual)
+    ).length,
+    coverageByLanguage,
     rowCount: rows.length,
     kaikkiLineCount: lineCount,
     kaikkiCompressedBytes: (await Promise.all(kaikkiPaths.map((path) => stat(path))))
@@ -396,6 +529,8 @@ export async function buildDataset(options) {
       'archaic, obsolete, dated, rare, and nonstandard forms and source senses removed',
       'Brazilian Portuguese and Simplified Chinese regional/script filtering',
       'Japanese romanization excluded',
+      'one vetted alias sense per language used only when an exact headword has no translation row',
+      'explicit CC BY-SA semantic equivalents for ambiguous fallback headwords',
       'unresolved Wiktionary templates removed and safe source-sense markup normalized',
       'Unicode/whitespace normalization, deduplication, sense-aware ranking, maximum rank 3',
     ],

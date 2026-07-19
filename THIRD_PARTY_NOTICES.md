@@ -137,7 +137,7 @@ text-to-speech.
 
 ## Multilingual translation dataset — CC BY-SA 4.0
 
-Attribution: **English Wiktionary via Kaikki — filtered and ranked by PopDict.**
+Attribution: **English Wiktionary via Kaikki — filtered, ranked, and completed by PopDict.**
 
 The generated `data/translations/word-translations.csv` dataset and normalized
 `data/translations/ngsl-gr-5049.txt` learner headword list are licensed
@@ -165,6 +165,11 @@ candidates; normalize Unicode and whitespace; deduplicate;
 reject unresolved Wiktionary templates; prefer useful sense diversity; and
 rank at most three equivalents per word and language. Short English
 source-sense labels are retained when available after safe markup cleanup.
+When the snapshot has no translation-bearing entry for an NGSL-GR headword,
+PopDict keeps at most one manually vetted alias sense per language. Ambiguous
+fallbacks use explicit semantic equivalents authored by PopDict project
+contributors and offered under CC BY-SA 4.0. The manifest separately records
+the alias/manual fallback counts so downstream users can audit provenance.
 
 The machine-readable manifest with record counts, source URLs, checksums, and
 the filtering summary is at `data/translations/manifest.json`. Wiktextract is

@@ -926,6 +926,11 @@ advise,es,3,asesorar,to give advice to; to offer an opinion; to counsel; to warn
 advise,pt-BR,1,aconselhar,to give advice to; to offer an opinion; to counsel; to warn
 advise,pt-BR,2,avisar,to give information or notice to; to inform
 advise,pt-BR,3,opiniar,to give advice to; to offer an opinion; to counsel; to warn
+adviser,ko,1,고문,one who offers advice
+adviser,ja,1,顧問,one who offers advice
+adviser,zh-Hans,1,顾问,one who offers advice
+adviser,es,1,consejero,one who offers advice
+adviser,pt-BR,1,conselheiro,one who offers advice
 advisor,ko,1,고문,one who offers advice
 advisor,ja,1,顧問,one who offers advice
 advisor,ja,2,相談役,one who offers advice
@@ -1035,6 +1040,10 @@ afternoon,ko,1,오후,part of the day between noon and evening
 afternoon,ja,1,午後,part of the day between noon and evening
 afternoon,es,1,tarde,part of the day between noon and evening
 afternoon,pt-BR,1,tarde,part of the day between noon and evening
+afterward,ja,1,その後,at a later or succeeding time
+afterward,zh-Hans,1,然后,at a later or succeeding time
+afterward,es,1,después,at a later or succeeding time
+afterward,pt-BR,1,depois,at a later or succeeding time
 again,ko,1,다시,another time
 again,ko,2,ᆻ지,used in a question to ask something one has forgotten
 again,ko,3,또,another time
@@ -1191,6 +1200,10 @@ aid,es,3,remedio,something which helps; a material source of help
 aid,pt-BR,1,ajuda,help; succor; assistance; relief
 aid,pt-BR,2,ajudante,a person that promotes or helps in something being done; a helper
 aid,pt-BR,3,ajudar,to provide support to; to further the progress of; to help; to assist
+aide,ko,1,조수,person who assists
+aide,ja,1,助手,person who assists
+aide,es,1,ayudante,person who assists
+aide,pt-BR,1,assistente,person who assists
 aim,ko,1,조준하다,pointing of a weapon towards a particular point or object
 aim,ko,2,목표,point intended to be hit
 aim,ko,3,목적,intention; purpose
@@ -1466,6 +1479,7 @@ already,zh-Hans,1,已经,prior to some time
 already,es,1,ya,prior to some time
 already,pt-BR,1,já,prior to some time
 already,pt-BR,2,de uma vez,intensifier used to emphasize impatience or express exasperation
+alright,es,1,okay,OK
 also,ko,1,또한,in addition; besides; as well; further; too
 also,ko,2,또,in addition; besides; as well; further; too
 also,ko,3,역시,in addition; besides; as well; further; too
@@ -1534,6 +1548,11 @@ altogether,es,2,en suma,on the whole; everything considered
 altogether,es,3,todo junto,with everything included
 altogether,pt-BR,1,completamente,without exception; wholly; completely
 altogether,pt-BR,2,ao todo,on the whole; everything considered
+aluminum,ko,1,알루미늄,silvery metal
+aluminum,ja,1,アルミニウム,silvery metal
+aluminum,zh-Hans,1,铝,silvery metal
+aluminum,es,1,aluminio,silvery metal
+aluminum,pt-BR,1,alumínio,silvery metal
 always,ko,1,항상,at all times
 always,ko,2,늘,at all times
 always,ko,3,언제나,at all times
@@ -1951,6 +1970,11 @@ any,pt-BR,2,algum,at least one (kind)
 any,pt-BR,3,qualquer,no matter what kind
 anybody,es,1,alguien,(colloquial) a person of consideration or standing
 anybody,pt-BR,1,alguém,(colloquial) a person of consideration or standing
+anymore,ko,1,더 이상,
+anymore,ja,1,もう,
+anymore,zh-Hans,1,再,
+anymore,es,1,ya,
+anymore,pt-BR,1,mais,
 anyone,ko,1,아무,anybody
 anyone,ja,1,誰も 誰でも,anybody
 anyone,es,1,cualquiera,anybody
@@ -3171,6 +3195,11 @@ authorize,zh-Hans,1,授权,to grant power or permission
 authorize,es,1,autorizar,to grant power or permission
 authorize,pt-BR,1,autorizar,to grant power or permission
 authorize,pt-BR,2,deixar,to grant power or permission
+auto,ko,1,자동차,"automobile, a vehicle steered by a driver"
+auto,ja,1,車,"automobile, a vehicle steered by a driver"
+auto,zh-Hans,1,汽车,"automobile, a vehicle steered by a driver"
+auto,es,1,coche,"automobile, a vehicle steered by a driver"
+auto,pt-BR,1,carro,"automobile, a vehicle steered by a driver"
 automatic,ko,1,자동,capable of operating without external control
 automatic,ko,2,자동적,capable of operating without external control
 automatic,ja,1,自動の,capable of operating without external control
@@ -3332,6 +3361,11 @@ awkward,es,3,premioso,"lacking social skills, or uncomfortable with social inter
 awkward,pt-BR,1,desajeitado,lacking dexterity in the use of the hands
 awkward,pt-BR,2,constrangedor,not easily managed or effected; embarrassing
 awkward,pt-BR,3,tímido,"lacking social skills, or uncomfortable with social interaction"
+ax,ko,1,도끼,tool
+ax,ja,1,斧,tool
+ax,zh-Hans,1,斧头,tool
+ax,es,1,hacha,tool
+ax,pt-BR,1,machado,tool
 axis,ko,1,축,geometry: imaginary line
 axis,ja,1,軸,geometry: imaginary line
 axis,zh-Hans,1,轴,geometry: imaginary line
@@ -3393,6 +3427,11 @@ backward,es,3,pasado de moda,of an idea: outdated
 backward,pt-BR,1,de volta,in the direction towards the back
 backward,pt-BR,2,atrás,in the direction reverse of normal
 backward,pt-BR,3,retrógrado,reluctant to advance
+bacteria,ko,1,세균,single-celled organism with no nucleus or organelles
+bacteria,ja,1,細菌,single-celled organism with no nucleus or organelles
+bacteria,zh-Hans,1,细菌,single-celled organism with no nucleus or organelles
+bacteria,es,1,bacteria,single-celled organism with no nucleus or organelles
+bacteria,pt-BR,1,bactéria,single-celled organism with no nucleus or organelles
 bad,ko,1,나쁘다,unfavorable; negative
 bad,ko,2,나쁜,unfavorable; negative
 bad,ja,1,悪い,unfavorable; negative
@@ -4147,6 +4186,9 @@ begin,es,2,alborear,"to start, begin (intransitive)"
 begin,es,3,empezar,"to start, to initiate (transitive)"
 begin,pt-BR,1,começar,"to start, to initiate (transitive)"
 begin,pt-BR,2,iniciar,"to start, to initiate (transitive)"
+behalf,ja,1,-のために,benefit
+behalf,es,1,causa,"cause, interest or account"
+behalf,pt-BR,1,causa,"cause, interest or account"
 behave,ko,1,처신하다,to act in a specific manner
 behave,ko,2,예절바르다,to act in a polite or proper way
 behave,ko,3,행동하다,to act in a specific manner
@@ -5476,6 +5518,8 @@ broaden,es,1,ensanchar,to make broad
 broaden,es,2,ensancharse,to become broad
 broaden,pt-BR,1,alargar,to make broad
 broaden,pt-BR,2,alargar-se,to become broad
+broadly,es,1,comúnmente,"commonly, generally"
+broadly,pt-BR,1,amplamente,"commonly, generally"
 brochure,ko,1,소책자,booklet of printed informational matter
 brochure,ko,2,팸플릿,booklet of printed informational matter
 brochure,ko,3,브로슈어,booklet of printed informational matter
@@ -6579,6 +6623,11 @@ cat,es,3,tío,"guy, fellow"
 cat,pt-BR,1,gato,domestic species
 cat,pt-BR,2,felino,member of the family Felidae
 cat,pt-BR,3,cara,"guy, fellow"
+catalog,ko,1,목록,"a systematic list of names, books, pictures etc"
+catalog,ja,1,カタログ,"a systematic list of names, books, pictures etc"
+catalog,zh-Hans,1,目录,"a systematic list of names, books, pictures etc"
+catalog,es,1,catálogo,"a systematic list of names, books, pictures etc"
+catalog,pt-BR,1,catálogo,"a systematic list of names, books, pictures etc"
 catch,ko,1,캐치볼,the game of catching a ball
 catch,ko,2,잡다,to intercept an object in the air etc
 catch,ja,1,キャッチボール,the game of catching a ball
@@ -10229,6 +10278,11 @@ cough,es,2,tos,sudden
 cough,es,3,cof,used to represent the sound of a cough
 cough,pt-BR,1,tossir,to push air from the lungs through the glottis (causing a short
 cough,pt-BR,2,tosse,sudden
+could,ko,1,...을/ᄅ 수 있다,to be able to; to know how to
+could,ja,1,できる,to be able to; to know how to
+could,zh-Hans,1,会,to be able to; to know how to
+could,es,1,poder,to be able to; to know how to
+could,pt-BR,1,conseguir,to be able to; to know how to
 council,ko,1,이사회,committee that leads or governs
 council,ko,2,평의회,committee that leads or governs
 council,ja,1,評議会,committee that leads or governs
@@ -10642,6 +10696,11 @@ crisp,es,1,crujiente,not stale or wilted — see also fresh
 crisp,pt-BR,1,congelante,not stale or wilted — see also fresh
 crisp,pt-BR,2,alegre,"of action, movement, a person’s manner, etc.: precise and quick — see also brisk, precise"
 crisp,pt-BR,3,fresco,"of air, weather, etc.: cool and dry; of a period of time: characterized by such weather"
+criteria,ko,1,표준,standard for comparison and judgment
+criteria,ja,1,基準,standard for comparison and judgment
+criteria,zh-Hans,1,标准,standard for comparison and judgment
+criteria,es,1,criterio,standard for comparison and judgment
+criteria,pt-BR,1,critério,standard for comparison and judgment
 critic,ja,1,批評家,person who appraises the works of others
 critic,ja,2,評論家,person who appraises the works of others
 critic,zh-Hans,1,批评家,person who appraises the works of others
@@ -13603,6 +13662,11 @@ dose,zh-Hans,2,剂,measured portion of medicine
 dose,es,1,dosis,measured portion of medicine
 dose,pt-BR,1,dose,measured portion of medicine
 dose,pt-BR,2,dosar,to administer a dose
+dot,ko,1,점,
+dot,ja,1,点,
+dot,zh-Hans,1,点,
+dot,es,1,punto,
+dot,pt-BR,1,ponto,
 double,ko,1,두 배의,made up of two matching or complementary elements
 double,ko,2,2루타,baseball: a two-base hit
 double,ko,3,이중,made up of two matching or complementary elements
@@ -14477,6 +14541,11 @@ electric,es,3,electrizante,emotionally thrilling
 electric,pt-BR,1,elétrico,electrical
 electric,pt-BR,2,eletrizante,emotionally thrilling
 electric,pt-BR,3,eletrificado,electrical
+electrical,ko,1,전기(電氣)의,electrical
+electrical,ja,1,電動の,electrical
+electrical,zh-Hans,1,电动,electrical
+electrical,es,1,eléctrico,electrical
+electrical,pt-BR,1,elétrico,electrical
 electricity,ko,1,전기,form of energy
 electricity,ko,2,전력,form of energy
 electricity,ja,1,電気,form of energy
@@ -15042,6 +15111,11 @@ enough,es,3,algo,used after certain adverbs to emphasise
 enough,pt-BR,1,bastante,sufficient
 enough,pt-BR,2,suficientemente,sufficiently
 enough,pt-BR,3,o suficiente,"a sufficient or adequate number, amount, etc"
+enquiry,ko,1,질문,"the act of inquiring (by asking questions, etc)"
+enquiry,ja,1,問い合わせ,"the act of inquiring (by asking questions, etc)"
+enquiry,zh-Hans,1,查询,"the act of inquiring (by asking questions, etc)"
+enquiry,es,1,indagatoria,"the act of inquiring (by asking questions, etc)"
+enquiry,pt-BR,1,pergunta,"the act of inquiring (by asking questions, etc)"
 enrich,ja,1,豊にする,to make rich(er)
 enrich,ja,2,富ます,to make rich(er)
 enrich,zh-Hans,1,浓缩,to increase the amount of one isotope in a mixture of isotopes
@@ -15705,6 +15779,11 @@ exaggerate,zh-Hans,1,夸大,"to overstate, to describe more than is fact"
 exaggerate,zh-Hans,2,夸张,"to overstate, to describe more than is fact"
 exaggerate,es,1,exagerar,"to overstate, to describe more than is fact"
 exaggerate,pt-BR,1,exagerar,"to overstate, to describe more than is fact"
+exam,ko,1,진찰,inspection by a doctor
+exam,ja,1,診察,inspection by a doctor
+exam,zh-Hans,1,检查,inspection by a doctor
+exam,es,1,examen,act of examining
+exam,pt-BR,1,exame,act of examining
 examination,ko,1,진찰,inspection by a doctor
 examination,ko,2,시험,formal test
 examination,ko,3,검사,inspection by a doctor
@@ -16825,6 +16904,15 @@ favor,es,2,preferir,to look upon fondly; to prefer
 favor,es,3,favorecer,to look upon fondly; to prefer
 favor,pt-BR,1,favor,kind or helpful deed
 favor,pt-BR,2,favorecer,to look upon fondly; to prefer
+favorable,ja,1,順調な,opportune
+favorable,zh-Hans,1,顺利,opportune
+favorable,es,1,favorable,opportune
+favorable,pt-BR,1,favorável,pleasing
+favorite,ko,1,제일 좋아하는,preferred
+favorite,ja,1,お気に入りの,preferred
+favorite,zh-Hans,1,最喜爱的,preferred
+favorite,es,1,favorito,preferred
+favorite,pt-BR,1,favorito,preferred
 fax,ko,1,팩스,document transmitted by telephone
 fax,ko,2,팩시밀리,document transmitted by telephone
 fax,ja,1,ファックス,document transmitted by telephone
@@ -17037,6 +17125,10 @@ few,es,2,pocos,small number
 few,es,3,[unos] pocos / cuantos,"few people, few things"
 few,pt-BR,1,poucos,"indefinite, usually small number"
 few,pt-BR,2,poucas,"indefinite, usually small number"
+fiber,ja,1,繊維,single elongated piece of material
+fiber,zh-Hans,1,纤维,single elongated piece of material
+fiber,es,1,fibra,single elongated piece of material
+fiber,pt-BR,1,fibra,single elongated piece of material
 fiction,ko,1,소설,literary type
 fiction,ko,2,픽션,literary type
 fiction,ja,1,フィクション,literary type
@@ -17889,6 +17981,11 @@ foreigner,es,2,extranjera,person in a foreign land
 foreigner,es,3,forastero,person in a foreign land
 foreigner,pt-BR,1,estrangeiro,person in a foreign land
 foreigner,pt-BR,2,estrangeira,person in a foreign land
+foremost,ko,1,가장 중요한,
+foremost,ja,1,最も重要な,
+foremost,zh-Hans,1,最重要的,
+foremost,es,1,principal,
+foremost,pt-BR,1,principal,
 forest,ko,1,숲,dense collection of trees
 forest,ko,2,삼림,dense collection of trees
 forest,ja,1,森,dense collection of trees
@@ -18023,6 +18120,11 @@ formula,pt-BR,1,fórmula,in mathematics
 formulate,ja,1,定式化する,to reduce to
 formulate,es,1,formular,to reduce to
 formulate,pt-BR,1,formular,to reduce to
+forth,ko,1,앞으로,
+forth,ja,1,前へ,
+forth,zh-Hans,1,向前,
+forth,es,1,adelante,
+forth,pt-BR,1,adiante,
 forthcoming,ja,1,来たる,approaching or about to take place
 forthcoming,ja,2,今度の,approaching or about to take place
 forthcoming,zh-Hans,1,即将到来的,approaching or about to take place
@@ -18991,6 +19093,10 @@ genuine,pt-BR,2,autêntico,"real, authentic"
 genuine,pt-BR,3,legítimo,"real, authentic"
 genuinely,es,1,auténticamente,"truthfully, truly"
 genuinely,es,2,genuinamente,"truthfully, truly"
+geographical,ko,1,지리학의,pertaining to geography
+geographical,ja,1,地理的,pertaining to geography
+geographical,es,1,geográfico,pertaining to geography
+geographical,pt-BR,1,geográfico,pertaining to geography
 geography,ko,1,지리학,study of physical structure and inhabitants of the Earth
 geography,ja,1,地理学,study of physical structure and inhabitants of the Earth
 geography,zh-Hans,1,地理学,study of physical structure and inhabitants of the Earth
@@ -19153,6 +19259,10 @@ global,es,2,mundial,concerning all parts of the world
 global,pt-BR,1,globular,spherical
 global,pt-BR,2,esferal,of or relating to a globe or sphere
 global,pt-BR,3,global,concerning all parts of the world
+globalization,ko,1,세계화,process of becoming a more interconnected world
+globalization,ja,1,グローバリゼーション,process of becoming a more interconnected world
+globalization,es,1,globalización,process of becoming a more interconnected world
+globalization,pt-BR,1,globalização,process of becoming a more interconnected world
 globe,ko,1,지구의,model of Earth
 globe,ko,2,지구,planet Earth
 globe,ko,3,지구본,model of Earth
@@ -19726,6 +19836,9 @@ grip,es,3,empuñadura,A handle or other place to grip
 grip,pt-BR,1,agarrar,to take hold
 grip,pt-BR,2,agarra,"A hold or way of holding, particularly with the hand"
 grip,pt-BR,3,segurar,to take hold
+grocery,zh-Hans,1,杂货,commodities sold by a grocer or in a grocery
+grocery,es,1,comestibles,commodities sold by a grocer or in a grocery
+grocery,pt-BR,1,compras,commodities sold by a grocer or in a grocery
 gross,ja,1,きもい,causing disgust
 gross,zh-Hans,1,讨厌,causing disgust
 gross,zh-Hans,2,篓,twelve dozen
@@ -21336,6 +21449,11 @@ humble,es,3,humillar,"to make humble or lowly in mind, etc"
 humble,pt-BR,1,humilde,thinking lowly of oneself
 humble,pt-BR,2,humilhar,"to bring low, etc"
 humble,pt-BR,3,diminuir,"to bring low, etc"
+humor,ko,1,유머,wit
+humor,ja,1,ユーモア,wit
+humor,zh-Hans,1,谐谑,wit
+humor,es,1,humor,wit
+humor,pt-BR,1,humor,wit
 hundred,ko,1,백,cardinal number 100
 hundred,ja,1,百,cardinal number 100
 hundred,ja,2,100ドル札,"hundred-dollar (-euro, etc.) bill"
@@ -22624,6 +22742,11 @@ instrumental,zh-Hans,2,器乐,composition without lyrics
 instrumental,zh-Hans,3,可作为方法的,acting as an instrument
 instrumental,es,1,instrumental,of musical instrument
 instrumental,pt-BR,1,instrumental,acting as an instrument
+insufficient,ko,1,부족(不足)하다,Not adequate
+insufficient,ja,1,不適当,Not adequate
+insufficient,zh-Hans,1,不适当,Not adequate
+insufficient,es,1,inadecuado,Not adequate
+insufficient,pt-BR,1,inadequado,Not adequate
 insult,ko,1,모욕하다,"to be insensitive, insolent, or rude to (someone)"
 insult,ko,2,모욕,action or speech deliberately intended to be rude
 insult,ja,1,侮辱する,"to be insensitive, insolent, or rude to (someone)"
@@ -23313,6 +23436,11 @@ jet,es,3,chorrear,"to spray with liquid, to gush, to spurt"
 jet,pt-BR,1,jato,stream of fluid
 jet,pt-BR,2,bocal,spout or nozzle
 jet,pt-BR,3,jorrar,"to spray with liquid, to gush, to spurt"
+jewelry,ko,1,보석류,personal ornamentation
+jewelry,ja,1,宝飾品,personal ornamentation
+jewelry,zh-Hans,1,首饰,personal ornamentation
+jewelry,es,1,joyería,personal ornamentation
+jewelry,pt-BR,1,joias,personal ornamentation
 job,ko,1,일,task
 job,ko,2,직업,economic role for which a person is paid
 job,ko,3,조브,computing: task(s) carried out in batch mode
@@ -23713,6 +23841,10 @@ killer,es,3,asesina,"murderer, person who kills"
 killer,pt-BR,1,assassino,"murderer, person who kills"
 killer,pt-BR,2,assassina,"murderer, person who kills"
 killer,pt-BR,3,homicida,"murderer, person who kills"
+kilometer,ko,1,킬로미터,unit of measure
+kilometer,ja,1,キロメートル,unit of measure
+kilometer,es,1,kilómetro,unit of measure
+kilometer,pt-BR,1,quilômetro,unit of measure
 kind,ko,1,종류,"type, race, category"
 kind,ko,2,친절하다,"affectionate, nice"
 kind,ko,3,착하다,"affectionate, nice"
@@ -23871,6 +24003,11 @@ knowledge,es,2,conocimientos,"familiarity with particular skill, discipline"
 knowledge,es,3,conocencia,"fact of knowing about something; understanding, familiarity with information"
 knowledge,pt-BR,1,conhecimento,"fact of knowing about something; understanding, familiarity with information"
 knowledge,pt-BR,2,ciência,"awareness, state of having been informed"
+lab,ko,1,실험실,"room, building or institution equipped for scientific research"
+lab,ja,1,研究室,"room, building or institution equipped for scientific research"
+lab,zh-Hans,1,实验室,"room, building or institution equipped for scientific research"
+lab,es,1,laboratorio,"room, building or institution equipped for scientific research"
+lab,pt-BR,1,laboratório,"room, building or institution equipped for scientific research"
 label,ko,1,라벨,small ticket or sign giving information
 label,ko,2,레이블,small ticket or sign giving information
 label,ja,1,荷札,small ticket or sign giving information
@@ -23884,6 +24021,11 @@ label,es,3,tildar de,give a label to in order to categorise
 label,pt-BR,1,etiqueta,small ticket or sign giving information
 label,pt-BR,2,etiquetar,put a ticket or sign on
 label,pt-BR,3,classificar,give a label to in order to categorise
+labor,ko,1,노동,work
+labor,ja,1,労働,work
+labor,zh-Hans,1,劳动,work
+labor,es,1,trabajo,work
+labor,pt-BR,1,trabalho,work
 laboratory,ko,1,실험실,"room, building or institution equipped for scientific research"
 laboratory,ko,2,연구실,"place where chemicals, drugs or microbes are prepared or manufactured"
 laboratory,ko,3,랩,"room, building or institution equipped for scientific research"
@@ -24120,6 +24262,10 @@ late,es,3,atrasado,not arriving until after an expected time
 late,pt-BR,1,tardio,near the end of a period of time
 late,pt-BR,2,tardia,associated with the end of a period
 late,pt-BR,3,atrasado,not arriving until after an expected time
+lately,ko,1,근래,in the recent past
+lately,ja,1,この間,in the recent past
+lately,es,1,recientemente,in the recent past
+lately,pt-BR,1,recentemente,in the recent past
 latter,ko,1,후자,relating to or being the second of two items
 latter,ja,1,後者,relating to or being the second of two items
 latter,zh-Hans,1,后者,relating to or being the second of two items
@@ -25257,6 +25403,11 @@ lord,es,3,lord,titled nobleman
 lord,pt-BR,1,castelão,master of a household
 lord,pt-BR,2,senhor,property owner
 lord,pt-BR,3,lorde,aristocrat
+lorry,ko,1,트럭,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
+lorry,ja,1,トラック,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
+lorry,zh-Hans,1,卡车,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
+lorry,es,1,camión,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
+lorry,pt-BR,1,caminhão,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
 lose,ko,1,잃다,cease to have in one's possession or capability
 lose,ko,2,여위다,shed (weight)
 lose,ko,3,지다,(transitive) be a defeated competitor in
@@ -25463,6 +25614,11 @@ luxury,es,1,lujo,very wealthy and comfortable surroundings
 luxury,es,2,capricho,something pleasant but not necessary in life
 luxury,es,3,extravagancia,something pleasant but not necessary in life
 luxury,pt-BR,1,luxo,very wealthy and comfortable surroundings
+lyric,ko,1,가사,the words to a song
+lyric,ja,1,歌詞,the words to a song
+lyric,zh-Hans,1,歌词,the words to a song
+lyric,es,1,letra,the words to a song
+lyric,pt-BR,1,letra,the words to a song
 ma,ko,1,마,Chinese surname
 ma,ja,1,馬,Chinese surname
 ma,ja,2,マー,Chinese surname
@@ -26602,6 +26758,11 @@ midnight,ja,3,真夜中,middle of the night
 midnight,es,1,medianoche,middle of the night
 midnight,es,2,madrugada,middle of the night
 midnight,pt-BR,1,meia-noite,12 o'clock at night exactly — see also twelve o'clock
+midst,ko,1,중앙,"centre, midpoint"
+midst,ja,1,中央,"centre, midpoint"
+midst,zh-Hans,1,中间,"centre, midpoint"
+midst,es,1,medio,"centre, midpoint"
+midst,pt-BR,1,meio,"centre, midpoint"
 might,ko,1,위력,personal power
 might,ja,1,かも知れない,indicator of conditional or possible actions
 might,es,1,potestad,personal power
@@ -27050,6 +27211,11 @@ molecule,ko,1,분자,group of atoms held together by chemical bonds
 molecule,ja,1,分子,group of atoms held together by chemical bonds
 molecule,es,1,molécula,group of atoms held together by chemical bonds
 molecule,pt-BR,1,molécula,group of atoms held together by chemical bonds
+mom,ko,1,엄마,female (human) who gives birth to or parents a child
+mom,ja,1,お母さん,female (human) who gives birth to or parents a child
+mom,zh-Hans,1,母亲,female (human) who gives birth to or parents a child
+mom,es,1,madre,female (human) who gives birth to or parents a child
+mom,pt-BR,1,mãe,female (human) who gives birth to or parents a child
 moment,ko,1,순간,very brief period of time
 moment,ko,2,모멘트,moment of force
 moment,ja,1,瞬間,very brief period of time
@@ -27737,6 +27903,11 @@ nationalist,es,1,nacionalista,of or relating to nationalism
 nationalist,pt-BR,1,nacionalista,of or relating to nationalism
 nationally,es,1,nacionalmente,in a way relating to the whole nation
 nationally,pt-BR,1,nacionalmente,in a way relating to the whole nation
+nationwide,ko,1,전국적으로,
+nationwide,ja,1,全国的に,
+nationwide,zh-Hans,1,全国范围内,
+nationwide,es,1,a nivel nacional,
+nationwide,pt-BR,1,em todo o país,
 native,ko,1,토산의,born or grown in the region in which it lives or is found
 native,ko,2,현지인,person who is native to a place
 native,ko,3,원주민,person who is native to a place
@@ -27821,6 +27992,11 @@ neat,es,3,paja,"colloquial: good, excellent, desirable"
 neat,pt-BR,1,asseado,"tidy, free from dirt"
 neat,pt-BR,2,cowboy,"undiluted, particularly of alcoholic drinks"
 neat,pt-BR,3,leve,"having a simple elegance or style; clean, trim, tidy, tasteful"
+neatly,ko,1,깔끔하게,
+neatly,ja,1,きちんと,
+neatly,zh-Hans,1,整齐地,
+neatly,es,1,pulcramente,
+neatly,pt-BR,1,ordenadamente,
 necessarily,es,1,necesariamente,of necessity
 necessarily,pt-BR,1,necessariamente,of necessity
 necessary,ko,1,필요하다,"needed, required"
@@ -27911,6 +28087,11 @@ negotiation,zh-Hans,1,谈判,process of achieving agreement
 negotiation,es,1,negociación,process of achieving agreement
 negotiation,es,2,tratativa,process of achieving agreement
 negotiation,pt-BR,1,negociação,process of achieving agreement
+neighbor,ko,1,이웃 사람,a person living on adjacent or nearby land
+neighbor,ja,1,隣人,a person living on adjacent or nearby land
+neighbor,zh-Hans,1,邻居,a person living on adjacent or nearby land
+neighbor,es,1,vecino,a person living on adjacent or nearby land
+neighbor,pt-BR,1,vizinho,a person living on adjacent or nearby land
 neighborhood,ko,1,근처,area near one's home
 neighborhood,ko,2,부근,area near one's home
 neighborhood,ko,3,동네,area near one's home
@@ -28236,6 +28417,11 @@ nomination,pt-BR,1,nomeação,an act or instance of nominating
 nominee,es,1,nominado,"a person named or designated to any office, duty or position"
 nominee,es,2,nominada,"a person named or designated to any office, duty or position"
 nominee,pt-BR,1,nomeado,"a person named or designated to any office, duty or position"
+non,ko,1,비-,
+non,ja,1,非-,
+non,zh-Hans,1,非-,
+non,es,1,no,
+non,pt-BR,1,não,
 none,ko,1,아무도...않다,not any person
 none,ko,2,아무것도...아니다,not any thing
 none,ja,1,誰も...ない,not any person
@@ -29968,6 +30154,11 @@ paper,es,3,redacción,"academic essay — see also essay, work, composition"
 paper,pt-BR,1,papel,sheet material
 paper,pt-BR,2,artigo,written document shorter than a book — see also article
 paper,pt-BR,3,de papel,made of paper
+par,ko,1,기준 타수,
+par,ja,1,パー,
+par,zh-Hans,1,标准杆,
+par,es,1,par,
+par,pt-BR,1,par,
 parade,ko,1,행렬,public procession
 parade,ko,2,퍼레이드,public procession
 parade,ko,3,행진,public procession
@@ -30816,6 +31007,10 @@ petition,es,2,peticionar,to make a request
 petition,es,3,instancia,"formal, written request made to an official person"
 petition,pt-BR,1,petição,"formal, written request made to an official person"
 petition,pt-BR,2,abaixo-assinado,compilation of signatures
+petrol,ko,1,가솔린,motor fuel
+petrol,ja,1,ガソリン,motor fuel
+petrol,es,1,gasolina,motor fuel
+petrol,pt-BR,1,gasolina,motor fuel
 pharmaceutical,es,1,farmacéutico,"of, or relating to pharmacy or pharmacists"
 pharmaceutical,pt-BR,1,farmacêutico,"of, or relating to pharmacy or pharmacists"
 phase,ko,1,단계,distinguishable part of a sequence
@@ -31472,6 +31667,11 @@ plot,es,3,complot,secret plan to achieve an end
 plot,pt-BR,1,argumento,course of a story
 plot,pt-BR,2,lote,area of land used for building on or planting on
 plot,pt-BR,3,diagrama,graph or diagram
+plow,ko,1,쟁기,device pulled through the ground
+plow,ja,1,鋤,device pulled through the ground
+plow,zh-Hans,1,犁头,device pulled through the ground
+plow,es,1,arado,device pulled through the ground
+plow,pt-BR,1,arado,device pulled through the ground
 plug,ko,1,플러그,electric connecting device
 plug,ko,2,마개,hole filler
 plug,ja,1,プラグ,electric connecting device
@@ -31583,6 +31783,11 @@ police,ja,1,警察,local or general law enforcement agency
 police,es,1,policía,local or general law enforcement agency
 police,es,2,tombería,local or general law enforcement agency
 police,pt-BR,1,polícia,local or general law enforcement agency
+policeman,ko,1,경찰관,
+policeman,ja,1,警察官,
+policeman,zh-Hans,1,警察,
+policeman,es,1,policía,
+policeman,pt-BR,1,policial,
 policy,ko,1,정책,principle of conduct
 policy,ja,1,政策,principle of conduct
 policy,ja,2,方針,prudent conduct
@@ -31703,6 +31908,10 @@ poor,es,3,poco,deficient in a specified way
 poor,pt-BR,1,pobre,with few or no possessions or money
 poor,pt-BR,2,fraco,of low quality
 poor,pt-BR,3,coitado,used to express pity
+poorly,ko,1,나쁘게,in a bad manner
+poorly,ja,1,悪く,in a bad manner
+poorly,es,1,malamente,in a bad manner
+poorly,pt-BR,1,mal,in a bad manner
 pop,ja,1,ポップ,pop music
 pop,ja,2,ポップス,pop music
 pop,zh-Hans,1,出栈,computing: to remove a data item from the top of a stack
@@ -32308,6 +32517,10 @@ presentation,es,1,presentación,act of presenting
 presentation,es,2,ponencia,something presented to an audience
 presentation,es,3,exposición,act of presenting
 presentation,pt-BR,1,apresentação,something presented to an audience
+presently,ko,1,현재,at this moment
+presently,ja,1,現在は,at this moment
+presently,es,1,actualmente,at this moment
+presently,pt-BR,1,atualmente,at this moment
 preservation,ko,1,보존,the act of preserving
 preservation,ja,1,保存,the act of preserving
 preservation,es,1,preservación,the act of preserving
@@ -36035,6 +36248,9 @@ right,es,3,sano,"healthy, sane, competent — see also healthy, sane, competent"
 right,pt-BR,1,direito,"of direction, opposite of left"
 right,pt-BR,2,correto,"complying with justice, correct — see also be right"
 right,pt-BR,3,perpendicular,"(geometry) of an angle, measuring 90 degrees"
+rightly,ko,1,정확(正確)히,in a correct manner
+rightly,es,1,correctamente,in a correct manner
+rightly,pt-BR,1,corretamente,in a correct manner
 rigid,ja,1,硬い,stiff
 rigid,ja,2,固定された,fixed
 rigid,ja,3,堅い,"rigorous, unbending"
@@ -37424,6 +37640,10 @@ seem,zh-Hans,2,看起来,to appear
 seem,zh-Hans,3,看样子,to appear
 seem,es,1,parecer,to appear
 seem,pt-BR,1,parecer,to appear
+seemingly,ja,1,(どうやら)...らしい),seemingly
+seemingly,zh-Hans,1,看来,seemingly
+seemingly,es,1,aparentemente,seemingly
+seemingly,pt-BR,1,aparentemente,seemingly
 segment,ja,1,切片,length of some object
 segment,zh-Hans,1,片断,length of some object
 segment,es,1,segmento,length of some object
@@ -38014,6 +38234,11 @@ sharp,es,3,sostenido,"of a note, raised by one semitone"
 sharp,pt-BR,1,afiado,able to cut easily
 sharp,pt-BR,2,esperto,intelligent
 sharp,pt-BR,3,pontudo,"pointed, able to pierce easily"
+sharply,ko,1,급격히,
+sharply,ja,1,急激に,
+sharply,zh-Hans,1,急剧地,
+sharply,es,1,bruscamente,
+sharply,pt-BR,1,bruscamente,
 shatter,es,1,astillar,to violently break something into pieces
 shatter,es,2,astillarse,"to smash, or break into tiny pieces"
 shatter,es,3,derrumbar,to destroy or disable something
@@ -40473,6 +40698,10 @@ standard,es,2,dechado,level of quality
 standard,es,3,estandarte,a flag or ensign
 standard,pt-BR,1,padrão,falling within an accepted range
 standard,pt-BR,2,estandarte,a flag or ensign
+standardize,ja,1,標準化する,to establish a standard
+standardize,zh-Hans,1,标准化,to establish a standard
+standardize,es,1,estandarizar,to establish a standard
+standardize,pt-BR,1,estandardizar,to establish a standard
 star,ko,1,별,a celestial body appearing as a point of light on the clear night sky
 star,ko,2,스타,celebrity
 star,ko,3,별표,asterisk
@@ -40618,6 +40847,11 @@ stay,es,3,estadía,residence — see also sojourn
 stay,pt-BR,1,ficar,to remain in a particular place
 stay,pt-BR,2,continuar,to continue to have a particular quality
 stay,pt-BR,3,adiar,to postpone
+steadily,ko,1,꾸준히,
+steadily,ja,1,着実に,
+steadily,zh-Hans,1,稳步地,
+steadily,es,1,constantemente,
+steadily,pt-BR,1,constantemente,
 steady,ja,1,着実,smooth and not bumpy or with obstructions
 steady,ja,2,安定した,smooth and not bumpy or with obstructions
 steady,zh-Hans,1,稳定,smooth and not bumpy or with obstructions
@@ -42666,6 +42900,11 @@ tease,es,3,chinchar,to provoke or disturb
 tease,pt-BR,1,cardar,to separate the fibers
 tease,pt-BR,2,pentear,to comb
 tease,pt-BR,3,caçoar,to poke fun at
+tech,ko,1,기술,the study of or a collection of techniques
+tech,ja,1,技術,the study of or a collection of techniques
+tech,zh-Hans,1,技术,the study of or a collection of techniques
+tech,es,1,tecnología,the study of or a collection of techniques
+tech,pt-BR,1,tecnologia,the study of or a collection of techniques
 technical,zh-Hans,1,技术的,pertaining to the useful or mechanic arts
 technical,es,1,técnico,pertaining to the useful or mechanic arts
 technical,es,2,artillado,pickup truck-based fighting vehicle
@@ -42705,6 +42944,10 @@ technology,es,1,tecnología,the study of or a collection of techniques
 technology,es,2,técnica,the study of or a collection of techniques
 technology,pt-BR,1,tecnologia,the study of or a collection of techniques
 technology,pt-BR,2,técnica,the study of or a collection of techniques
+teen,ko,1,틴에이저,person aged between thirteen and nineteen
+teen,ja,1,ティーネージャー,person aged between thirteen and nineteen
+teen,es,1,adolescente,person aged between thirteen and nineteen
+teen,pt-BR,1,adolescente,person aged between thirteen and nineteen
 teenage,es,1,adolescente,of an age between 13 and 19
 teenager,ko,1,틴에이저,person aged between thirteen and nineteen
 teenager,ko,2,십대,person aged between thirteen and nineteen
@@ -43973,6 +44216,11 @@ tonight,es,2,esta tarde,during today's evening
 tonight,pt-BR,1,hoje à tardinha,during today's evening
 tonight,pt-BR,2,hoje à noite,during today's nighttime
 tonight,pt-BR,3,esta noite,nighttime today
+tonne,ko,1,미터톤,
+tonne,ja,1,メートルトン,
+tonne,zh-Hans,1,公吨,
+tonne,es,1,tonelada métrica,
+tonne,pt-BR,1,tonelada métrica,
 too,ko,1,-도,(focus) likewise
 too,ko,2,너무,(degree) more than enough
 too,ko,3,역시,(focus) likewise
@@ -44570,6 +44818,11 @@ travel,es,2,viaje,act of traveling
 travel,es,3,recorrer,be on a journey
 travel,pt-BR,1,viajar,be on a journey
 travel,pt-BR,2,viagem,act of traveling
+traveler,ko,1,여행자,one who travels
+traveler,ja,1,旅人,one who travels
+traveler,zh-Hans,1,旅游者,one who travels
+traveler,es,1,viajero,one who travels
+traveler,pt-BR,1,viajante,one who travels
 tray,ko,1,쟁반,object on which things are carried
 tray,ko,2,식판,object on which things are carried
 tray,ko,3,트레이,object on which things are carried
@@ -44812,6 +45065,11 @@ trouble,es,3,molestia,effort
 trouble,pt-BR,1,treta,violent occurrence
 trouble,pt-BR,2,problema,distressful or dangerous situation
 trouble,pt-BR,3,dificuldade,difficulty
+trousers,ko,1,바지,garment covering the body from the waist downwards
+trousers,ja,1,ズボン,garment covering the body from the waist downwards
+trousers,zh-Hans,1,裤子,garment covering the body from the waist downwards
+trousers,es,1,pantalón,garment covering the body from the waist downwards
+trousers,pt-BR,1,calças,garment covering the body from the waist downwards
 truck,ko,1,트럭,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
 truck,ja,1,トラック,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
 truck,ja,2,貨物自動車,"heavier motor vehicle designed to carry goods — see also semi-trailer truck, pickup truck"
@@ -45550,6 +45808,10 @@ upgrade,es,1,mejora,an improved component or replacement item
 upgrade,es,2,embonar,to improve
 upgrade,es,3,actualizar,to replace an existing object with something better
 upgrade,pt-BR,1,melhorar,to improve
+upon,ko,1,...위에,positioned at the upper surface of
+upon,ja,1,...の上に,positioned at the upper surface of
+upon,es,1,en,positioned at the upper surface of
+upon,pt-BR,1,na,positioned at the upper surface of
 upper,ko,1,위의,"at a higher level, rank or position"
 upper,ja,1,上の,"at a higher level, rank or position"
 upper,zh-Hans,1,上边的,"at a higher level, rank or position"
@@ -45573,6 +45835,8 @@ upstairs,ja,1,階上,up the stairs; on or to a higher floor or level
 upstairs,zh-Hans,1,楼上,up the stairs; on or to a higher floor or level
 upstairs,es,1,arriba,up the stairs; on or to a higher floor or level
 upstairs,pt-BR,1,em cima,up the stairs; on or to a higher floor or level
+upward,es,1,hacia arriba,to a higher position
+upward,pt-BR,1,para cima,to a higher position
 urban,ko,1,도시의,of
 urban,ja,1,都市の,of
 urban,es,1,urbano,of
@@ -45671,6 +45935,11 @@ utility,es,1,utilidad,state or condition of being useful
 utility,es,2,utíliti,business: service provided on a continuous basis by infrastructure
 utility,es,3,proveedor de servicios,business: areal monopoly provider
 utility,pt-BR,1,utilidade,state or condition of being useful
+utilize,ko,1,활용하다,
+utilize,ja,1,利用する,
+utilize,zh-Hans,1,利用,
+utilize,es,1,utilizar,
+utilize,pt-BR,1,utilizar,
 utter,ja,1,発する,"(transitive) to produce (a cry, speech, or other sounds) with the voice"
 utter,ja,2,述べる,"(transitive) to produce (a cry, speech, or other sounds) with the voice"
 utter,zh-Hans,1,发出,"(transitive) to produce (a cry, speech, or other sounds) with the voice"
@@ -45687,6 +45956,11 @@ utterance,es,3,discurso,something spoken
 utterance,pt-BR,1,expressão,an act of uttering
 utterance,pt-BR,2,enunciado,something spoken
 utterance,pt-BR,3,manifestação,an act of uttering
+utterly,ko,1,완전히,in a complete manner
+utterly,ja,1,全く,in a complete manner
+utterly,zh-Hans,1,彻底,in a complete manner
+utterly,es,1,completamente,in a complete manner
+utterly,pt-BR,1,completamente,in a complete manner
 vacation,ko,1,휴가,period of leisure time
 vacation,ja,1,休暇,period of leisure time
 vacation,ja,2,休廷,the act of making legally void
@@ -47155,6 +47429,11 @@ while,es,3,aunque,although
 while,pt-BR,1,tempo,"uncertain duration of time, a period of time"
 while,pt-BR,2,enquanto,during the same time that
 while,pt-BR,3,embora,although
+whilst,ko,1,동안,during the same time that
+whilst,ja,1,...間に,during the same time that
+whilst,zh-Hans,1,...的时候,during the same time that
+whilst,es,1,mientras,during the same time that
+whilst,pt-BR,1,enquanto,during the same time that
 whip,ko,1,채찍,rod or rope
 whip,ko,2,원내총무,party policy enforcer
 whip,ko,3,채찍질하다,to hit with a whip
@@ -47236,6 +47515,8 @@ whole,es,3,totalidad,something complete
 whole,pt-BR,1,inteiro,entire
 whole,pt-BR,2,integral,food with no constituents removed
 whole,pt-BR,3,todo,something complete
+wholly,ja,1,全部,to the full extent
+wholly,es,1,enteramente,to the full extent
 why,ko,1,왜,(interrogative) for what reason
 why,ja,1,何故,(interrogative) for what reason
 why,ja,2,なんで,(interrogative) for what reason

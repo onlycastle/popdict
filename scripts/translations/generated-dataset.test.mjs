@@ -4,6 +4,7 @@ import {
   hasFilteredSenseQualifier,
   sqlForRows,
   TARGET_LANGUAGES,
+  TRANSLATION_FALLBACKS,
 } from './build-dataset.mjs'
 
 function parseCsvLine(line) {
@@ -29,6 +30,9 @@ function parseCsvLine(line) {
 }
 
 const manifest = JSON.parse(readFileSync('data/translations/manifest.json', 'utf8'))
+const targetHeadwords = readFileSync('data/translations/ngsl-gr-5049.txt', 'utf8')
+  .trim()
+  .split('\n')
 const csvLines = readFileSync('data/translations/word-translations.csv', 'utf8')
   .trimEnd()
   .split('\n')
@@ -53,6 +57,7 @@ const sqlRows = rows.map((row) => ({
 describe('generated translation dataset', () => {
   it('matches its manifest and rank/deduplication invariants', () => {
     expect(manifest.headwordCount).toBe(5049)
+    expect(targetHeadwords).toHaveLength(manifest.headwordCount)
     expect(rows).toHaveLength(manifest.rowCount)
     expect(new Set(rows.map((row) => row.languageCode))).toEqual(new Set(TARGET_LANGUAGES))
     const groups = new Map()
@@ -75,9 +80,55 @@ describe('generated translation dataset', () => {
     }
   })
 
+  it('covers every target headword and records deterministic fallback use', () => {
+    const covered = new Set(rows.map((row) => row.normalizedWord))
+    expect(covered).toEqual(new Set(targetHeadwords))
+    expect(manifest.coveredHeadwordCount).toBe(targetHeadwords.length)
+    expect(manifest.fallbackHeadwordCount).toBeGreaterThan(0)
+    expect(manifest.fallbackHeadwordCount).toBeLessThanOrEqual(
+      Object.keys(TRANSLATION_FALLBACKS).length
+    )
+    expect(manifest.manualFallbackHeadwordCount).toBeGreaterThan(0)
+    expect(manifest.coverageByLanguage).toEqual(Object.fromEntries(
+      TARGET_LANGUAGES.map((language) => [
+        language,
+        new Set(rows
+          .filter((row) => row.languageCode === language)
+          .map((row) => row.normalizedWord)).size,
+      ])
+    ))
+  })
+
+  it('limits aliases to a vetted sense and excludes known false friends', () => {
+    const fallbackHeadwords = new Set(Object.keys(TRANSLATION_FALLBACKS))
+    const fallbackRows = rows.filter((row) => fallbackHeadwords.has(row.normalizedWord))
+    const groups = new Map()
+    for (const row of fallbackRows) {
+      const key = `${row.normalizedWord}\u0000${row.languageCode}`
+      groups.set(key, (groups.get(key) ?? 0) + 1)
+    }
+    expect([...groups.values()].every((count) => count === 1)).toBe(true)
+
+    const could = rows.filter((row) => row.normalizedWord === 'could')
+    expect(could).toHaveLength(TARGET_LANGUAGES.length)
+    const couldFalseFriends = new Set([
+      '깡통', '통조림', '缶', '罐头', '金属容器', 'lata', 'regadera', 'regador',
+    ])
+    expect(could.some((row) => couldFalseFriends.has(row.translation))).toBe(false)
+    expect(could.every((row) => /able to|know how|permitted|possibility/i.test(
+      row.senseLabel ?? ''
+    ))).toBe(true)
+
+    const upon = rows.filter((row) => row.normalizedWord === 'upon')
+    const uponFalseFriends = new Set([
+      'encendido', 'ligado', 'destinar',
+    ])
+    expect(upon.some((row) => uponFalseFriends.has(row.translation))).toBe(false)
+  })
+
   it('matches the final corrective migration exactly', () => {
     const migration = readFileSync(
-      'supabase/migrations/20260716115341_replace_translation_data_all_ngsl.sql',
+      'supabase/migrations/20260719130000_replace_translation_data_complete_ngsl.sql',
       'utf8'
     )
     expect(migration).toBe(sqlForRows(sqlRows, manifest, true))
