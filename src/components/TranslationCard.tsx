@@ -54,7 +54,7 @@ export default function TranslationCard({
           <a href={wiktionaryEntryUrl(word)} target="_blank" rel="noreferrer noopener">
             English Wiktionary via Kaikki
           </a>
-          {' — filtered and ranked by PopDict · '}
+          {' — filtered, ranked, and completed by PopDict · '}
           <a
             href="https://creativecommons.org/licenses/by-sa/4.0/"
             target="_blank"

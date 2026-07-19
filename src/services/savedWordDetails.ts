@@ -20,6 +20,7 @@ export function savedWordDetailsFromLookup(input: {
   response: SearchResponse
   language: TargetLanguage | null
   translations: WordTranslation[]
+  translationComplete?: boolean
   now?: Date
 }): SavedWordDetails | null {
   const result = input.response.dictionaryResults?.[0]
@@ -27,14 +28,17 @@ export function savedWordDetailsFromLookup(input: {
   const firstDefinition = firstMeaning?.definitions[0]
   if (!result || !firstMeaning || !firstDefinition?.definition?.trim()) return null
   const definitions = result.meanings.flatMap((meaning) => meaning.definitions)
+  const translation = input.translations[0]?.text ?? null
   return {
     partOfSpeech: firstMeaning.partOfSpeech?.trim() || null,
     definition: firstDefinition.definition.trim(),
     example: definitions.find((definition) => definition.example?.trim())?.example?.trim() ?? null,
     synonyms: unique(definitions.flatMap((definition) => definition.synonyms ?? [])),
     antonyms: unique(definitions.flatMap((definition) => definition.antonyms ?? [])),
-    translation: input.translations[0]?.text ?? null,
-    translationLanguage: input.language,
+    translation,
+    translationLanguage: input.language && input.translationComplete !== false
+      ? input.language
+      : null,
     sourceUrl: result.sourceUrls?.find(Boolean) ?? null,
     licenseName: result.license?.name ?? null,
     licenseUrl: result.license?.url ?? null,

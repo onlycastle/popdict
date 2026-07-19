@@ -7,12 +7,17 @@ describe('lookup recovery', () => {
     expect(baseFormSuggestions('walked')).toContain('walk')
     expect(baseFormSuggestions('stopping')).toContain('stop')
     expect(baseFormSuggestions('boxes')).toContain('box')
+    expect(baseFormSuggestions('making')).toEqual(['make'])
+    expect(baseFormSuggestions('hoped')).toEqual(['hope'])
+    expect(baseFormSuggestions('studies')).not.toContain('studie')
+    expect(baseFormSuggestions('boxes')).not.toContain('boxe')
+    expect(baseFormSuggestions('walked')).not.toContain('walke')
   })
 
   it('deduplicates native and base-form suggestions to five safe words', () => {
     expect(mergeRecoverySuggestions('studies', [
       'study', 'Study', 'student', 'studdies', 'studios', 'unsafe phrase',
-    ])).toEqual(['study', 'student', 'studdies', 'studios', 'studie'])
+    ])).toEqual(['study', 'student', 'studdies', 'studios'])
   })
 
   it('builds an encoded Wiktionary recovery URL', () => {

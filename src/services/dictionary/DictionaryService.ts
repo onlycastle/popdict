@@ -1,8 +1,50 @@
-import type { DictionaryResult, SearchResponse } from '../../types/dictionary'
+import type {
+  DictionaryAttribution,
+  DictionaryResult,
+  SearchResponse,
+} from '../../types/dictionary'
 import type { DictionarySource } from './DictionarySource'
 import { FreeDictionarySource } from './FreeDictionarySource'
 import { DictionaryError } from './DictionaryError'
 import { KaikkiPhraseSource } from './KaikkiPhraseSource'
+
+function attributionsFor(
+  result: DictionaryResult,
+  label: string,
+): DictionaryAttribution[] {
+  if (result.attributions?.length) return result.attributions
+  const sourceUrls = result.sourceUrls ?? []
+  if (sourceUrls.length > 0) {
+    return sourceUrls.map((sourceUrl, index) => ({
+      label: sourceUrls.length > 1 ? `${label} ${index + 1}` : label,
+      sourceUrl,
+      ...(index === 0 && result.license ? { license: result.license } : {}),
+    }))
+  }
+  return result.license ? [{ label, license: result.license }] : []
+}
+
+function mergedAttributions(
+  phraseResults: DictionaryResult[],
+  freeResults: DictionaryResult[],
+): DictionaryAttribution[] {
+  const all = [
+    ...phraseResults.flatMap((result) => attributionsFor(result, 'Wiktionary via Kaikki')),
+    ...freeResults.flatMap((result) => attributionsFor(result, 'Free Dictionary')),
+  ]
+  const seen = new Set<string>()
+  return all.filter((attribution) => {
+    const key = [
+      attribution.label,
+      attribution.sourceUrl ?? '',
+      attribution.license?.name ?? '',
+      attribution.license?.url ?? '',
+    ].join('\n')
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
 
 /** Resolves English definitions. Phrases follow the normal no-results path. */
 export class DictionaryService {
@@ -31,6 +73,7 @@ export class DictionaryService {
     if (freeResults.length > 0 || phraseResults.length > 0) {
       const primary = phraseResults[0] ?? freeResults[0]
       const audioSource = freeResults[0]
+      const attributions = mergedAttributions(phraseResults, freeResults)
       const merged: DictionaryResult = {
         ...primary,
         phonetic: audioSource?.phonetic ?? primary.phonetic,
@@ -39,6 +82,7 @@ export class DictionaryService {
         sourceUrls: [...new Set(
           [...phraseResults, ...freeResults].flatMap((result) => result.sourceUrls ?? [])
         )],
+        ...(attributions.length > 0 ? { attributions } : {}),
       }
       return {
         dictionaryResults: [merged],

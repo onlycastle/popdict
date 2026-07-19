@@ -37,6 +37,16 @@ export function translationReducer(
   }
 }
 
+export function translationStateForRequest(
+  state: TranslationState,
+  requestKey: string,
+): TranslationState {
+  if (!requestKey) return INITIAL_TRANSLATION_STATE
+  return state.requestKey === requestKey
+    ? state
+    : { requestKey, status: 'loading', translations: [] }
+}
+
 export function useTranslations(options: {
   word: string
   language: TargetLanguage | null
@@ -79,7 +89,7 @@ export function useTranslations(options: {
   }, [cachedOnly, cachedTranslations, language, onResolved, requestKey, retryToken, word])
 
   return {
-    ...state,
+    ...translationStateForRequest(state, requestKey),
     retry: () => setRetryToken((token) => token + 1),
   }
 }

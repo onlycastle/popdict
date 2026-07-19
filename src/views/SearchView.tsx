@@ -97,6 +97,7 @@ export default function SearchView() {
     searchedTerm,
     query,
     translationLanguage,
+    translationStatus: translations.status,
     translations: translations.translations,
   })
 
@@ -274,7 +275,11 @@ export default function SearchView() {
                 }}
                 onRetry={triggerSearch}
                 onSave={response && !loading && !failure ? () => void handleSaveClick() : undefined}
-                saveDisabled={saving || alreadySaved}
+                saveDisabled={saving || alreadySaved || !(
+                  translationLanguage === null || (
+                    translations.status !== 'idle' && translations.status !== 'loading'
+                  )
+                )}
                 saveFeedback={
                   saveError || (savedWord.toLowerCase() === wordToSave.toLowerCase() ? 'Saved' : '')
                 }

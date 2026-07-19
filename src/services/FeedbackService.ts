@@ -4,7 +4,7 @@ import {
   type FeedbackPayload,
   type FeedbackSubmitResult,
 } from '../../shared/feedback'
-import { supabase } from './supabaseClient'
+import { publicSupabase } from './supabaseClient'
 
 export type FeedbackServiceDeps = {
   client: Pick<SupabaseClient, 'functions'> | null
@@ -41,7 +41,7 @@ export function createFeedbackService({ client, createRequestId, getVersion }: F
 }
 
 export const feedbackService = createFeedbackService({
-  client: supabase,
+  client: publicSupabase,
   createRequestId: () => crypto.randomUUID(),
   getVersion: () => window.electronAPI.getAppVersion(),
 })

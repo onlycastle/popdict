@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { supabase } from './supabaseClient'
+import { publicSupabase } from './supabaseClient'
 
 export const PRODUCT_EVENT_NAMES = [
   'first_launch',
@@ -52,7 +52,7 @@ export function createProductAnalytics(deps: ProductAnalyticsDeps) {
 }
 
 export const productAnalytics = createProductAnalytics({
-  client: supabase,
+  client: publicSupabase,
   createEventId: () => crypto.randomUUID(),
   getEnabled: async () => (await window.electronAPI.getSettings()).analyticsEnabled,
   getSessionId: () => window.electronAPI.getAnalyticsSessionId(),

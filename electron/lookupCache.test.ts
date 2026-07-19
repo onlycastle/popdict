@@ -77,4 +77,40 @@ describe('LookupCache', () => {
     await expect(cache.read('huge')).resolves.toBeNull()
     expect(JSON.parse(await readFile(path, 'utf8')).entries).toEqual([])
   })
+
+  it('discards valid JSON with malformed nested dictionary results', async () => {
+    const { cache, path } = await fixture()
+    await writeFile(path, JSON.stringify({
+      version: 1,
+      entries: [{
+        version: 1,
+        query: 'broken',
+        normalizedQuery: 'broken',
+        response: {
+          dictionaryResults: [null],
+          source: 'free-dictionary',
+          provenance: 'live',
+        },
+        translations: {},
+        savedAt: '2026-07-16T00:00:00.000Z',
+        lastAccessedAt: '2026-07-16T00:00:00.000Z',
+      }],
+    }))
+
+    await expect(cache.read('broken')).resolves.toBeNull()
+    expect(JSON.parse(await readFile(path, 'utf8')).entries).toEqual([])
+  })
+
+  it('rejects an oversized translation payload before writing an entry', async () => {
+    const { cache, path } = await fixture()
+    await cache.write({
+      query: 'large translation',
+      response: response('large translation'),
+      translationLanguage: 'es',
+      translations: [{ text: 'traducción', rank: 1, senseLabel: 'x'.repeat(600_000) }],
+    })
+
+    await expect(cache.read('large translation')).resolves.toBeNull()
+    await expect(readFile(path, 'utf8')).rejects.toThrow()
+  })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   INITIAL_TRANSLATION_STATE,
   translationReducer,
+  translationStateForRequest,
   type TranslationState,
 } from './useTranslations'
 
@@ -32,5 +33,16 @@ describe('translationReducer', () => {
       translations: [{ text: 'banco', senseLabel: null, rank: 1 }],
     })
     expect(stale).toBe(current)
+  })
+
+  it('exposes a changed request as loading before its effect begins', () => {
+    const previous: TranslationState = {
+      requestKey: 'bank\u0000es',
+      status: 'ready',
+      translations: [{ text: 'banco', senseLabel: null, rank: 1 }],
+    }
+    expect(translationStateForRequest(previous, 'bus\u0000es')).toEqual({
+      requestKey: 'bus\u0000es', status: 'loading', translations: [],
+    })
   })
 })

@@ -17,12 +17,22 @@ export function shouldPromptQuizOptIn(count: number, hasPreferences: boolean): b
   return count === 5 && !hasPreferences
 }
 
+type TranslationStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+
+export function translationIsSettledForSave(
+  language: TargetLanguage | null,
+  status: TranslationStatus,
+): boolean {
+  return language === null || (status !== 'idle' && status !== 'loading')
+}
+
 interface UseSaveWordArgs {
   user: User | null
   response: SearchResponse | null
   searchedTerm: string
   query: string
   translationLanguage: TargetLanguage | null
+  translationStatus: TranslationStatus
   translations: WordTranslation[]
 }
 
@@ -37,6 +47,7 @@ export function useSaveWord({
   searchedTerm,
   query,
   translationLanguage,
+  translationStatus,
   translations,
 }: UseSaveWordArgs) {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false)
@@ -83,6 +94,7 @@ export function useSaveWord({
   const saveCurrentWord = useCallback(
     async (word: string, completesPendingAuth = false) => {
       if (!user || !response) return
+      if (!translationIsSettledForSave(translationLanguage, translationStatus)) return
       const savingUser = user
 
       setSaving(true)
@@ -93,6 +105,7 @@ export function useSaveWord({
           response,
           language: translationLanguage,
           translations,
+          translationComplete: translationStatus === 'ready' || translationStatus === 'empty',
         })
         await savedWords.save({ source: response.source, user: savingUser, word, details })
         if (completesPendingAuth) void productAnalytics.track('pending_save_completed')
@@ -107,12 +120,13 @@ export function useSaveWord({
         setSaving(false)
       }
     },
-    [user, response, maybePromptQuizOptIn, translationLanguage, translations]
+    [user, response, maybePromptQuizOptIn, translationLanguage, translationStatus, translations]
   )
 
   const handleSaveClick = useCallback(() => {
     const word = getWordToSave(response, searchedTerm || query)
     if (!word) return
+    if (!translationIsSettledForSave(translationLanguage, translationStatus)) return
 
     setSaveError('')
 
@@ -124,7 +138,7 @@ export function useSaveWord({
     }
 
     void saveCurrentWord(word)
-  }, [user, query, response, saveCurrentWord, searchedTerm])
+  }, [user, query, response, saveCurrentWord, searchedTerm, translationLanguage, translationStatus])
 
   // Finish a pending save once the user signs in.
   useEffect(() => {

@@ -8,26 +8,31 @@ export function baseFormSuggestions(value: string): string[] {
     }
   }
 
-  if (word.endsWith('ies') && word.length > 4) add(`${word.slice(0, -3)}y`)
-  if (word.endsWith('ied') && word.length > 4) add(`${word.slice(0, -3)}y`)
-  if (/(?:ches|shes|sses|xes|zes|oes)$/.test(word)) add(word.slice(0, -2))
-  if (word.endsWith('ves') && word.length > 4) {
+  const likelySilentEStem = (stem: string) =>
+    /(?:ak|ik|op|typ|at|iz|iv|ov|us|ur|os|ag|ud|rit|clos|creat|giv|tak|mak|mov|driv)$/.test(stem)
+
+  if (word.endsWith('ies') && word.length > 4) {
+    add(`${word.slice(0, -3)}y`)
+  } else if (word.endsWith('ied') && word.length > 4) {
+    add(`${word.slice(0, -3)}y`)
+  } else if (/(?:ches|shes|sses|xes|zes|oes)$/.test(word)) {
+    add(word.slice(0, -2))
+  } else if (word.endsWith('ves') && word.length > 4) {
     add(`${word.slice(0, -3)}f`)
     add(`${word.slice(0, -3)}fe`)
-  }
-  if (word.endsWith('ing') && word.length > 5) {
+  } else if (word.endsWith('ing') && word.length > 5) {
     const stem = word.slice(0, -3)
-    add(stem)
-    add(`${stem}e`)
     if (/([b-df-hj-np-tv-z])\1$/.test(stem)) add(stem.slice(0, -1))
-  }
-  if (word.endsWith('ed') && word.length > 4) {
+    else if (likelySilentEStem(stem)) add(`${stem}e`)
+    else add(stem)
+  } else if (word.endsWith('ed') && word.length > 4) {
     const stem = word.slice(0, -2)
-    add(stem)
-    add(word.slice(0, -1))
     if (/([b-df-hj-np-tv-z])\1$/.test(stem)) add(stem.slice(0, -1))
+    else if (likelySilentEStem(stem)) add(`${stem}e`)
+    else add(stem)
+  } else if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) {
+    add(word.slice(0, -1))
   }
-  if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) add(word.slice(0, -1))
   return candidates
 }
 

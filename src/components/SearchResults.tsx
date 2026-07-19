@@ -114,6 +114,13 @@ const SearchResults = ({
   const { dictionaryResults } = response
   const firstResult = dictionaryResults?.[0]
   const attributedAudio = getAttributedAudio(firstResult)
+  const entryAttributions = firstResult?.attributions?.length
+    ? firstResult.attributions
+    : firstResult?.sourceUrls?.map((sourceUrl, index) => ({
+      label: firstResult.sourceUrls!.length > 1 ? `Entry source ${index + 1}` : 'Entry source',
+      sourceUrl,
+      ...(index === 0 && firstResult.license ? { license: firstResult.license } : {}),
+    })) ?? (firstResult?.license ? [{ label: 'Entry license', license: firstResult.license }] : [])
 
   return (
     <motion.div
@@ -196,6 +203,9 @@ const SearchResults = ({
                         {defIndex + 1}
                       </span>
                       <div className="min-w-0 flex-1">
+                        {def.usageLabels && def.usageLabels.length > 0 && (
+                          <p className="dict-label mb-1">{def.usageLabels.join(' · ')}</p>
+                        )}
                         <p className="text-white/90 text-sm leading-relaxed">{def.definition}</p>
                         {def.example && (
                           <p className="dict-example text-xs mt-2 leading-relaxed">{def.example}</p>
@@ -242,24 +252,31 @@ const SearchResults = ({
             ))}
           </div>
 
-          {(firstResult.sourceUrls?.length || firstResult.license || attributedAudio) && (
+          {(entryAttributions.length > 0 || attributedAudio) && (
             <p className="dictionary-attribution">
-              {firstResult.sourceUrls?.slice(0, 1).map((url) => (
-                <a key={url} href={url} target="_blank" rel="noreferrer noopener">
-                  Entry source
-                </a>
+              {entryAttributions.map((attribution, index) => (
+                <span key={`${attribution.label}:${attribution.sourceUrl ?? index}`}>
+                  {index > 0 ? ' · ' : ''}
+                  {attribution.sourceUrl ? (
+                    <a href={attribution.sourceUrl} target="_blank" rel="noreferrer noopener">
+                      {attribution.label}
+                    </a>
+                  ) : attribution.label}
+                  {attribution.license && (
+                    <>
+                      {' · '}
+                      <a
+                        href={attribution.license.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        {attribution.license.name}
+                      </a>
+                    </>
+                  )}
+                </span>
               ))}
-              {firstResult.sourceUrls?.length && firstResult.license ? ' · ' : ''}
-              {firstResult.license && (
-                <a
-                  href={firstResult.license.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  {firstResult.license.name}
-                </a>
-              )}
-              {(firstResult.sourceUrls?.length || firstResult.license) && attributedAudio ? ' · ' : ''}
+              {entryAttributions.length > 0 && attributedAudio ? ' · ' : ''}
               {attributedAudio && (
                 <>
                   <a

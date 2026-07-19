@@ -5,6 +5,7 @@ import { FreeDictionarySource } from './FreeDictionarySource'
 import { DictionaryService } from './DictionaryService'
 import { DictionaryError } from './DictionaryError'
 import type { DictionarySource } from './DictionarySource'
+import { phraseRowsToResults } from './KaikkiPhraseSource'
 
 beforeEach(() => undefined)
 afterEach(() => {
@@ -71,10 +72,14 @@ describe('DictionaryService.search', () => {
     const freeLookup = vi.fn(async () => [{
       word: 'break the ice',
       meanings: [{ partOfSpeech: 'verb', definitions: [{ definition: 'Free definition' }] }],
+      sourceUrls: ['https://dictionaryapi.dev/entry/break-the-ice'],
+      license: { name: 'Free license', url: 'https://example.test/free-license' },
     }])
     const phraseLookup = vi.fn(async () => [{
       word: 'break the ice',
       meanings: [{ partOfSpeech: 'phrase', definitions: [{ definition: 'Make people comfortable' }] }],
+      sourceUrls: ['https://en.wiktionary.org/wiki/break_the_ice'],
+      license: { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
     }])
     const res = await service(
       source('free-dictionary', freeLookup),
@@ -82,6 +87,21 @@ describe('DictionaryService.search', () => {
     ).search('break the ice')
     expect(res.source).toBe('combined')
     expect(res.dictionaryResults?.[0].meanings).toHaveLength(2)
+    expect(res.dictionaryResults?.[0].attributions).toEqual([
+      {
+        label: 'Wiktionary via Kaikki',
+        sourceUrl: 'https://en.wiktionary.org/wiki/break_the_ice',
+        license: {
+          name: 'CC BY-SA 4.0',
+          url: 'https://creativecommons.org/licenses/by-sa/4.0/',
+        },
+      },
+      {
+        label: 'Free Dictionary',
+        sourceUrl: 'https://dictionaryapi.dev/entry/break-the-ice',
+        license: { name: 'Free license', url: 'https://example.test/free-license' },
+      },
+    ])
     expect(freeLookup).toHaveBeenCalledOnce()
     expect(phraseLookup).toHaveBeenCalledOnce()
   })
@@ -102,5 +122,23 @@ describe('DictionaryService.search', () => {
 describe('DictionaryError', () => {
   it('exposes the failure kind', () => {
     expect(new DictionaryError('network').kind).toBe('network')
+  })
+})
+
+describe('Kaikki phrase mapping', () => {
+  it('preserves legitimate regional and sensitive usage labels', () => {
+    expect(phraseRowsToResults([{
+      phrase: 'bloody hell',
+      part_of_speech: 'phrase',
+      sense_rank: 1,
+      definition: 'An exclamation of surprise.',
+      example: null,
+      synonyms: [],
+      antonyms: [],
+      usage_labels: ['UK', 'slang', 'vulgar'],
+      source_url: 'https://en.wiktionary.org/wiki/bloody_hell#English',
+      license_name: 'CC BY-SA 4.0',
+      license_url: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    }])[0].meanings[0].definitions[0].usageLabels).toEqual(['UK', 'slang', 'vulgar'])
   })
 })

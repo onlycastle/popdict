@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DictionaryResult, SearchSource } from '../../types/dictionary'
-import { supabase } from '../supabaseClient'
+import { publicSupabase } from '../supabaseClient'
 import type { DictionarySource } from './DictionarySource'
 import { DictionaryError } from './DictionaryError'
 
@@ -34,10 +34,37 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
 
+export function phraseRowsToResults(rows: PhraseRow[]): DictionaryResult[] {
+  const valid = rows.filter((row) =>
+    typeof row.phrase === 'string' &&
+    typeof row.part_of_speech === 'string' &&
+    typeof row.definition === 'string'
+  )
+  if (valid.length === 0) return []
+  const first = valid[0]
+  return [{
+    word: first.phrase as string,
+    meanings: valid.map((row) => ({
+      partOfSpeech: row.part_of_speech as string,
+      definitions: [{
+        definition: row.definition as string,
+        example: typeof row.example === 'string' ? row.example : undefined,
+        synonyms: strings(row.synonyms),
+        antonyms: strings(row.antonyms),
+        usageLabels: strings(row.usage_labels),
+      }],
+    })),
+    sourceUrls: typeof first.source_url === 'string' ? [first.source_url] : undefined,
+    license: typeof first.license_name === 'string' && typeof first.license_url === 'string'
+      ? { name: first.license_name, url: first.license_url }
+      : undefined,
+  }]
+}
+
 export class KaikkiPhraseSource implements DictionarySource<DictionaryResult[]> {
   readonly name: SearchSource = 'kaikki-phrases'
 
-  constructor(private client: SupabaseClient | null = supabase) {}
+  constructor(private client: SupabaseClient | null = publicSupabase) {}
 
   async lookup(query: string): Promise<DictionaryResult[]> {
     if (!this.client) throw new DictionaryError('service')
@@ -59,28 +86,8 @@ export class KaikkiPhraseSource implements DictionarySource<DictionaryResult[]> 
     const rows = (result.data ?? []) as PhraseRow[]
     if (rows.length === 0) throw new DictionaryError('not-found')
 
-    const valid = rows.filter((row) =>
-      typeof row.phrase === 'string' &&
-      typeof row.part_of_speech === 'string' &&
-      typeof row.definition === 'string'
-    )
-    if (valid.length === 0) throw new DictionaryError('service')
-    const first = valid[0]
-    return [{
-      word: first.phrase as string,
-      meanings: valid.map((row) => ({
-        partOfSpeech: row.part_of_speech as string,
-        definitions: [{
-          definition: row.definition as string,
-          example: typeof row.example === 'string' ? row.example : undefined,
-          synonyms: strings(row.synonyms),
-          antonyms: strings(row.antonyms),
-        }],
-      })),
-      sourceUrls: typeof first.source_url === 'string' ? [first.source_url] : undefined,
-      license: typeof first.license_name === 'string' && typeof first.license_url === 'string'
-        ? { name: first.license_name, url: first.license_url }
-        : undefined,
-    }]
+    const results = phraseRowsToResults(rows)
+    if (results.length === 0) throw new DictionaryError('service')
+    return results
   }
 }

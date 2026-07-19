@@ -2,7 +2,15 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import type { TargetLanguage, WordTranslation } from '../shared/language'
 import { isTargetLanguage } from '../shared/language'
-import type { CachedLookup, SearchResponse } from '../src/types/dictionary'
+import type {
+  CachedLookup,
+  Definition,
+  DictionaryAttribution,
+  DictionaryLicense,
+  DictionaryResult,
+  Meaning,
+  SearchResponse,
+} from '../src/types/dictionary'
 
 const CACHE_VERSION = 1 as const
 const MAX_ENTRIES = 100
@@ -16,6 +24,14 @@ export type LookupCacheWrite = {
   response: SearchResponse
   translationLanguage?: TargetLanguage | null
   translations?: WordTranslation[]
+}
+
+function withinEntryLimit(value: unknown): boolean {
+  try {
+    return Buffer.byteLength(JSON.stringify(value), 'utf8') <= MAX_ENTRY_BYTES
+  } catch {
+    return false
+  }
 }
 
 export function normalizeLookupCacheKey(value: string): string {
@@ -34,7 +50,9 @@ function validTranslations(value: unknown): CachedLookup['translations'] {
       const item = row as Partial<WordTranslation>
       return typeof item.text === 'string' && item.text.length <= 120 &&
         Number.isInteger(item.rank) && (item.rank ?? 0) >= 1 && (item.rank ?? 0) <= 3 &&
-        (item.senseLabel === null || typeof item.senseLabel === 'string')
+        (item.senseLabel === null || (
+          typeof item.senseLabel === 'string' && item.senseLabel.length <= 100
+        ))
         ? [{ text: item.text, rank: item.rank as number, senseLabel: item.senseLabel ?? null }]
         : []
     }).slice(0, 3)
@@ -42,23 +60,153 @@ function validTranslations(value: unknown): CachedLookup['translations'] {
   return output
 }
 
+function boundedString(value: unknown, maxLength: number, allowEmpty = false): value is string {
+  return typeof value === 'string'
+    && value.length <= maxLength
+    && (allowEmpty || value.trim().length > 0)
+}
+
+function httpUrl(value: unknown): value is string {
+  if (!boundedString(value, 2_048)) return false
+  try {
+    const protocol = new URL(value).protocol
+    return protocol === 'https:' || protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
+function stringArray(value: unknown): value is string[] {
+  return Array.isArray(value)
+    && value.length <= 100
+    && value.every((item) => boundedString(item, 300))
+}
+
+function sanitizeLicense(value: unknown): DictionaryLicense | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const license = value as Partial<DictionaryLicense>
+  return boundedString(license.name, 160) && httpUrl(license.url)
+    ? { name: license.name, url: license.url }
+    : null
+}
+
+function sanitizeAttribution(value: unknown): DictionaryAttribution | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const attribution = value as Partial<DictionaryAttribution>
+  if (!boundedString(attribution.label, 160)) return null
+  if (attribution.sourceUrl !== undefined && !httpUrl(attribution.sourceUrl)) return null
+  const license = attribution.license === undefined
+    ? undefined : sanitizeLicense(attribution.license)
+  if (attribution.license !== undefined && !license) return null
+  return {
+    label: attribution.label,
+    ...(attribution.sourceUrl === undefined ? {} : { sourceUrl: attribution.sourceUrl }),
+    ...(license === undefined ? {} : { license }),
+  }
+}
+
+function sanitizeDefinition(value: unknown): Definition | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const definition = value as Partial<Definition>
+  if (!boundedString(definition.definition, 20_000)) return null
+  if (definition.example !== undefined && !boundedString(definition.example, 20_000)) return null
+  if (definition.synonyms !== undefined && !stringArray(definition.synonyms)) return null
+  if (definition.antonyms !== undefined && !stringArray(definition.antonyms)) return null
+  if (definition.usageLabels !== undefined && !stringArray(definition.usageLabels)) return null
+  return {
+    definition: definition.definition,
+    ...(definition.example === undefined ? {} : { example: definition.example }),
+    ...(definition.synonyms === undefined ? {} : { synonyms: [...definition.synonyms] }),
+    ...(definition.antonyms === undefined ? {} : { antonyms: [...definition.antonyms] }),
+    ...(definition.usageLabels === undefined ? {} : { usageLabels: [...definition.usageLabels] }),
+  }
+}
+
+function sanitizeMeaning(value: unknown): Meaning | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const meaning = value as Partial<Meaning>
+  if (!boundedString(meaning.partOfSpeech, 160)) return null
+  if (!Array.isArray(meaning.definitions) || meaning.definitions.length === 0) return null
+  const definitions = meaning.definitions.map(sanitizeDefinition)
+  if (definitions.some((definition) => definition === null)) return null
+  return { partOfSpeech: meaning.partOfSpeech, definitions: definitions as Definition[] }
+}
+
+function sanitizeResult(value: unknown): DictionaryResult | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const result = value as Partial<DictionaryResult>
+  if (!boundedString(result.word, 300)) return null
+  if (!Array.isArray(result.meanings) || result.meanings.length === 0) return null
+  const meanings = result.meanings.map(sanitizeMeaning)
+  if (meanings.some((meaning) => meaning === null)) return null
+  if (result.phonetic !== undefined && !boundedString(result.phonetic, 300, true)) return null
+  if (result.origin !== undefined && !boundedString(result.origin, 20_000, true)) return null
+  if (result.sourceUrls !== undefined && (
+    !Array.isArray(result.sourceUrls) || result.sourceUrls.length > 20 ||
+    !result.sourceUrls.every(httpUrl)
+  )) return null
+  if (result.attributions !== undefined && (
+    !Array.isArray(result.attributions) || result.attributions.length > 20
+  )) return null
+  const attributions = result.attributions?.map(sanitizeAttribution)
+  if (attributions?.some((attribution) => attribution === null)) return null
+  const license = result.license === undefined ? undefined : sanitizeLicense(result.license)
+  if (result.license !== undefined && !license) return null
+  if (result.phonetics !== undefined && (
+    !Array.isArray(result.phonetics) || result.phonetics.length > 100
+  )) return null
+  const phonetics = result.phonetics?.map((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const phonetic = value as NonNullable<DictionaryResult['phonetics']>[number]
+    if (phonetic.text !== undefined && !boundedString(phonetic.text, 300, true)) return null
+    if (phonetic.audio !== undefined && phonetic.audio !== '' && !httpUrl(phonetic.audio)) return null
+    if (phonetic.sourceUrl !== undefined && !httpUrl(phonetic.sourceUrl)) return null
+    const phoneticLicense = phonetic.license === undefined
+      ? undefined : sanitizeLicense(phonetic.license)
+    if (phonetic.license !== undefined && !phoneticLicense) return null
+    return {
+      ...(phonetic.text === undefined ? {} : { text: phonetic.text }),
+      ...(phonetic.audio === undefined ? {} : { audio: phonetic.audio }),
+      ...(phonetic.sourceUrl === undefined ? {} : { sourceUrl: phonetic.sourceUrl }),
+      ...(phoneticLicense === undefined ? {} : { license: phoneticLicense }),
+    }
+  })
+  if (phonetics?.some((phonetic) => phonetic === null)) return null
+  return {
+    word: result.word,
+    meanings: meanings as Meaning[],
+    ...(result.phonetic === undefined ? {} : { phonetic: result.phonetic }),
+    ...(phonetics === undefined ? {} : {
+      phonetics: phonetics as NonNullable<DictionaryResult['phonetics']>,
+    }),
+    ...(result.origin === undefined ? {} : { origin: result.origin }),
+    ...(license === undefined ? {} : { license }),
+    ...(result.sourceUrls === undefined ? {} : { sourceUrls: [...result.sourceUrls] }),
+    ...(attributions === undefined ? {} : {
+      attributions: attributions as DictionaryAttribution[],
+    }),
+  }
+}
+
 function validResponse(value: unknown): SearchResponse | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const response = value as Partial<SearchResponse>
   if (!['free-dictionary', 'kaikki-phrases', 'combined'].includes(response.source ?? '')) return null
   if (!Array.isArray(response.dictionaryResults) || response.dictionaryResults.length === 0) return null
+  const dictionaryResults = response.dictionaryResults.map(sanitizeResult)
+  if (dictionaryResults.some((result) => result === null)) return null
   const sanitized = {
-    dictionaryResults: response.dictionaryResults,
+    dictionaryResults: dictionaryResults as DictionaryResult[],
     source: response.source,
     provenance: 'live' as const,
   } as SearchResponse
-  return Buffer.byteLength(JSON.stringify(sanitized), 'utf8') <= MAX_ENTRY_BYTES
+  return withinEntryLimit(sanitized)
     ? sanitized
     : null
 }
 
 function validEntry(value: unknown, nowMs: number): CachedLookup | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !withinEntryLimit(value)) return null
   const entry = value as Partial<CachedLookup>
   const normalizedQuery = normalizeLookupCacheKey(entry.normalizedQuery ?? entry.query ?? '')
   const response = validResponse(entry.response)
@@ -69,7 +217,7 @@ function validEntry(value: unknown, nowMs: number): CachedLookup | null {
     !Number.isFinite(savedAtMs) || !Number.isFinite(accessedAtMs) ||
     savedAtMs > nowMs + 60_000 || nowMs - savedAtMs > MAX_AGE_MS
   ) return null
-  return {
+  const sanitized: CachedLookup = {
     version: CACHE_VERSION,
     query: typeof entry.query === 'string' ? entry.query.slice(0, 160) : normalizedQuery,
     normalizedQuery,
@@ -78,6 +226,7 @@ function validEntry(value: unknown, nowMs: number): CachedLookup | null {
     savedAt: new Date(savedAtMs).toISOString(),
     lastAccessedAt: new Date(accessedAtMs).toISOString(),
   }
+  return withinEntryLimit(sanitized) ? sanitized : null
 }
 
 export class LookupCache {
@@ -103,6 +252,7 @@ export class LookupCache {
 
   write(input: LookupCacheWrite): Promise<void> {
     return this.enqueue(async () => {
+      if (!withinEntryLimit(input)) return
       const key = normalizeLookupCacheKey(input.query)
       const response = validResponse(input.response)
       if (!key || !response) return
@@ -124,6 +274,7 @@ export class LookupCache {
         savedAt: now,
         lastAccessedAt: now,
       }
+      if (!withinEntryLimit(next)) return
       file.entries = [
         next,
         ...file.entries.filter((entry) => entry.normalizedQuery !== key),

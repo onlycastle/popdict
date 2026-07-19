@@ -3,6 +3,7 @@ export interface Definition {
   example?: string
   synonyms?: string[]
   antonyms?: string[]
+  usageLabels?: string[]
 }
 
 export interface Meaning {
@@ -13,6 +14,12 @@ export interface Meaning {
 export interface DictionaryLicense {
   name: string
   url: string
+}
+
+export interface DictionaryAttribution {
+  label: string
+  sourceUrl?: string
+  license?: DictionaryLicense
 }
 
 export interface DictionaryResult {
@@ -28,6 +35,7 @@ export interface DictionaryResult {
   meanings: Meaning[]
   license?: DictionaryLicense
   sourceUrls?: string[]
+  attributions?: DictionaryAttribution[]
 }
 
 export type SearchSource = 'free-dictionary' | 'kaikki-phrases' | 'combined'
