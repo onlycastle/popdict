@@ -9,7 +9,7 @@ export default function Privacy() {
   return (
     <main className="container prose">
       <h1>Privacy Policy</h1>
-      <p className="updated">Last updated: July 15, 2026</p>
+      <p className="updated">Last updated: July 19, 2026</p>
 
       <p>
         PopDict is a macOS dictionary app. This policy explains what data it handles and
@@ -19,19 +19,20 @@ export default function Privacy() {
       <h2>What stays on your device</h2>
       <ul>
         <li>Your recent search history and app settings (hotkey, translation language, preferences).</li>
+        <li>A 90-day, 100-entry cache of successful lookups and selected-language translations for offline fallback.</li>
         <li>A local successful-lookup count used to time a one-time feedback prompt.</li>
       </ul>
       <p>This data lives only on your Mac and is never sent to us.</p>
 
       <h2>What we store (only if you sign in)</h2>
       <p>
-        Signing in is optional and only needed to save words, view translations, or use
+        Signing in is optional and only needed to save words or use
         account-based review features. If you sign in with Google,
         our authentication provider (Supabase) stores:
       </p>
       <ul>
         <li>Your email address and Google account identifier, to authenticate you.</li>
-        <li>The words you choose to save, so they sync to your account.</li>
+        <li>The words you choose to save, including their displayed dictionary snapshot, tags, private notes, and review schedule.</li>
       </ul>
 
       <h2>Quiz emails (optional)</h2>
@@ -47,11 +48,12 @@ export default function Privacy() {
       <h2>Dictionary lookups</h2>
       <p>
         When you search, the text is sent to the Free Dictionary API
-        (dictionaryapi.dev) to fetch English definitions. This lookup is not tied to
-        your PopDict identity. If you are signed in and select a translation language,
-        PopDict queries its read-only Wiktionary-derived translation table in Supabase
-        for the successfully resolved English word. PopDict does not send the word to a
-        live translation vendor.
+        (dictionaryapi.dev) to fetch English definitions. Multi-word searches also
+        query PopDict’s read-only Wiktionary-derived phrase table in Supabase. If you
+        select a translation language, PopDict queries its read-only translation table
+        for the successfully resolved English word whether or not you are signed in.
+        Lookups are not tied to your PopDict identity, and PopDict does not send words
+        to a live translation vendor.
       </p>
 
       <h2>Analytics</h2>

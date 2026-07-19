@@ -9,10 +9,10 @@ export default function Terms() {
   return (
     <main className="container prose">
       <h1>Terms of Use</h1>
-      <p className="updated">Last updated: July 15, 2026</p>
+      <p className="updated">Last updated: July 19, 2026</p>
 
       <p>
-        PopDict’s English dictionary and signed-in translations are free. The software
+        PopDict’s English dictionary and translations are free. The software
         is provided “as is,” without warranty of any kind, and its application source
         code is available under the MIT License.
       </p>
@@ -25,8 +25,8 @@ export default function Terms() {
         decisions.
       </p>
       <p>
-        The generated PopDict translation dataset and normalized NGSL-GR headword list
-        are licensed separately from the application code under Creative Commons
+        The generated PopDict translation and phrase datasets and normalized
+        NGSL-GR headword list are licensed separately from the application code under Creative Commons
         Attribution-ShareAlike 4.0. You may reuse and adapt that data under the license,
         including its attribution and share-alike requirements. See the Licenses page
         and bundled notices for source and transformation details.

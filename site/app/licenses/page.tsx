@@ -146,7 +146,7 @@ export default function Licenses() {
         <a href="https://kaikki.org/dictionary/rawdata.html">Kaikki machine-readable dictionary</a>.
         The learner headword selection comes from{' '}
         <a href="https://www.newgeneralservicelist.com/ngsl-graded-reader">NGSL-GR 1.0</a>.
-        PopDict’s generated translation dataset and normalized 3,000-headword list
+        PopDict’s generated translation dataset and normalized 5,049-headword list
         are distributed under{' '}
         <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>,
         separately from the MIT-licensed application code.
@@ -162,6 +162,21 @@ export default function Licenses() {
           translation dataset manifest
         </a>{' '}
         and bundled notices.
+      </p>
+
+      <h2>English phrase dataset — CC BY-SA 4.0</h2>
+      <p>
+        Phrase and idiom entries are derived from English Wiktionary through
+        Kaikki and distributed under{' '}
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+        PopDict includes multi-word idiomatic senses and phrase,
+        prepositional-phrase, and proverb entries; filters obsolete and
+        nonstandard senses; retains useful usage labels; and ranks at most three
+        senses per normalized phrase. Exact counts and checksums are recorded in
+        the repository’s{' '}
+        <a href="https://github.com/onlycastle/popdict/blob/main/data/phrases/manifest.json">
+          phrase dataset manifest
+        </a>.
       </p>
 
       <h2>Full notices</h2>

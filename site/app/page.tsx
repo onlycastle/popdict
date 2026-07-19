@@ -160,8 +160,8 @@ export default async function Home() {
               →
             </span>
             <div className="flow-step">
-              <span className="flow-verb">type · select</span>
-              <p>Type a word, or highlight one anywhere and let PopDict read it.</p>
+              <span className="flow-verb">type · search</span>
+              <p>Type a word, phrase, or idiom and see the result immediately.</p>
             </div>
             <span className="flow-arrow" aria-hidden="true">
               →
@@ -185,8 +185,8 @@ export default async function Home() {
             </article>
             <article className="sense">
               <span className="sense-tag">lookup</span>
-              <h3>Select-to-lookup</h3>
-              <p>Highlight a word in any app and press the hotkey to search it.</p>
+              <h3>Phrases and idioms</h3>
+              <p>Look up exact English expressions with licensed source attribution.</p>
             </article>
             <article className="sense">
               <span className="sense-tag">audio</span>
@@ -196,17 +196,17 @@ export default async function Home() {
             <article className="sense">
               <span className="sense-tag">translate</span>
               <h3>Five translation languages</h3>
-              <p>Sign in for free equivalents in Korean, Japanese, Simplified Chinese, Spanish, or Brazilian Portuguese.</p>
+              <p>See free equivalents without signing in: Korean, Japanese, Simplified Chinese, Spanish, or Brazilian Portuguese.</p>
             </article>
             <article className="sense">
               <span className="sense-tag">review</span>
-              <h3>Saved words</h3>
-              <p>Save words, then filter, review, and re-look-up them anytime.</p>
+              <h3>Saved Words 2.0</h3>
+              <p>Keep definitions, translations, tags, private notes, and a review schedule.</p>
             </article>
             <article className="sense">
-              <span className="sense-tag">native</span>
-              <h3>Lives in the menu bar</h3>
-              <p>Launches at login. No dock clutter, no window to manage.</p>
+              <span className="sense-tag">offline</span>
+              <h3>Recent lookups offline</h3>
+              <p>Reopen a recently fetched entry when the network is unavailable.</p>
             </article>
           </div>
         </section>
@@ -221,14 +221,7 @@ export default async function Home() {
             </div>
             <div className="note">
               <dt>Do I need an account?</dt>
-              <dd>Only to save words or see translations. English lookups work without signing in.</dd>
-            </div>
-            <div className="note">
-              <dt>Why the Accessibility permission?</dt>
-              <dd>
-                Only for select-to-lookup — to read text you’ve highlighted in
-                another app when you press the hotkey. It’s optional.
-              </dd>
+              <dd>Only to save, tag, annotate, and review words. Definitions and translations work without signing in.</dd>
             </div>
             <div className="note">
               <dt>How do updates work?</dt>

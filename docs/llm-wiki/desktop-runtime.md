@@ -1,6 +1,6 @@
 ---
 title: Desktop runtime (Electron)
-last-verified: 2026-07-15
+last-verified: 2026-07-19
 ---
 
 # Desktop runtime
@@ -35,6 +35,13 @@ screenshots), navigation hardening, then windows, tray, hotkey, updater.
   [electron/ipc/handlers.ts](../../electron/ipc/handlers.ts); the renderer
   sees only the [electron/preload.ts](../../electron/preload.ts) bridge.
 - Persistence: [electron/store.ts](../../electron/store.ts).
+- Offline lookup cache: [electron/lookupCache.ts](../../electron/lookupCache.ts)
+  stores at most 100 normalized successful entries for 90 days under Electron
+  user data. It is consulted only after network/service failures and cleared
+  with recent lookup data.
+- Review reminders: [electron/reminders/](../../electron/reminders/) schedules
+  local cadence/quiet-hour notifications and requests only an authenticated due
+  count through nonce-bound IPC. Notification clicks open Review.
 - Feedback: the tray or Settings opens the private in-app feedback dialog;
   submissions go through the `feedback` edge function and are never published
   automatically as GitHub issues.
@@ -63,8 +70,8 @@ brokers the callback to the renderer. URL building lives in
 [shared/authUrl.ts](../../shared/authUrl.ts); the site half is the
 `site/app/auth/` handoff page.
 
-The settings window persists `translationLanguage` locally; `null` means
-English-only, while the five target codes are validated by
+The settings window persists `translationLanguage` and local reminder settings;
+`null` means English-only, while the five target codes are validated by
 [shared/language.ts](../../shared/language.ts). Search-window focus refreshes
 settings through the preload bridge so language changes apply without an app
 restart.
