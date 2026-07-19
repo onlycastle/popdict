@@ -26,6 +26,7 @@ require_cmd() {
 
 require_cmd node
 require_cmd npm
+require_cmd deno
 
 NODE_SUPPORTED="$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); Number((major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major === 24)")"
 if [[ "$NODE_SUPPORTED" != "1" ]]; then
@@ -73,12 +74,26 @@ if [[ -z "${POPDICT_GITHUB_REPO:-}" ]]; then
   exit 1
 fi
 
-step "Running quality gate (type-check + lint)"
-npx tsc --noEmit
-npm run lint
+if [[ -z "${VITE_SUPABASE_URL:-}" ]]; then
+  printf 'VITE_SUPABASE_URL is required so the packaged app can load public dictionary data.\n' >&2
+  exit 1
+fi
 
-step "Running tests"
-npm test
+if [[ -z "${VITE_SUPABASE_PUBLISHABLE_KEY:-}" && -z "${VITE_SUPABASE_ANON_KEY:-}" ]]; then
+  printf 'VITE_SUPABASE_PUBLISHABLE_KEY (or legacy VITE_SUPABASE_ANON_KEY) is required.\n' >&2
+  exit 1
+fi
+
+step "Running the complete app, site, data, and harness gate"
+npm run test:ci
+
+step "Running Supabase Edge Function tests"
+deno test \
+  supabase/functions/_shared/ \
+  supabase/functions/downloads/ \
+  supabase/functions/events/ \
+  supabase/functions/feedback/ \
+  supabase/functions/quiz/
 
 step "Building, signing, notarizing, and stapling arm64 DMG"
 npm run make:mac:arm64

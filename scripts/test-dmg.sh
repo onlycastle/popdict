@@ -3,7 +3,7 @@
 # test-dmg.sh — guided QA for the PopDict release DMG.
 #
 # Automates every CLI-typeable step of testing a packaged build the way a real
-# user gets it (build when missing → verify signature/notarization → wipe to a
+# user gets it (fresh build → verify signature/notarization → wipe to a
 # first-run state → simulate a quarantined download install → launch), then
 # walks you through the GUI-only checks interactively.
 #
@@ -236,6 +236,17 @@ phase_checklist() {
   check "Secondary windows open to the correct view (Settings, Saved Words, onboarding)"
   check "Quit + relaunch: the rebound hotkey persists"
   check "Launch at login: toggle on, re-login/reboot, app auto-starts (then turn off)"
+  check "Signed out: a single-word lookup shows the selected translation with no sign-in prompt"
+  check "Exact idiom/phrase lookup shows definitions, usage labels, and every source attribution"
+  check "A misspelled/inflected word offers working spelling/base-form recovery options"
+  check "Synonyms and antonyms are keyboard-accessible buttons that start a normal lookup"
+  check "After one live lookup, disconnecting shows the full cached entry + matching translation and TTS works"
+  check "Legacy Saved Words render immediately, then enrich; a failed row has a working manual Retry"
+  check "Saved Words filters (All/Due/New/Learning/Mastered/tag), notes, and tags persist after restart"
+  check "CSV export contains every saved row and safely preserves commas, quotes, and newlines"
+  check "The displayed due count equals the number of cards opened in Review"
+  check "Quiet hours suppress/defer reminders; clicking a notification opens a fresh Review window"
+  check "All packaged hash routes work: Settings, Saved Words, Review, and onboarding"
 }
 
 phase_uninstall() {
@@ -267,7 +278,7 @@ case "$CMD" in
   checklist) phase_checklist ;;
   uninstall) phase_uninstall ;;
   all)
-    phase_build 0
+    phase_build 1
     phase_verify
     printf '\n'; confirm "Proceed to wipe state and install for a clean-room test?" || { warn "stopping before clean/install"; summary; exit $?; }
     phase_clean

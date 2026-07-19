@@ -136,7 +136,8 @@ without the sender’s permission.
 1. Compare landing-page CTA redirects (`nav`, `hero`, `closing`, and README)
    before changing acquisition copy.
 2. Compare save intent → OAuth completed after the value copy change. Keep
-   sign-in triggered by a save or translation action, not by app launch.
+   sign-in triggered by saving or reviewing words, not by lookup, translation,
+   or app launch.
 3. Review private feedback weekly and label repeated friction. Ask after value
    (the third successful lookup), not during onboarding.
 4. After sufficient volume, test one signup message at a time. Use first word
