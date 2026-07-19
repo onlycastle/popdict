@@ -1,7 +1,10 @@
 import type { SavedWordRecord } from '../types/savedWords'
 
 function csvCell(value: unknown): string {
-  const text = value === null || value === undefined ? '' : String(value)
+  const raw = value === null || value === undefined ? '' : String(value)
+  // Spreadsheet apps may execute cells that begin with formula sigils, even
+  // after whitespace. An apostrophe preserves the visible text as plain data.
+  const text = /^\s*[=+\-@]/u.test(raw) ? `'${raw}` : raw
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 

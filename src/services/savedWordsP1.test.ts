@@ -51,6 +51,37 @@ describe('Saved Words 2.0 pure behavior', () => {
     })
   })
 
+  it('marks a completed empty translation lookup current without inventing text', () => {
+    expect(savedWordDetailsFromLookup({
+      response: {
+        source: 'free-dictionary',
+        provenance: 'live',
+        dictionaryResults: [{
+          word: 'bank',
+          meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'A financial institution.' }] }],
+        }],
+      },
+      language: 'es',
+      translations: [],
+    })).toMatchObject({ translation: null, translationLanguage: 'es' })
+  })
+
+  it('leaves the language unresolved when translation lookup failed', () => {
+    expect(savedWordDetailsFromLookup({
+      response: {
+        source: 'free-dictionary',
+        provenance: 'live',
+        dictionaryResults: [{
+          word: 'bank',
+          meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'A financial institution.' }] }],
+        }],
+      },
+      language: 'es',
+      translations: [],
+      translationComplete: false,
+    })).toMatchObject({ translation: null, translationLanguage: null })
+  })
+
   it('applies New/Learning/Mastered and Due definitions exactly', () => {
     expect([masteryForBox(null), masteryForBox(1), masteryForBox(4), masteryForBox(5)])
       .toEqual(['new', 'learning', 'learning', 'mastered'])
@@ -89,5 +120,21 @@ describe('Saved Words 2.0 pure behavior', () => {
     expect(csv).toContain('"A bank, or lender"')
     expect(csv).toContain('"Line one\n""quoted"""')
     expect(csv.endsWith('\r\n')).toBe(true)
+  })
+
+  it('neutralizes spreadsheet formulas in exported upstream and private text', () => {
+    const csv = savedWordsCsv([record({
+      word: '=HYPERLINK("https://example.test")',
+      note: '  +SUM(1,2)',
+      details: {
+        partOfSpeech: null, definition: '\r-2+3', example: '\n@SUM(1,2)',
+        synonyms: [], antonyms: [], translation: null, translationLanguage: null,
+        sourceUrl: null, licenseName: null, licenseUrl: null, detailsUpdatedAt: '',
+      },
+    })])
+    expect(csv).toContain("'=HYPERLINK")
+    expect(csv).toContain("'  +SUM")
+    expect(csv).toContain("'\r-2+3")
+    expect(csv).toContain("'\n@SUM")
   })
 })

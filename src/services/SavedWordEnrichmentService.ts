@@ -64,6 +64,7 @@ export class SavedWordEnrichmentService {
       response,
       language,
       translations,
+      translationComplete: true,
       now: this.deps.now(),
     }) : null
     if (!details && entry.details) {

@@ -10,6 +10,14 @@ import { savedWords, type SavedWord } from '../services/SavedWordsRepository'
 import { filterSavedWords, type SavedWordsFilter } from '../services/savedWordFilters'
 import { savedWordsCsv } from '../services/savedWordsCsv'
 import { productAnalytics } from '../services/ProductAnalytics'
+import {
+  beginSavedWordsLoad,
+  completeSavedWordsLoad,
+  failSavedWordsLoad,
+  initialSavedWordsLoadState,
+  visibleSavedWords,
+} from './savedWordsLoadState'
+import { subscribeWindowFocus } from './windowFocusRefresh'
 
 const CORE_FILTERS: { value: SavedWordsFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -21,46 +29,80 @@ const CORE_FILTERS: { value: SavedWordsFilter; label: string }[] = [
 
 export default function SavedWordsView() {
   const auth = useSupabaseAuth()
-  const [words, setWords] = useState<SavedWord[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [wordState, setWordState] = useState(() => initialSavedWordsLoadState<SavedWord>())
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<SavedWordsFilter>('all')
   const [translationLanguage, setTranslationLanguage] = useState<TargetLanguage | null>(null)
   const [enrichmentFailures, setEnrichmentFailures] = useState<Set<string>>(new Set())
   const attemptedRef = useRef(new Set<string>())
+  const requestIdRef = useRef(0)
+  const activeUserId = auth.user?.id ?? null
+  const activeUserIdRef = useRef(activeUserId)
+  activeUserIdRef.current = activeUserId
+  const words = visibleSavedWords(wordState, activeUserId)
+  const loading = activeUserId !== null && (
+    wordState.userId !== activeUserId || wordState.loading
+  )
+  const error = wordState.userId === activeUserId ? wordState.error : ''
+
+  const updateWords = useCallback((update: (current: SavedWord[]) => SavedWord[]) => {
+    const userId = activeUserIdRef.current
+    if (!userId) return
+    setWordState((current) => current.userId === userId
+      ? { ...current, rows: update(current.rows) }
+      : current)
+  }, [])
+
+  const setCurrentError = useCallback((message: string) => {
+    const userId = activeUserIdRef.current
+    if (!userId) return
+    setWordState((current) => current.userId === userId
+      ? { ...current, error: message }
+      : current)
+  }, [])
 
   const load = useCallback(async () => {
-    if (!auth.user) return
-    setLoading(true)
-    setError('')
+    const user = auth.user
+    const userId = user?.id ?? null
+    const requestId = ++requestIdRef.current
+    setWordState(beginSavedWordsLoad<SavedWord>(userId, requestId))
+    attemptedRef.current.clear()
+    setEnrichmentFailures(new Set())
+    if (!user) return
     try {
-      setWords(await savedWords.list(auth.user))
+      const rows = await savedWords.list(user)
+      setWordState((current) => completeSavedWordsLoad(current, { userId: user.id, requestId, rows }))
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Could not load saved words')
-    } finally {
-      setLoading(false)
+      const message = loadError instanceof Error ? loadError.message : 'Could not load saved words'
+      setWordState((current) => failSavedWordsLoad(current, { userId: user.id, requestId, error: message }))
     }
   }, [auth.user])
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     void load()
     void window.electronAPI.getSettings().then((settings) => {
       setTranslationLanguage(settings.translationLanguage)
     })
   }, [load])
 
+  useEffect(() => {
+    refresh()
+    return subscribeWindowFocus(window, refresh)
+  }, [refresh])
+
   const handleDelete = useCallback(async (entry: SavedWord) => {
     if (!auth.user) return
     const previous = words
-    setWords((current) => current.filter((word) => word.id !== entry.id))
+    const userId = auth.user.id
+    updateWords((current) => current.filter((word) => word.id !== entry.id))
     try {
       await savedWords.delete(auth.user, entry.normalizedWord)
     } catch (deleteError) {
-      setWords(previous)
-      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete word')
+      if (activeUserIdRef.current !== userId) return
+      updateWords(() => previous)
+      setCurrentError(deleteError instanceof Error ? deleteError.message : 'Could not delete word')
     }
-  }, [auth.user, words])
+  }, [auth.user, setCurrentError, updateWords, words])
 
   const allTags = useMemo(() => {
     const tags = new Map<string, string>()
@@ -76,20 +118,23 @@ export default function SavedWordsView() {
 
   const enrichOne = useCallback(async (entry: SavedWord) => {
     if (!auth.user) return
+    const user = auth.user
     setEnrichmentFailures((current) => {
       const next = new Set(current)
       next.delete(entry.id)
       return next
     })
     try {
-      const details = await savedWordEnrichment.enrich(auth.user, entry, translationLanguage)
-      setWords((current) => current.map((word) => word.id === entry.id
+      const details = await savedWordEnrichment.enrich(user, entry, translationLanguage)
+      if (activeUserIdRef.current !== user.id) return
+      updateWords((current) => current.map((word) => word.id === entry.id
         ? { ...word, details }
         : word))
     } catch {
+      if (activeUserIdRef.current !== user.id) return
       setEnrichmentFailures((current) => new Set(current).add(entry.id))
     }
-  }, [auth.user, translationLanguage])
+  }, [auth.user, translationLanguage, updateWords])
 
   useEffect(() => {
     const candidates = filtered.filter((entry) => {
@@ -104,15 +149,15 @@ export default function SavedWordsView() {
   }, [enrichOne, filtered, translationLanguage])
 
   const updateWord = useCallback((updated: SavedWord) => {
-    setWords((current) => current.map((word) => word.id === updated.id ? updated : word))
-  }, [])
+    updateWords((current) => current.map((word) => word.id === updated.id ? updated : word))
+  }, [updateWords])
 
   const exportCsv = async () => {
     try {
       const exported = await window.electronAPI.exportSavedWordsCsv(savedWordsCsv(words))
       if (exported) void productAnalytics.track('saved_words_exported')
     } catch (exportError) {
-      setError(exportError instanceof Error ? exportError.message : 'Could not export saved words')
+      setCurrentError(exportError instanceof Error ? exportError.message : 'Could not export saved words')
     }
   }
 

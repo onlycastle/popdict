@@ -56,6 +56,22 @@ type SupabaseErrorLike = {
   hint?: string | null
 }
 
+const PAGE_SIZE = 1_000
+
+export async function collectPaginatedRows<Row>(
+  loadPage: (from: number, to: number) => PromiseLike<{ data: Row[] | null; error: unknown }>,
+  pageSize = PAGE_SIZE,
+): Promise<{ data: Row[]; error: unknown }> {
+  const data: Row[] = []
+  for (let from = 0; ; from += pageSize) {
+    const page = await loadPage(from, from + pageSize - 1)
+    if (page.error) return { data: [], error: page.error }
+    const rows = page.data ?? []
+    data.push(...rows)
+    if (rows.length < pageSize) return { data, error: null }
+  }
+}
+
 function toSupabaseErrorLike(error: unknown): SupabaseErrorLike | null {
   if (!error || typeof error !== 'object') return null
   return error as SupabaseErrorLike
@@ -124,20 +140,26 @@ export class SavedWordsRepository {
     const client = this.requireClient()
 
     const [savedResult, reviewResult, tagResult] = await Promise.all([
-      client
+      collectPaginatedRows<SavedWordRow>((from, to) => client
         .from('saved_words')
         .select('id, word, normalized_word, source, created_at, updated_at, part_of_speech, definition, example, synonyms, antonyms, translation, translation_language, source_url, license_name, license_url, details_updated_at, note')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false }),
-      client
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to)),
+      collectPaginatedRows<ReviewRow>((from, to) => client
         .from('word_reviews')
         .select('normalized_word, box, next_due_at, updated_at')
-        .eq('user_id', user.id),
-      client
+        .eq('user_id', user.id)
+        .order('normalized_word', { ascending: true })
+        .range(from, to)),
+      collectPaginatedRows<TagRow>((from, to) => client
         .from('saved_word_tags')
         .select('id, saved_word_id, tag, normalized_tag, created_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)),
     ])
 
     if (savedResult.error) this.fail('load saved words', savedResult.error)

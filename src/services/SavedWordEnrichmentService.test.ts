@@ -19,6 +19,21 @@ const response = {
 }
 
 describe('SavedWordEnrichmentService', () => {
+  it('does not retry a completed empty translation for the selected language', () => {
+    const service = new SavedWordEnrichmentService({
+      search: vi.fn(), translate: vi.fn(), readCache: vi.fn(), writeCache: vi.fn(),
+      save: vi.fn(), now: () => new Date(),
+    })
+    expect(service.needsEnrichment({
+      ...entry,
+      details: {
+        partOfSpeech: 'noun', definition: 'A financial institution.', example: null,
+        synonyms: [], antonyms: [], translation: null, translationLanguage: 'es',
+        sourceUrl: null, licenseName: null, licenseUrl: null, detailsUpdatedAt: '',
+      },
+    }, 'es')).toBe(false)
+  })
+
   it('reuses cache, refreshes the selected translation, and persists in the background', async () => {
     const save = vi.fn().mockResolvedValue(undefined)
     const translate = vi.fn().mockResolvedValue([{ text: 'banco', rank: 1, senseLabel: null }])
