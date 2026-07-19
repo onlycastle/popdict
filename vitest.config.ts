@@ -5,7 +5,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       '{src,electron,shared}/**/*.test.{ts,tsx}',
-      'scripts/{harness,translations}/**/*.test.mjs',
+      'scripts/{events,harness,phrases,translations}/**/*.test.mjs',
     ],
   },
 })

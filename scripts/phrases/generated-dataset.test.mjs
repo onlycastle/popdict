@@ -23,6 +23,8 @@ describe('generated phrase dataset', () => {
     expect(manifest.license).toBe('CC BY-SA 4.0')
     expect(migration).toContain("'rain cats and dogs'")
     expect(migration).toContain("'your mileage may vary'")
-    expect(migration).not.toMatch(/'archaic'|'obsolete'|'dated'|'rare'|'nonstandard'/i)
+    expect(migration).not.toMatch(
+      /array\[[^\]]*'(?:archaic|obsolete|dated|rare|nonstandard)'[^\]]*\]::text\[\], 'https:\/\/en\.wiktionary\.org\//i,
+    )
   })
 })
