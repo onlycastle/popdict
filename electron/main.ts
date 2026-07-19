@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { randomUUID } from 'node:crypto'
 import * as path from 'path'
 import { createStore } from './store'
 import { createUpdateManager } from './updater'
@@ -8,7 +9,6 @@ import {
   showUpdateReadyDialog,
 } from './updateNotifications'
 import { registerWebContentsHardening } from './security'
-import { openFeedback } from './feedback'
 import { WindowManager } from './windows/WindowManager'
 import { buildWindowSpecs } from './windows/windowSpecs'
 import { AuthCallbackBroker } from './auth/AuthCallbackBroker'
@@ -21,6 +21,7 @@ import { createLogger } from '../shared/logger'
 import { isAuthCallbackUrl, isQuizDeepLink } from '../shared/authUrl'
 
 const log = createLogger('Auth')
+const analyticsSessionId = randomUUID()
 
 let store: ReturnType<typeof createStore>
 
@@ -54,6 +55,15 @@ function onHotkey() {
   }
   // Pop the search bar up, focused and ready to type.
   windows.showSearch()
+}
+
+function showFeedback(): void {
+  const win = windows.open('settings')
+  const openDialog = () => win.webContents.send('open-feedback')
+  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', openDialog)
+  else openDialog()
+  win.show()
+  win.focus()
 }
 
 const hotkey = new HotkeyManager(() => void onHotkey())
@@ -102,7 +112,7 @@ if (hasSingleInstanceLock) {
     tray = new TrayMenu({
       store,
       windows,
-      openFeedback,
+      showFeedback,
       iconPath: trayIconPath(),
       updates: updatesEnabled
         ? { checkNow: () => updater.checkNow(), installUpdate: () => updater.installUpdate() }
@@ -110,7 +120,14 @@ if (hasSingleInstanceLock) {
     })
     tray.init()
 
-    registerIpcHandlers(new IpcRouter(), { store, windows, broker, hotkey, tray, openFeedback })
+    registerIpcHandlers(new IpcRouter(), {
+      store,
+      windows,
+      broker,
+      hotkey,
+      tray,
+      analyticsSessionId,
+    })
 
     windows.open('search')
 

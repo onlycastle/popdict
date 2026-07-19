@@ -1,6 +1,6 @@
 ---
 title: Site & downloads
-last-verified: 2026-07-14
+last-verified: 2026-07-15
 ---
 
 # Site & downloads
@@ -18,9 +18,10 @@ Note: popdict.app is an unrelated product — this project's site is not it.
 - [site/app/download/latest/route.ts](../../site/app/download/latest/route.ts)
   redirects to the newest GitHub release `.dmg` (`revalidate: 300`, so a new
   release goes live within ~5 minutes — no site redeploy).
-- [record.ts](../../site/app/download/latest/record.ts) reports the download
-  to the `downloads` edge function (env-token gated), unifying site + GitHub
-  numbers into one private metric.
+- [record.ts](../../site/app/download/latest/record.ts) reports an attributed
+  website redirect to the `downloads` edge function (env-token gated).
+  Dashboard metrics intentionally keep redirect intent, GitHub DMG delivery,
+  and updater ZIP delivery separate; they are not additive sources.
 - Ops detail: [docs/download-tracking-runbook.md](../download-tracking-runbook.md).
 
 ## Stats & cron
@@ -28,7 +29,9 @@ Note: popdict.app is an unrelated product — this project's site is not it.
 - Admin dashboard: `site/app/admin/downloads/`.
 - [site/app/api/cron/snapshot/](../../site/app/api/cron/snapshot/) snapshots
   download counts on a Vercel cron.
-- Slack notifications hang off the `downloads` edge function
+- CTA attribution uses bounded `source` and `cta` query tags. The landing page
+  labels its nav, hero, and closing links; the GitHub README labels its link.
+- Optional Slack redirect notifications hang off the `downloads` edge function
   ([supabase/functions/downloads/index.ts](../../supabase/functions/downloads/index.ts)).
 
 ## Gates that bite here

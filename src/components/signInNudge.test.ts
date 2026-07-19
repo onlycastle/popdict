@@ -31,10 +31,16 @@ describe('shouldShowSignInNudge', () => {
 
 describe('loginModalSubtitle', () => {
   it('names the pending word when there is one', () => {
-    expect(loginModalSubtitle('serendipity')).toBe('Save “serendipity” to your account.')
+    expect(loginModalSubtitle('serendipity')).toBe(
+      'Save “serendipity” now, sync it, and build a personalized weekly review.'
+    )
   })
   it('falls back to the generic value pitch without a word', () => {
-    expect(loginModalSubtitle('')).toBe('Save words you look up and review them weekly.')
-    expect(loginModalSubtitle('   ')).toBe('Save words you look up and review them weekly.')
+    expect(loginModalSubtitle('')).toBe(
+      'Sync saved words and get a personalized weekly review after five saves.'
+    )
+    expect(loginModalSubtitle('   ')).toBe(
+      'Sync saved words and get a personalized weekly review after five saves.'
+    )
   })
 })

@@ -1,6 +1,6 @@
 ---
 title: Dictionary data & lookup
-last-verified: 2026-07-14
+last-verified: 2026-07-15
 ---
 
 # Dictionary data
@@ -38,7 +38,8 @@ equivalents per target language, and is CC BY-SA 4.0 rather than MIT.
 ## Supabase
 
 - Edge functions include [idioms](../../supabase/functions/idioms/index.ts),
-  [downloads](../../supabase/functions/downloads/index.ts), feedback, and quiz.
+  [downloads](../../supabase/functions/downloads/index.ts), feedback, events,
+  and quiz.
   `idioms` is a compatibility tombstone that returns `upstream_disabled` and
   performs no upstream request. Active functions read their
   secrets (service-role key and endpoint tokens) via

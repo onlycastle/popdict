@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const payload = deriveRecordContext(request.headers, {
     tag: data.tag_name ?? 'unknown',
     assetName: dmg.name,
-  })
+  }, request.url)
   // Runs after the response is sent, so the redirect is never delayed.
   after(() => postDownloadRecord(payload))
 

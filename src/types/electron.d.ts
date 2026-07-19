@@ -1,4 +1,3 @@
-import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 import type { TargetLanguage } from '../../shared/language'
 
 export type AppSettings = {
@@ -6,6 +5,7 @@ export type AppSettings = {
   launchAtLogin: boolean
   signInNudgeDismissedAt: number | null
   translationLanguage: TargetLanguage | null
+  analyticsEnabled: boolean
 }
 
 export interface ElectronAPI {
@@ -15,19 +15,21 @@ export interface ElectronAPI {
   onAuthCallback: (cb: (url: string) => void) => () => void
   consumeAuthCallback: () => Promise<string | null>
   getAppVersion: () => Promise<string>
+  getAnalyticsSessionId: () => Promise<string>
   getSettings: () => Promise<AppSettings>
   setSettings: (partial: Partial<AppSettings>) => Promise<AppSettings>
   getHistory: () => Promise<string[]>
   addHistory: (word: string) => Promise<string[]>
   removeHistory: (word: string) => Promise<string[]>
   clearHistory: () => Promise<void>
+  recordLookupSuccess: () => Promise<number>
   openSettings: () => void
   openSavedWords: () => void
   openReview: () => void
   finishOnboarding: () => void
   lookupWord: (word: string) => void
   onSeedSearch: (cb: (word: string) => void) => () => void
-  sendFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult>
+  onOpenFeedback: (cb: () => void) => () => void
   changeHotkey: (accelerator: string) => Promise<boolean>
   openExternalUrl: (url: string) => Promise<void>
 }

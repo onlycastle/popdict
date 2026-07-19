@@ -1,12 +1,20 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { FeedbackPayload } from '../shared/feedback'
 import type { TargetLanguage } from '../shared/language'
 
 type AppSettings = {
   hotkey: string
   launchAtLogin: boolean
   translationLanguage: TargetLanguage | null
+  analyticsEnabled: boolean
 }
+
+let openFeedbackCallback: (() => void) | null = null
+let openFeedbackPending = false
+
+ipcRenderer.on('open-feedback', () => {
+  if (openFeedbackCallback) openFeedbackCallback()
+  else openFeedbackPending = true
+})
 
 contextBridge.exposeInMainWorld('electronAPI', {
   hideWindow: () => ipcRenderer.send('hide-window'),
@@ -22,11 +30,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   consumeAuthCallback: () => ipcRenderer.invoke('consume-auth-callback'),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getAnalyticsSessionId: () => ipcRenderer.invoke('get-analytics-session-id'),
   setSettings: (partial: Partial<AppSettings>) => ipcRenderer.invoke('set-settings', partial),
   getHistory: () => ipcRenderer.invoke('get-history'),
   addHistory: (word: string) => ipcRenderer.invoke('add-history', word),
   removeHistory: (word: string) => ipcRenderer.invoke('remove-history', word),
   clearHistory: () => ipcRenderer.invoke('clear-history'),
+  recordLookupSuccess: () => ipcRenderer.invoke('record-lookup-success'),
   openSettings: () => ipcRenderer.send('open-settings'),
   openSavedWords: () => ipcRenderer.send('open-saved-words'),
   openReview: () => ipcRenderer.send('open-review'),
@@ -37,7 +47,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('seed-search', listener)
     return () => ipcRenderer.removeListener('seed-search', listener)
   },
-  sendFeedback: (payload?: FeedbackPayload) => ipcRenderer.invoke('send-feedback', payload),
+  onOpenFeedback: (callback: () => void) => {
+    openFeedbackCallback = callback
+    if (openFeedbackPending) {
+      openFeedbackPending = false
+      queueMicrotask(callback)
+    }
+    return () => {
+      if (openFeedbackCallback === callback) openFeedbackCallback = null
+    }
+  },
   changeHotkey: (accelerator: string) => ipcRenderer.invoke('change-hotkey', accelerator),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
 })

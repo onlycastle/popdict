@@ -12,6 +12,7 @@ import {
   planAuthAction,
   readAuthCallbackParams,
 } from '../../shared/authUrl'
+import { productAnalytics } from '../services/ProductAnalytics'
 
 const log = createLogger('Auth')
 
@@ -100,6 +101,7 @@ export function useSupabaseAuth() {
       })
       setUser(data.user)
       setMessage('Signed in')
+      void productAnalytics.track('oauth_completed')
     } catch (callbackError) {
       log.event('handle callback error', {
         message: getErrorMessage(callbackError),
@@ -174,6 +176,7 @@ export function useSupabaseAuth() {
       log.event('google sign in url generated', describeExternalAuthUrl(data.url))
       await window.electronAPI.openExternalUrl(data.url)
       log.event('google sign in url handed to browser')
+      void productAnalytics.track('oauth_started')
       setMessage('Finish signing in from your browser')
     } catch (signInError) {
       log.event('google sign in error', {

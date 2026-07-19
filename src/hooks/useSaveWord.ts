@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { savedWords } from '../services/SavedWordsRepository'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
+import { productAnalytics } from '../services/ProductAnalytics'
 import type { SearchResponse } from '../types/dictionary'
 
 /** The word a Save action targets: the canonical headword, else the raw query. */
@@ -37,6 +38,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   const maybePromptQuizOptIn = useCallback(async (u: User) => {
     try {
       const [count, prefs] = await Promise.all([savedWords.count(u), quizPreferences.get(u)])
+      if (count === 1) void productAnalytics.track('first_word_saved')
       if (shouldPromptQuizOptIn(count, prefs !== null)) setQuizPromptOpen(true)
     } catch {
       // best-effort — never block or fail a save over the prompt
@@ -68,7 +70,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   const wordToSave = getWordToSave(response, searchedTerm || query)
 
   const saveCurrentWord = useCallback(
-    async (word: string) => {
+    async (word: string, completesPendingAuth = false) => {
       if (!user || !response) return
       const savingUser = user
 
@@ -77,6 +79,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
 
       try {
         await savedWords.save({ source: response.source, user: savingUser, word })
+        if (completesPendingAuth) void productAnalytics.track('pending_save_completed')
         setSavedWord(word)
         setPendingSaveWord('')
         setLoginPromptOpen(false)
@@ -98,6 +101,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
     setSaveError('')
 
     if (!user) {
+      void productAnalytics.track('save_intent_signed_out')
       setPendingSaveWord(word)
       setLoginPromptOpen(true)
       return
@@ -109,7 +113,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
   // Finish a pending save once the user signs in.
   useEffect(() => {
     if (user && pendingSaveWord && !saving) {
-      void saveCurrentWord(pendingSaveWord)
+      void saveCurrentWord(pendingSaveWord, true)
     }
   }, [user, pendingSaveWord, saveCurrentWord, saving])
 

@@ -403,6 +403,37 @@ input[type='checkbox'] {
   color: rgba(255, 255, 255, 0.4);
 }
 
+.feedback-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 20px 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(217, 134, 47, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+}
+
+.feedback-nudge strong {
+  display: block;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+}
+
+.feedback-nudge p {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.feedback-nudge-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
 /* Ghost icon button for window chrome (Saved · Settings · Close). Transparent at
    rest so the header rail stays quiet; brightens on hover; amber ring on keyboard
    focus. MUST stay no-drag — the rail around it is a drag handle. */

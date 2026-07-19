@@ -13,7 +13,7 @@ and save it for later without leaving the app you are reading in.
 
 ## Install
 
-[**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest) —
+[**Download for macOS (Apple Silicon)**](https://popdict.space/download/latest?source=github&cta=readme) —
 signed, notarized, and auto-updating.
 
 ## Features
@@ -25,6 +25,7 @@ signed, notarized, and auto-updating.
 - Free signed-in translations in Korean, Japanese, Simplified Chinese, Spanish,
   and Brazilian Portuguese, built from Wiktionary via Kaikki.
 - Recent search history, configurable hotkey, launch-at-login, and a menu-bar tray.
+- Private in-app feedback with no account required.
 
 ## Requirements
 
@@ -78,8 +79,9 @@ scripts/     Build, dataset, harness, and notarization helpers
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Product bugs
-and feature requests should go through GitHub Issues.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. App users can
+send private feedback from PopDict’s menu bar or Settings; public, reproducible bug
+reports and contributor proposals can still use GitHub Issues.
 
 ## Security
 

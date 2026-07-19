@@ -54,6 +54,7 @@ export default function SettingsView() {
   useEffect(() => {
     window.electronAPI.getSettings().then(setSettings)
     window.electronAPI.getAppVersion().then(setVersion)
+    return window.electronAPI.onOpenFeedback(() => setFeedbackOpen(true))
   }, [])
 
   if (!settings)
@@ -165,6 +166,22 @@ export default function SettingsView() {
           />
           <span className="text-sm text-white/80">Launch at login</span>
         </label>
+
+        <section className="space-y-2 border-t border-white/10 pt-5">
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={settings.analyticsEnabled}
+              onChange={(event) => update({ analyticsEnabled: event.target.checked })}
+            />
+            <span>
+              <span className="block text-sm text-white/80">Share anonymous product analytics</span>
+              <span className="mt-1 block text-xs text-white/45">
+                Sends allowlisted actions only—never lookup text, account identity, or saved words.
+              </span>
+            </span>
+          </label>
+        </section>
 
         <div className="flex items-center justify-between pt-2">
           <button

@@ -25,7 +25,7 @@ export default async function Home() {
             <a className="nav-link" href="#notes">
               Notes
             </a>
-            <a className="btn btn-small" href="/download/latest">
+            <a className="btn btn-small" href="/download/latest?source=website&cta=nav">
               Download
             </a>
           </div>
@@ -53,7 +53,7 @@ export default async function Home() {
           </p>
           <div className="hero-cta">
             <div className="hero-cta-actions">
-              <a className="btn" href="/download/latest">
+              <a className="btn" href="/download/latest?source=website&cta=hero">
                 Download for macOS
               </a>
               <a
@@ -246,7 +246,7 @@ export default async function Home() {
           <p className="closing-line">
             Keep reading. <mark className="mark">Look it up</mark> on the way.
           </p>
-          <a className="btn" href="/download/latest">
+          <a className="btn" href="/download/latest?source=website&cta=closing">
             Download for macOS
           </a>
           <p className="cta-note">Free · Apple Silicon · open source</p>

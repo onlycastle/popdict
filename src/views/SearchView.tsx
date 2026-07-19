@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import FeedbackDialog from '../components/FeedbackDialog'
+import FeedbackNudge from '../components/FeedbackNudge'
 import LoginModal from '../components/LoginModal'
 import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import ReviewChip from '../components/ReviewChip'
@@ -22,6 +23,7 @@ import {
   type LoginPromptPurpose,
 } from './loginPrompt'
 import { handleSearchWindowFocus } from './searchFocus'
+import { productAnalytics } from '../services/ProductAnalytics'
 import '../App.css'
 
 // The login modal is absolutely positioned, so it contributes no layout height
@@ -37,6 +39,7 @@ export default function SearchView() {
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [feedbackNudgeOpen, setFeedbackNudgeOpen] = useState(false)
   const [loginPromptPurpose, setLoginPromptPurpose] = useState<LoginPromptPurpose>('save')
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const translationLanguage = settings?.translationLanguage ?? null
@@ -103,6 +106,10 @@ export default function SearchView() {
   useEffect(() => {
     if (response && !error && searchedTerm) {
       window.electronAPI?.addHistory(searchedTerm).then(setHistory)
+      void productAnalytics.track('lookup_success')
+      void window.electronAPI?.recordLookupSuccess().then((count) => {
+        if (count === 3) setFeedbackNudgeOpen(true)
+      })
     }
   }, [response, error, searchedTerm])
 
@@ -333,6 +340,16 @@ export default function SearchView() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {feedbackNudgeOpen && !feedbackOpen && (
+            <FeedbackNudge
+              onDismiss={() => setFeedbackNudgeOpen(false)}
+              onShare={() => {
+                setFeedbackNudgeOpen(false)
+                setFeedbackOpen(true)
+              }}
+            />
+          )}
 
           <LoginModal
             configured={auth.configured}

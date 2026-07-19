@@ -9,7 +9,7 @@ export default function Terms() {
   return (
     <main className="container prose">
       <h1>Terms of Use</h1>
-      <p className="updated">Last updated: July 14, 2026</p>
+      <p className="updated">Last updated: July 15, 2026</p>
 
       <p>
         PopDict’s English dictionary and signed-in translations are free. The software

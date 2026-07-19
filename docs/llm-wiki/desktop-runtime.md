@@ -1,6 +1,6 @@
 ---
 title: Desktop runtime (Electron)
-last-verified: 2026-07-14
+last-verified: 2026-07-15
 ---
 
 # Desktop runtime
@@ -35,6 +35,13 @@ screenshots), navigation hardening, then windows, tray, hotkey, updater.
   [electron/ipc/handlers.ts](../../electron/ipc/handlers.ts); the renderer
   sees only the [electron/preload.ts](../../electron/preload.ts) bridge.
 - Persistence: [electron/store.ts](../../electron/store.ts).
+- Feedback: the tray or Settings opens the private in-app feedback dialog;
+  submissions go through the `feedback` edge function and are never published
+  automatically as GitHub issues.
+- Product analytics: [ProductAnalytics.ts](../../src/services/ProductAnalytics.ts)
+  emits only allowlisted event names plus app version/platform and ephemeral
+  random per-app-launch IDs. Users can disable it in Settings; lookup text, saved words, email,
+  and account IDs are excluded.
 
 ## Updater
 

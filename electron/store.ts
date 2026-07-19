@@ -14,6 +14,10 @@ export type StoredConfig = {
   signInNudgeDismissedAt: number | null
   /** Null keeps the original English-only dictionary experience. */
   translationLanguage: TargetLanguage | null
+  /** Anonymous allowlisted product events; never includes lookup text or account identity. */
+  analyticsEnabled: boolean
+  /** Local-only counter used to time the one-time feedback nudge. */
+  successfulLookupCount: number
 }
 
 const DEFAULT_CONFIG: StoredConfig = {
@@ -22,6 +26,8 @@ const DEFAULT_CONFIG: StoredConfig = {
   history: [],
   signInNudgeDismissedAt: null,
   translationLanguage: null,
+  analyticsEnabled: true,
+  successfulLookupCount: 0,
 }
 
 export function addToHistory(list: string[], word: string, cap = HISTORY_CAP): string[] {
@@ -48,6 +54,11 @@ function withDefaults(raw: unknown): StoredConfig {
     signInNudgeDismissedAt:
       typeof r.signInNudgeDismissedAt === 'number' ? r.signInNudgeDismissedAt : null,
     translationLanguage: isTargetLanguage(r.translationLanguage) ? r.translationLanguage : null,
+    analyticsEnabled: typeof r.analyticsEnabled === 'boolean' ? r.analyticsEnabled : true,
+    successfulLookupCount:
+      typeof r.successfulLookupCount === 'number' && Number.isSafeInteger(r.successfulLookupCount)
+        ? Math.max(0, r.successfulLookupCount)
+        : 0,
   }
 }
 
@@ -86,6 +97,12 @@ export function createStore(filePath: string) {
       const cfg = read()
       cfg.history = []
       write(cfg)
+    },
+    recordLookupSuccess(): number {
+      const cfg = read()
+      cfg.successfulLookupCount = Math.min(cfg.successfulLookupCount + 1, 1_000_000)
+      write(cfg)
+      return cfg.successfulLookupCount
     },
   }
 }

@@ -7,7 +7,6 @@ import type { HotkeyManager } from '../hotkey/HotkeyManager'
 import type { TrayMenu } from '../tray/TrayMenu'
 import { createLogger } from '../../shared/logger'
 import { describeExternalAuthUrl, isAllowedExternalAuthUrl } from '../../shared/authUrl'
-import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 
 const log = createLogger('Auth')
 
@@ -17,7 +16,7 @@ export interface IpcDeps {
   broker: AuthCallbackBroker
   hotkey: HotkeyManager
   tray: TrayMenu
-  openFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult> | FeedbackOpenResult
+  analyticsSessionId: string
 }
 
 /** The settings shape the renderer expects, merging stored config with OS state. */
@@ -28,6 +27,7 @@ function settingsPayload(store: Store) {
     launchAtLogin: app.getLoginItemSettings().openAtLogin,
     signInNudgeDismissedAt: cfg.signInNudgeDismissedAt,
     translationLanguage: cfg.translationLanguage,
+    analyticsEnabled: cfg.analyticsEnabled,
   }
 }
 
@@ -41,10 +41,11 @@ function seedSearch(windows: WindowManager, word: string): void {
 
 /** Register every IPC channel, wiring renderer requests to the injected services. */
 export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
-  const { store, windows, broker, hotkey, tray, openFeedback } = deps
+  const { store, windows, broker, hotkey, tray, analyticsSessionId } = deps
 
   router.handle('get-settings', () => settingsPayload(store))
   router.handle('get-app-version', () => app.getVersion())
+  router.handle('get-analytics-session-id', () => analyticsSessionId)
 
   router.handle('set-settings', (_e, partial) => {
     const { launchAtLogin, hotkey: _ignoredHotkey, ...storable } = partial ?? {}
@@ -60,6 +61,7 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
   router.handle('add-history', (_e, word: string) => store.addHistory(word))
   router.handle('remove-history', (_e, word: string) => store.removeHistory(word))
   router.handle('clear-history', () => { store.clearHistory() })
+  router.handle('record-lookup-success', () => store.recordLookupSuccess())
 
   router.handle('change-hotkey', (_e, accelerator: string) => {
     const ok = hotkey.register(accelerator)
@@ -72,7 +74,6 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     return ok
   })
 
-  router.handle('send-feedback', (_e, payload?: FeedbackPayload) => openFeedback(payload))
   router.on('open-settings', () => windows.open('settings'))
   router.on('open-saved-words', () => windows.open('saved'))
   router.on('open-review', () => windows.open('review'))

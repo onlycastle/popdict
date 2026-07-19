@@ -2,7 +2,6 @@ import { app, Menu, Tray } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { Store } from '../store'
 import type { WindowManager } from '../windows/WindowManager'
-import type { FeedbackOpenResult, FeedbackPayload } from '../../shared/feedback'
 
 export interface TrayUpdateActions {
   checkNow: () => void
@@ -12,7 +11,7 @@ export interface TrayUpdateActions {
 export interface TrayMenuDeps {
   store: Store
   windows: WindowManager
-  openFeedback: (payload?: FeedbackPayload) => Promise<FeedbackOpenResult> | FeedbackOpenResult
+  showFeedback: () => void
   iconPath: string
   /** null when auto-update is disabled (dev builds, unconfigured repo). */
   updates: TrayUpdateActions | null
@@ -41,7 +40,7 @@ export class TrayMenu {
   /** Rebuild the menu — call after the hotkey, login setting, or update state changes. */
   rebuild(): void {
     if (!this.tray) return
-    const { store, windows, openFeedback, updates } = this.deps
+    const { store, windows, showFeedback, updates } = this.deps
 
     const template: MenuItemConstructorOptions[] = []
 
@@ -75,7 +74,7 @@ export class TrayMenu {
     }
 
     template.push(
-      { label: 'Send Feedback...', click: () => void openFeedback() },
+      { label: 'Send Feedback...', click: () => showFeedback() },
       { type: 'separator' },
       { label: 'Quit PopDict', click: () => app.quit() }
     )

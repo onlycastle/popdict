@@ -9,7 +9,7 @@ export default function Privacy() {
   return (
     <main className="container prose">
       <h1>Privacy Policy</h1>
-      <p className="updated">Last updated: July 14, 2026</p>
+      <p className="updated">Last updated: July 15, 2026</p>
 
       <p>
         PopDict is a macOS dictionary app. This policy explains what data it handles and
@@ -19,6 +19,7 @@ export default function Privacy() {
       <h2>What stays on your device</h2>
       <ul>
         <li>Your recent search history and app settings (hotkey, translation language, preferences).</li>
+        <li>A local successful-lookup count used to time a one-time feedback prompt.</li>
       </ul>
       <p>This data lives only on your Mac and is never sent to us.</p>
 
@@ -55,8 +56,34 @@ export default function Privacy() {
 
       <h2>Analytics</h2>
       <p>
-        The PopDict app sends no analytics or telemetry. This website uses privacy-
-        friendly, cookieless analytics (Vercel Web Analytics) to count visits.
+        When anonymous product analytics are enabled, PopDict sends only an allowlisted
+        event name (for example, successful lookup, sign-in started, sign-in completed,
+        first word saved, or feedback submitted), the app version, platform, and random
+        per-app-launch session and event identifiers to Supabase. Event records do not
+        contain the word you looked up, a saved word, your email, or your account ID.
+        You can turn this setting off at any time in Settings.
+      </p>
+      <p>
+        To protect the public analytics and feedback endpoints from abuse, we
+        derive a one-hour rate-limit key from the request’s network address. We
+        store only the keyed hash, hour, endpoint name, and request count—not the
+        raw network address—and remove old buckets after 48 hours of subsequent
+        endpoint activity.
+      </p>
+      <p>
+        This website uses privacy-friendly, cookieless Vercel Web Analytics to count
+        visits. When you use a website download button, we also record the release and
+        asset, referring site hostname, coarse country code, and tagged button source;
+        GitHub separately counts delivery of the release asset.
+      </p>
+
+      <h2>Feedback</h2>
+      <p>
+        You can send feedback privately without an account. We store the category,
+        message, optional contact information, app version and platform in Supabase. If
+        PopDict offers current search context, it is included only when the checkbox in
+        the feedback form is selected. Feedback is not automatically published to a
+        GitHub issue.
       </p>
 
       <h2>Deleting your data</h2>
@@ -68,7 +95,8 @@ export default function Privacy() {
       <h2>Sharing</h2>
       <p>
         We do not sell your data. Data is processed only by the service providers named
-        above (Supabase, Free Dictionary, Resend, GitHub, and our website host) to
+        above (Supabase, Free Dictionary, Resend, GitHub, Vercel, Slack when
+        operational notifications are enabled, and our website host) to
         operate the app and website.
       </p>
 
