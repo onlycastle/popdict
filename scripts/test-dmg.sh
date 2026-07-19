@@ -138,16 +138,14 @@ phase_build() {
   select_release_node
   step "Building signed, notarized ${APP_NAME} ${VERSION} release"
 
-  # Keep the one-command path ergonomic without weakening release-arm64.sh's
-  # own preflight. Local release variables remain untracked in .env.local.
+  # Keep the one-command path ergonomic without treating dotenv as shell code.
+  # Node's parser preserves literal $, #, and spaces in credentials.
   if [ -f .env.local ]; then
-    set -a
-    # shellcheck disable=SC1091
-    . ./.env.local
-    set +a
-  fi
-
-  if ! npm run release:arm64; then
+    local npm_cli
+    npm_cli="$(command -v npm)"
+    node --env-file=.env.local "$npm_cli" run release:arm64 ||
+      die "release build failed; fix the preflight error above and rerun $0"
+  elif ! npm run release:arm64; then
     die "release build failed; fix the preflight error above and rerun $0"
   fi
 

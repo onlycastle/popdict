@@ -19,11 +19,13 @@ The step-by-step runbook lives in the `deploy-popdict` skill
    app under Node 26 (learning L-012). After switching Node versions, run
    `npm rebuild macos-alias`; the preflight rejects a stale native ABI before
    signing begins (learning L-013).
-3. `set -a; source .env.local; set +a` — loads the release build vars
+3. Keep the release build vars in untracked `.env.local`
    (`POPDICT_GITHUB_REPO`, `POPDICT_MAC_SIGNING_IDENTITY`,
    `POPDICT_NOTARY_PROFILE`, `VITE_SUPABASE_URL`, and a Supabase publishable
    or legacy anon key). The release script aborts if any required value is
-   missing; this prevents unsigned or data-disconnected packages.
+   missing; this prevents unsigned or data-disconnected packages. Use
+   `scripts/test-dmg.sh build`, which loads dotenv with Node without evaluating
+   credentials as shell code.
 4. Rehearse migrations from zero, then exercise actual roles against the
    disposable local database:
    `supabase db reset` followed by
