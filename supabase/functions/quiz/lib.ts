@@ -6,7 +6,15 @@ import type { StudyMaterial } from './materials.ts'
 
 export const LEITNER_INTERVAL_DAYS = [1, 3, 7, 14, 30]
 
-export type SavedWordRow = { word: string; normalized_word: string; created_at: string }
+export type SavedWordRow = {
+  word: string
+  normalized_word: string
+  created_at: string
+  definition?: string | null
+  example?: string | null
+  synonyms?: string[] | null
+  antonyms?: string[] | null
+}
 export type ReviewRow = { normalized_word: string; box: number; next_due_at: string }
 export type Question = {
   word: string
@@ -67,6 +75,83 @@ export function selectDueWords(
     .map((x) => x.s)
 }
 
+export type EligibleStudyEntry = {
+  candidate: SavedWordRow
+  material: StudyMaterial
+  box: number
+}
+
+function distinctStrings(values: (string | null | undefined)[], exclude: string): string[] {
+  const seen = new Set([exclude.trim().toLocaleLowerCase('en')])
+  const result: string[] = []
+  for (const raw of values) {
+    const value = raw?.trim()
+    const key = value?.toLocaleLowerCase('en')
+    if (!value || !key || seen.has(key)) continue
+    seen.add(key)
+    result.push(value)
+  }
+  return result
+}
+
+/** Build deterministic study material from a saved snapshot and peer distractors. */
+export function studyMaterialFromSnapshot(
+  candidate: SavedWordRow,
+  allSaved: SavedWordRow[]
+): StudyMaterial | null {
+  const definition = candidate.definition?.trim()
+  if (!definition) return null
+  const peers = [...allSaved]
+    .filter((word) => word.normalized_word !== candidate.normalized_word)
+    .sort((a, b) => a.normalized_word.localeCompare(b.normalized_word, 'en'))
+  const recognition = distinctStrings(peers.map((word) => word.definition), definition).slice(0, 3)
+  if (recognition.length < 3) return null
+  const wordDistractors = distinctStrings(peers.map((word) => word.word), candidate.word).slice(0, 3)
+  const example = candidate.example?.trim() ?? ''
+  const related = [
+    ...(candidate.synonyms ?? []).map((phrase) => ({ phrase, nuance: 'related word' })),
+    ...(candidate.antonyms ?? []).map((phrase) => ({ phrase, nuance: 'opposite' })),
+  ].filter((item, index, items) =>
+    item.phrase.trim().length > 0 &&
+    items.findIndex((other) => other.phrase.toLowerCase() === item.phrase.toLowerCase()) === index
+  ).slice(0, 3)
+  return {
+    definition,
+    examples: example ? [example] : [],
+    similar: related,
+    recognition_distractors: recognition,
+    cloze: { sentence: example, distractors: wordDistractors },
+  }
+}
+
+/**
+ * Single source of truth for both `count` and `session`: select due words,
+ * resolve snapshot material with the legacy cache as fallback, then cap at 8.
+ */
+export function eligibleStudyEntries(
+  saved: SavedWordRow[],
+  reviews: ReviewRow[],
+  legacyMaterials: ReadonlyMap<string, StudyMaterial>,
+  now: Date,
+  limit = 8
+): EligibleStudyEntry[] {
+  const reviewByWord = new Map(reviews.map((review) => [review.normalized_word, review]))
+  const due = selectDueWords(saved, reviews, now, Number.MAX_SAFE_INTEGER)
+  const eligible: EligibleStudyEntry[] = []
+  for (const candidate of due) {
+    const material = studyMaterialFromSnapshot(candidate, saved)
+      ?? legacyMaterials.get(candidate.normalized_word)
+    if (!material) continue
+    eligible.push({
+      candidate,
+      material,
+      box: reviewByWord.get(candidate.normalized_word)?.box ?? 1,
+    })
+    if (eligible.length === limit) break
+  }
+  return eligible
+}
+
 export function leitnerNext(box: number, correct: boolean): { box: number; days: number } {
   const next = correct ? Math.min(box + 1, LEITNER_INTERVAL_DAYS.length) : 1
   return { box: next, days: LEITNER_INTERVAL_DAYS[next - 1] }
@@ -103,7 +188,9 @@ export function buildExercise(
   box: number,
   rng: () => number
 ): Question {
-  if (box <= 2) {
+  const canCloze = material.cloze.distractors.length >= 3 &&
+    new RegExp(`\\b${escapeRegExp(candidate.word)}\\b`, 'i').test(material.cloze.sentence)
+  if (box <= 2 || !canCloze) {
     const options = shuffle([material.definition, ...material.recognition_distractors], rng)
     return {
       word: candidate.word,

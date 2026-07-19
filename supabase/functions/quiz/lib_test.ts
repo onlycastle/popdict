@@ -6,10 +6,12 @@ import {
   buildExercise,
   buildSessionCards,
   escapeHtml,
+  eligibleStudyEntries,
   leitnerNext,
   masteryBuckets,
   nextStreak,
   selectDueWords,
+  studyMaterialFromSnapshot,
 } from './lib.ts'
 
 function seededRng(seed = 1): () => number {
@@ -93,6 +95,41 @@ Deno.test('box 3+ builds a cloze with the word as the answer and a blanked promp
   assertEquals(q.options[q.correct_index], 'Delight')
   assert(q.prompt.includes('____'))
   assert(!q.prompt.toLowerCase().includes('delight'))
+})
+
+Deno.test('snapshot material uses other enriched saved words as deterministic distractors', () => {
+  const saved = [
+    { word: 'Bank', normalized_word: 'bank', created_at: '2026-07-01T00:00:00Z', definition: 'A financial institution.', example: 'I visited the bank.', synonyms: ['lender'] },
+    { word: 'Apple', normalized_word: 'apple', created_at: '', definition: 'A fruit.' },
+    { word: 'Bus', normalized_word: 'bus', created_at: '', definition: 'A road vehicle.' },
+    { word: 'Cloud', normalized_word: 'cloud', created_at: '', definition: 'Visible water droplets.' },
+  ]
+  const material = studyMaterialFromSnapshot(saved[0], saved)
+  assertEquals(material?.recognition_distractors, ['A fruit.', 'A road vehicle.', 'Visible water droplets.'])
+  assertEquals(material?.cloze.distractors, ['Apple', 'Bus', 'Cloud'])
+})
+
+Deno.test('box 3+ falls back to recognition when cloze is not whole-word valid', () => {
+  const material = {
+    definition: 'great pleasure', examples: ['A delightful day.'], similar: [],
+    recognition_distractors: ['fear', 'contract', 'light'],
+    cloze: { sentence: 'A delightful day.', distractors: ['fear', 'work', 'play'] },
+  }
+  const saved = { word: 'delight', normalized_word: 'delight', created_at: '' }
+  assertEquals(buildExercise(saved, material, 4, seededRng()).kind, 'recognition')
+})
+
+Deno.test('count/session eligibility is shared, skips ineligible due words, and caps at eight', () => {
+  const saved = Array.from({ length: 12 }, (_, index) => ({
+    word: `Word${index}`,
+    normalized_word: `word${index}`,
+    created_at: '2026-06-01T00:00:00Z',
+    definition: index === 0 ? null : `Definition ${index}`,
+    example: `This uses Word${index}.`,
+  }))
+  const entries = eligibleStudyEntries(saved, [], new Map(), NOW)
+  assertEquals(entries.length, 8)
+  assert(!entries.some((entry) => entry.candidate.normalized_word === 'word0'))
 })
 
 Deno.test('blankWord blanks case-insensitively and only whole words', () => {
