@@ -11,7 +11,8 @@ Shipping PopDict is a **manual release, not a git push**. The website's Download
 
 ## Prerequisites (one-time, already set up on the maintainer's machine)
 
-- `.env.local` (gitignored) holds the three build vars: `POPDICT_GITHUB_REPO=onlycastle/popdict`, `POPDICT_MAC_SIGNING_IDENTITY="Developer ID Application: Sungman Cho (J756539YX6)"`, `POPDICT_NOTARY_PROFILE=popdict-notary`.
+- `.env.local` (gitignored) holds the repository, signing/notary, and packaged
+  Supabase public-client variables required by `scripts/release-arm64.sh`.
 - The `popdict-notary` notarytool keychain profile exists (`xcrun notarytool history --keychain-profile popdict-notary` should succeed). Apple secrets live in the keychain, not in env.
 - `gh` authed as `onlycastle` (the repo owner).
 
@@ -23,18 +24,16 @@ Run from the repo root on macOS (Apple Silicon):
 # 1. Bump the version in the ROOT package.json (e.g. 1.0.0 -> 1.1.0).
 #    Feature -> minor bump; fix-only -> patch. Do NOT bump site/package.json.
 
-# 2. Load creds — the release script does NOT auto-load .env.
-set -a; source .env.local; set +a
+# 2. Gate + build + sign + notarize + staple + verify (~several min).
+#    This safely loads .env.local with Node's dotenv parser and runs the full
+#    app/site/harness plus Deno Edge Function gates before building.
+./scripts/test-dmg.sh build
 
-# 3. Gate + build + sign + notarize + staple + verify (~several min).
-#    Runs tsc + lint + vitest first, then builds. Stops on any gate failure.
-npm run release:arm64
-
-# 4. Commit + push the version bump so the release tag points at the right commit.
+# 3. Commit + push the version bump so the release tag points at the right commit.
 git add package.json && git commit -m "chore(release): v<version>"
 git push origin main
 
-# 5. Publish the release with BOTH assets (the script prints the exact paths).
+# 4. Publish the release with BOTH assets (the script prints the exact paths).
 gh release create v<version> \
   out/make/PopDict-<version>-arm64.dmg \
   out/make/zip/darwin/arm64/PopDict-darwin-arm64-<version>.zip \
@@ -43,7 +42,9 @@ gh release create v<version> \
   --notes "<what changed>"
 ```
 
-The website serves the new DMG within ~5 minutes (route `revalidate: 300`). No site redeploy needed.
+The website serves the new DMG within ~5 minutes (route `revalidate: 300`). A
+desktop-only release needs no site redeploy; site code changes still require a
+successful production deployment.
 
 ## Verify
 
@@ -55,7 +56,7 @@ The website serves the new DMG within ~5 minutes (route `revalidate: 300`). No s
 
 | Mistake | Consequence | Fix |
 |---|---|---|
-| Skip `source .env.local` (or vars unset) | Build **silently** produces an UNSIGNED dmg (`forge.config.ts:14` → `{}`; `scripts/notarize-dmg.js:68` skips) → Gatekeeper "app is damaged" | Always load the 3 vars; the script aborts if they're missing |
+| Run the lower-level build without required env | The preflight aborts before an unsigned or data-disconnected package is created | Use `scripts/test-dmg.sh build`; it loads `.env.local` without shell evaluation |
 | Upload only the DMG, no ZIP | Existing users never auto-update (Squirrel pulls the arch-named `.zip`) | Always attach both assets |
 | Create the release before pushing the bump | `v<version>` tag points at a commit without the version bump | Commit + push, then `gh release create` |
 | Upload the ZIP path the script *prints* | Old-version ZIPs linger in `out/make/zip/`; the script's `find ... -quit` may print a STALE `<oldver>.zip` | Upload the version-matched `PopDict-darwin-arm64-<version>.zip`; verify the version in the filename (or `rm -rf out/make/zip` before building) |
