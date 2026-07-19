@@ -4,6 +4,8 @@ import { savedWords } from '../services/SavedWordsRepository'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
 import { productAnalytics } from '../services/ProductAnalytics'
 import type { SearchResponse } from '../types/dictionary'
+import type { TargetLanguage, WordTranslation } from '../../shared/language'
+import { savedWordDetailsFromLookup } from '../services/savedWordDetails'
 
 /** The word a Save action targets: the canonical headword, else the raw query. */
 export function getWordToSave(response: SearchResponse | null, fallback: string): string {
@@ -20,6 +22,8 @@ interface UseSaveWordArgs {
   response: SearchResponse | null
   searchedTerm: string
   query: string
+  translationLanguage: TargetLanguage | null
+  translations: WordTranslation[]
 }
 
 /**
@@ -27,7 +31,14 @@ interface UseSaveWordArgs {
  * login when signed out, auto-saving once signed in, and surfacing durable
  * "Saved" state across sessions. Extracted from App so the view only renders.
  */
-export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWordArgs) {
+export function useSaveWord({
+  user,
+  response,
+  searchedTerm,
+  query,
+  translationLanguage,
+  translations,
+}: UseSaveWordArgs) {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false)
   const [pendingSaveWord, setPendingSaveWord] = useState('')
   const [saveError, setSaveError] = useState('')
@@ -78,7 +89,12 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
       setSaveError('')
 
       try {
-        await savedWords.save({ source: response.source, user: savingUser, word })
+        const details = savedWordDetailsFromLookup({
+          response,
+          language: translationLanguage,
+          translations,
+        })
+        await savedWords.save({ source: response.source, user: savingUser, word, details })
         if (completesPendingAuth) void productAnalytics.track('pending_save_completed')
         setSavedWord(word)
         setPendingSaveWord('')
@@ -91,7 +107,7 @@ export function useSaveWord({ user, response, searchedTerm, query }: UseSaveWord
         setSaving(false)
       }
     },
-    [user, response, maybePromptQuizOptIn]
+    [user, response, maybePromptQuizOptIn, translationLanguage, translations]
   )
 
   const handleSaveClick = useCallback(() => {

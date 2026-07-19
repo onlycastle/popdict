@@ -54,12 +54,25 @@ describe('SavedWordsRepository', () => {
     )
   })
 
-  it('list returns the rows', async () => {
+  it('list maps rows into Saved Words 2.0 cards', async () => {
     const rows = [
       { id: '1', word: 'a', normalized_word: 'a', source: 'free-dictionary', created_at: '', updated_at: '' },
     ]
     const repo = new SavedWordsRepository(client({ data: rows, error: null }))
-    expect(await repo.list(user)).toEqual(rows)
+    expect(await repo.list(user)).toEqual([{
+      id: '1',
+      word: 'a',
+      normalizedWord: 'a',
+      source: 'free-dictionary',
+      createdAt: '',
+      updatedAt: '',
+      note: '',
+      details: null,
+      tags: [],
+      review: null,
+      mastery: 'new',
+      due: true,
+    }])
   })
 
   it('isSaved returns true when a row exists', async () => {

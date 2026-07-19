@@ -544,6 +544,91 @@ input[type='checkbox'] {
   line-height: 1.45;
 }
 
+.related-word-button {
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: rgb(255 255 255 / 72%);
+  font-size: 11px;
+  line-height: 1.4;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.related-word-button:hover,
+.related-word-button:focus-visible {
+  border-color: rgb(251 191 36 / 45%);
+  background: rgb(255 255 255 / 7%);
+  color: rgb(255 255 255 / 95%);
+  outline: none;
+}
+
+.cache-provenance {
+  margin-bottom: 10px;
+  color: rgb(253 230 138 / 72%);
+  font-size: 11px;
+}
+
+.saved-word-card {
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgb(255 255 255 / 3%);
+}
+
+.saved-filter {
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: rgb(255 255 255 / 55%);
+  font-size: 11px;
+}
+
+.saved-filter--active {
+  border-color: rgb(251 191 36 / 42%);
+  background: rgb(251 191 36 / 10%);
+  color: rgb(254 243 199 / 92%);
+}
+
+.mastery-chip,
+.due-chip {
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.mastery-chip--new { background: rgb(255 255 255 / 8%); color: rgb(255 255 255 / 60%); }
+.mastery-chip--learning { background: rgb(59 130 246 / 15%); color: rgb(191 219 254 / 90%); }
+.mastery-chip--mastered { background: rgb(16 185 129 / 15%); color: rgb(167 243 208 / 90%); }
+.due-chip { background: rgb(245 158 11 / 16%); color: rgb(253 230 138 / 95%); }
+
+.saved-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgb(255 255 255 / 8%);
+  color: rgb(255 255 255 / 68%);
+  font-size: 11px;
+}
+
+.saved-tag button { color: rgb(255 255 255 / 35%); }
+.saved-tag button:hover { color: rgb(252 165 165 / 90%); }
+
+.saved-inline-input,
+.saved-note {
+  width: 100%;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 14%);
+  color: rgb(255 255 255 / 80%);
+  font-size: 12px;
+}
+
+.saved-inline-input { padding: 6px 9px; }
+.saved-note { min-height: 76px; margin-top: 8px; padding: 8px 10px; resize: vertical; }
+
 .translation-attribution a,
 .dictionary-attribution a {
   color: rgba(255, 214, 153, 0.58);
