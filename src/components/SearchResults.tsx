@@ -9,7 +9,8 @@ interface SearchResultsProps {
   failure: LookupFailure | null
   query: string
   recoverySuggestions?: string[]
-  onLookup?: (word: string) => void
+  onRecoveryLookup?: (word: string) => void
+  onRelatedLookup?: (word: string) => void
   onRetry?: () => void
   onSave?: () => void
   saveDisabled?: boolean
@@ -24,7 +25,8 @@ const SearchResults = ({
   failure,
   query,
   recoverySuggestions = [],
-  onLookup,
+  onRecoveryLookup,
+  onRelatedLookup,
   onRetry,
   onSave,
   saveDisabled,
@@ -82,14 +84,14 @@ const SearchResults = ({
         <div className="text-center py-10">
           <p className="text-white/75 text-sm">No entry found for “{query}”</p>
           <p className="text-white/55 text-xs mt-2">Check the spelling or try the base form</p>
-          {recoverySuggestions.length > 0 && onLookup && (
+          {recoverySuggestions.length > 0 && onRecoveryLookup && (
             <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Suggestions">
               {recoverySuggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
                   className="related-word-button"
-                  onClick={() => onLookup(suggestion)}
+                  onClick={() => onRecoveryLookup(suggestion)}
                 >
                   {suggestion}
                 </button>
@@ -219,7 +221,7 @@ const SearchResults = ({
                                   key={word}
                                   type="button"
                                   className="related-word-button"
-                                  onClick={() => onLookup?.(word)}
+                                  onClick={() => onRelatedLookup?.(word)}
                                 >
                                   {word}
                                 </button>
@@ -236,7 +238,7 @@ const SearchResults = ({
                                   key={word}
                                   type="button"
                                   className="related-word-button"
-                                  onClick={() => onLookup?.(word)}
+                                  onClick={() => onRelatedLookup?.(word)}
                                 >
                                   {word}
                                 </button>

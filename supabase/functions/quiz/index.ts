@@ -22,6 +22,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.108.2'
 import {
   bearerToken,
+  answerRouteAllowsQuestion,
   buildExercise,
   buildDigestEmailHtml,
   buildSessionCards,
@@ -31,6 +32,7 @@ import {
   validateRevealedMaterial,
   type Question,
   type QuestionWithId,
+  type QuizAnswerRoute,
   type ReviewRow,
   type SavedWordRow,
   type SessionCard,
@@ -176,6 +178,32 @@ async function requireUser(db: ReturnType<typeof admin>, req: Request): Promise<
   return userId
 }
 
+async function questionMatchesAnswerRoute(
+  db: ReturnType<typeof admin>,
+  questionId: string,
+  route: QuizAnswerRoute,
+  requestUserId: string | null,
+): Promise<boolean> {
+  const { data: question, error: questionError } = await db
+    .from('quiz_questions')
+    .select('quiz_id, user_id')
+    .eq('id', questionId)
+    .maybeSingle()
+  if (questionError || !question) return false
+  const { data: quiz, error: quizError } = await db
+    .from('quizzes')
+    .select('source')
+    .eq('id', question.quiz_id)
+    .maybeSingle()
+  if (quizError || !quiz) return false
+  return answerRouteAllowsQuestion({
+    route,
+    quizSource: quiz.source,
+    requestUserId,
+    questionUserId: question.user_id,
+  })
+}
+
 // Study card for the in-app reveal (definition/examples/similar only).
 async function fetchMaterial(
   db: ReturnType<typeof admin>,
@@ -215,7 +243,6 @@ async function applyAnswer(
   db: ReturnType<typeof admin>,
   q: string,
   c: number,
-  touchStreak: boolean
 ): Promise<{
   status: number
   payload: Record<string, unknown>
@@ -226,7 +253,9 @@ async function applyAnswer(
   const { data, error } = await db.rpc('record_quiz_answer', {
     p_question_id: q,
     p_choice: c,
-    p_touch_streak: touchStreak,
+    // Retained only for compatibility with the deployed RPC signature. The
+    // database derives streak behavior from the persisted quiz source.
+    p_touch_streak: false,
   })
   if (error) {
     console.error('record quiz answer failed', error)
@@ -291,12 +320,17 @@ async function handleCount(req: Request): Promise<Response> {
   return json({ due: pending.length })
 }
 
-async function handleAnswerPost(body: { q?: unknown; c?: unknown }): Promise<Response> {
+async function handleAnswerPost(req: Request, body: { q?: unknown; c?: unknown }): Promise<Response> {
   const q = typeof body.q === 'string' ? body.q : ''
   const c = typeof body.c === 'number' ? body.c : Number(body.c)
   if (!UUID_RE.test(q) || !Number.isInteger(c) || c < 0 || c > 3) return json({ error: 'bad_request' }, 400)
   const db = admin()
-  const r = await applyAnswer(db, q, c, false)
+  const uid = await requireUser(db, req)
+  if (typeof uid !== 'string') return uid
+  if (!await questionMatchesAnswerRoute(db, q, 'app', uid)) {
+    return json({ error: 'not_found' }, 404)
+  }
+  const r = await applyAnswer(db, q, c)
   if (r.status !== 200) return json(r.payload, r.status)
   const material = validateRevealedMaterial(r.material) ?? (
     r.normalizedWord && r.userId ? await fetchMaterial(db, r.userId, r.normalizedWord) : null
@@ -376,7 +410,10 @@ async function handleAnswer(url: URL): Promise<Response> {
     return json({ error: 'bad_request' }, 400)
   }
   const db = admin()
-  const r = await applyAnswer(db, q, c, true)
+  if (!await questionMatchesAnswerRoute(db, q, 'email', null)) {
+    return json({ error: 'not_found' }, 404)
+  }
+  const r = await applyAnswer(db, q, c)
   return json(r.payload, r.status)
 }
 
@@ -423,7 +460,7 @@ Deno.serve(async (req: Request) => {
       if (body.action === 'send') return await handleSend(req)
       if (body.action === 'session') return await handleSession(req)
       if (body.action === 'count') return await handleCount(req)
-      if (body.action === 'answer') return await handleAnswerPost(body)
+      if (body.action === 'answer') return await handleAnswerPost(req, body)
       return json({ error: 'unknown action' }, 400)
     }
     if (req.method === 'GET') {

@@ -31,6 +31,53 @@ insert into public.word_reviews (user_id, normalized_word, box, next_due_at) val
   ('11111111-1111-4111-8111-111111111111', 'alpha', 2, now()),
   ('22222222-2222-4222-8222-222222222222', 'beta', 4, now());
 
+insert into public.quiz_preferences (user_id, enabled, streak) values
+  ('11111111-1111-4111-8111-111111111111', false, 0);
+
+insert into public.quizzes (id, user_id, sent_at, source) values
+  ('33333333-3333-4333-8333-333333333333',
+   '11111111-1111-4111-8111-111111111111', now() - interval '2 minutes', 'app'),
+  ('44444444-4444-4444-8444-444444444444',
+   '11111111-1111-4111-8111-111111111111', now() - interval '1 minute', 'email');
+
+insert into public.quiz_questions (
+  id, quiz_id, user_id, word, normalized_word, options, correct_index
+) values
+  ('55555555-5555-4555-8555-555555555555',
+   '33333333-3333-4333-8333-333333333333',
+   '11111111-1111-4111-8111-111111111111',
+   'Alpha', 'alpha', '["correct", "wrong 1", "wrong 2", "wrong 3"]'::jsonb, 0),
+  ('66666666-6666-4666-8666-666666666666',
+   '44444444-4444-4444-8444-444444444444',
+   '11111111-1111-4111-8111-111111111111',
+   'Alpha', 'alpha', '["correct", "wrong 1", "wrong 2", "wrong 3"]'::jsonb, 0);
+
+do $$
+declare
+  app_result jsonb;
+  email_result jsonb;
+  persisted_streak integer;
+begin
+  app_result := public.record_quiz_answer(
+    '55555555-5555-4555-8555-555555555555', 0, true
+  );
+  select streak into persisted_streak from public.quiz_preferences
+  where user_id = '11111111-1111-4111-8111-111111111111';
+  if (app_result ->> 'streak')::integer <> 0 or persisted_streak <> 0 then
+    raise exception 'app answer unexpectedly changed the weekly streak';
+  end if;
+
+  email_result := public.record_quiz_answer(
+    '66666666-6666-4666-8666-666666666666', 0, false
+  );
+  select streak into persisted_streak from public.quiz_preferences
+  where user_id = '11111111-1111-4111-8111-111111111111';
+  if (email_result ->> 'streak')::integer <> 1 or persisted_streak <> 1 then
+    raise exception 'email answer did not advance the weekly streak';
+  end if;
+end
+$$;
+
 do $$
 declare
   client_role text;

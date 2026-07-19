@@ -1,5 +1,6 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import {
+  answerRouteAllowsQuestion,
   bearerToken,
   blankWord,
   buildDigestEmailHtml,
@@ -257,4 +258,22 @@ Deno.test('bearerToken extracts the token or returns null', () => {
   assertEquals(bearerToken(null), null)
   assertEquals(bearerToken('Basic zzz'), null)
   assertEquals(bearerToken('Bearer    '), null)
+})
+
+Deno.test('answer routes accept only their persisted quiz source', () => {
+  assert(answerRouteAllowsQuestion({
+    route: 'email', quizSource: 'email', requestUserId: null, questionUserId: 'user-1',
+  }))
+  assert(!answerRouteAllowsQuestion({
+    route: 'email', quizSource: 'app', requestUserId: null, questionUserId: 'user-1',
+  }))
+  assert(answerRouteAllowsQuestion({
+    route: 'app', quizSource: 'app', requestUserId: 'user-1', questionUserId: 'user-1',
+  }))
+  assert(!answerRouteAllowsQuestion({
+    route: 'app', quizSource: 'email', requestUserId: 'user-1', questionUserId: 'user-1',
+  }))
+  assert(!answerRouteAllowsQuestion({
+    route: 'app', quizSource: 'app', requestUserId: 'user-2', questionUserId: 'user-1',
+  }))
 })

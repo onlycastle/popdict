@@ -33,6 +33,21 @@ export type SessionCard = {
   options: string[]
 }
 
+export type QuizAnswerRoute = 'email' | 'app'
+
+/** Bind each answer transport to the persisted quiz origin and account. */
+export function answerRouteAllowsQuestion(input: {
+  route: QuizAnswerRoute
+  quizSource: unknown
+  requestUserId: string | null
+  questionUserId: unknown
+}): boolean {
+  if (input.route === 'email') return input.quizSource === 'email'
+  return input.quizSource === 'app' &&
+    typeof input.questionUserId === 'string' &&
+    input.requestUserId === input.questionUserId
+}
+
 export type RevealedMaterial = {
   definition: string
   examples: string[]

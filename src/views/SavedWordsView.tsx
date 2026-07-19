@@ -5,6 +5,8 @@ import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import {
   enrichWithConcurrency,
   savedWordEnrichment,
+  SerialTaskQueue,
+  StaleSavedWordEnrichmentError,
 } from '../services/SavedWordEnrichmentService'
 import { savedWords, type SavedWord } from '../services/SavedWordsRepository'
 import { filterSavedWords, type SavedWordsFilter } from '../services/savedWordFilters'
@@ -27,15 +29,30 @@ const CORE_FILTERS: { value: SavedWordsFilter; label: string }[] = [
   { value: 'mastered', label: 'Mastered' },
 ]
 
+type EnrichmentContext = {
+  generation: number
+  language: TargetLanguage | null
+  ready: boolean
+}
+
 export default function SavedWordsView() {
   const auth = useSupabaseAuth()
   const [wordState, setWordState] = useState(() => initialSavedWordsLoadState<SavedWord>())
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<SavedWordsFilter>('all')
-  const [translationLanguage, setTranslationLanguage] = useState<TargetLanguage | null>(null)
+  const [enrichmentContext, setEnrichmentContext] = useState<EnrichmentContext>({
+    generation: 0,
+    language: null,
+    ready: false,
+  })
   const [enrichmentFailures, setEnrichmentFailures] = useState<Set<string>>(new Set())
   const attemptedRef = useRef(new Set<string>())
   const requestIdRef = useRef(0)
+  const enrichmentGenerationRef = useRef(0)
+  const enrichmentQueueRef = useRef(new SerialTaskQueue())
+  const translationLanguageRef = useRef<TargetLanguage | null>(null)
+  translationLanguageRef.current = enrichmentContext.language
+  const translationLanguage = enrichmentContext.language
   const activeUserId = auth.user?.id ?? null
   const activeUserIdRef = useRef(activeUserId)
   activeUserIdRef.current = activeUserId
@@ -61,33 +78,59 @@ export default function SavedWordsView() {
       : current)
   }, [])
 
-  const load = useCallback(async () => {
+  const refresh = useCallback(() => {
     const user = auth.user
     const userId = user?.id ?? null
     const requestId = ++requestIdRef.current
+    const generation = ++enrichmentGenerationRef.current
+    const fallbackLanguage = translationLanguageRef.current
     setWordState(beginSavedWordsLoad<SavedWord>(userId, requestId))
+    setEnrichmentContext({ generation, language: fallbackLanguage, ready: false })
     attemptedRef.current.clear()
     setEnrichmentFailures(new Set())
-    if (!user) return
-    try {
-      const rows = await savedWords.list(user)
-      setWordState((current) => completeSavedWordsLoad(current, { userId: user.id, requestId, rows }))
-    } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : 'Could not load saved words'
-      setWordState((current) => failSavedWordsLoad(current, { userId: user.id, requestId, error: message }))
-    }
-  }, [auth.user])
 
-  const refresh = useCallback(() => {
-    void load()
     void window.electronAPI.getSettings().then((settings) => {
-      setTranslationLanguage(settings.translationLanguage)
+      if (enrichmentGenerationRef.current !== generation) return
+      setEnrichmentContext({
+        generation,
+        language: settings.translationLanguage,
+        ready: true,
+      })
+    }).catch(() => {
+      if (enrichmentGenerationRef.current !== generation) return
+      setEnrichmentContext({ generation, language: fallbackLanguage, ready: true })
     })
-  }, [load])
+
+    void (async () => {
+      // Let any already-started write finish before reading the next generation.
+      // A queued current-language pass can then deterministically win.
+      await enrichmentQueueRef.current.drain()
+      if (enrichmentGenerationRef.current !== generation || !user) return
+      try {
+        const rows = await savedWords.list(user)
+        setWordState((current) => completeSavedWordsLoad(current, {
+          userId: user.id,
+          requestId,
+          rows,
+        }))
+      } catch (loadError) {
+        const message = loadError instanceof Error ? loadError.message : 'Could not load saved words'
+        setWordState((current) => failSavedWordsLoad(current, {
+          userId: user.id,
+          requestId,
+          error: message,
+        }))
+      }
+    })()
+  }, [auth.user])
 
   useEffect(() => {
     refresh()
-    return subscribeWindowFocus(window, refresh)
+    const unsubscribe = subscribeWindowFocus(window, refresh)
+    return () => {
+      enrichmentGenerationRef.current += 1
+      unsubscribe()
+    }
   }, [refresh])
 
   const handleDelete = useCallback(async (entry: SavedWord) => {
@@ -116,37 +159,46 @@ export default function SavedWordsView() {
     [words, filter, search]
   )
 
-  const enrichOne = useCallback(async (entry: SavedWord) => {
-    if (!auth.user) return
+  const enrichOne = useCallback((entry: SavedWord): Promise<void> => {
+    if (!auth.user || !enrichmentContext.ready) return Promise.resolve()
     const user = auth.user
-    setEnrichmentFailures((current) => {
-      const next = new Set(current)
-      next.delete(entry.id)
-      return next
+    const { generation, language } = enrichmentContext
+    const isCurrent = () => (
+      activeUserIdRef.current === user.id &&
+      enrichmentGenerationRef.current === generation
+    )
+    return enrichmentQueueRef.current.enqueue(`${user.id}\u0000${entry.id}`, async () => {
+      if (!isCurrent()) return
+      setEnrichmentFailures((current) => {
+        const next = new Set(current)
+        next.delete(entry.id)
+        return next
+      })
+      try {
+        const details = await savedWordEnrichment.enrich(user, entry, language, isCurrent)
+        if (!isCurrent()) return
+        updateWords((current) => current.map((word) => word.id === entry.id
+          ? { ...word, details }
+          : word))
+      } catch (enrichmentError) {
+        if (enrichmentError instanceof StaleSavedWordEnrichmentError || !isCurrent()) return
+        setEnrichmentFailures((current) => new Set(current).add(entry.id))
+      }
     })
-    try {
-      const details = await savedWordEnrichment.enrich(user, entry, translationLanguage)
-      if (activeUserIdRef.current !== user.id) return
-      updateWords((current) => current.map((word) => word.id === entry.id
-        ? { ...word, details }
-        : word))
-    } catch {
-      if (activeUserIdRef.current !== user.id) return
-      setEnrichmentFailures((current) => new Set(current).add(entry.id))
-    }
-  }, [auth.user, translationLanguage, updateWords])
+  }, [auth.user, enrichmentContext, updateWords])
 
   useEffect(() => {
+    if (!enrichmentContext.ready) return
     const candidates = filtered.filter((entry) => {
       if (!savedWordEnrichment.needsEnrichment(entry, translationLanguage)) return false
-      const key = `${entry.id}\u0000${translationLanguage ?? 'none'}`
+      const key = `${enrichmentContext.generation}\u0000${entry.id}\u0000${translationLanguage ?? 'none'}`
       if (attemptedRef.current.has(key)) return false
       attemptedRef.current.add(key)
       return true
     })
     if (candidates.length === 0) return
     void enrichWithConcurrency(candidates, enrichOne, 2)
-  }, [enrichOne, filtered, translationLanguage])
+  }, [enrichOne, enrichmentContext, filtered, translationLanguage])
 
   const updateWord = useCallback((updated: SavedWord) => {
     updateWords((current) => current.map((word) => word.id === updated.id ? updated : word))

@@ -14,13 +14,14 @@ import { shouldShowSignInNudge } from '../components/signInNudge'
 import WindowControls from '../components/WindowControls'
 import { useDictionarySearch } from '../hooks/useDictionarySearch'
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
-import { useSaveWord } from '../hooks/useSaveWord'
+import { translationIsSettledForSave, useSaveWord } from '../hooks/useSaveWord'
 import { useTranslations } from '../hooks/useTranslations'
 import type { AppSettings } from '../types/electron'
 import { normalizeEnglishWord, type WordTranslation } from '../../shared/language'
 import { handleSearchWindowFocus } from './searchFocus'
 import { productAnalytics } from '../services/ProductAnalytics'
 import { QuizSessionService } from '../services/QuizSessionService'
+import { handleLookupSelection } from './lookupSelection'
 import '../App.css'
 
 // The login modal is absolutely positioned, so it contributes no layout height
@@ -86,7 +87,8 @@ export default function SearchView() {
     alreadySaved,
     saveLabel,
     loginPromptOpen,
-    setLoginPromptOpen,
+    openLoginPrompt,
+    dismissLoginPrompt,
     handleSaveClick,
     quizPromptOpen,
     enableQuizEmails,
@@ -98,6 +100,7 @@ export default function SearchView() {
     query,
     translationLanguage,
     translationStatus: translations.status,
+    translationRequired: translationEligible,
     translations: translations.translations,
   })
 
@@ -169,7 +172,7 @@ export default function SearchView() {
           return
         }
         if (loginPromptOpen) {
-          setLoginPromptOpen(false)
+          dismissLoginPrompt()
           return
         }
         if (feedbackOpen) {
@@ -184,7 +187,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [feedbackOpen, loginPromptOpen, setLoginPromptOpen, quizPromptOpen, dismissQuizPrompt])
+  }, [feedbackOpen, loginPromptOpen, quizPromptOpen, dismissLoginPrompt, dismissQuizPrompt])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -268,17 +271,22 @@ export default function SearchView() {
                 failure={failure}
                 query={query}
                 recoverySuggestions={recoverySuggestions}
-                onLookup={(word) => {
-                  void productAnalytics.track('lookup_recovery_used')
-                  setQuery(word)
-                  searchInputRef.current?.focus()
-                }}
+                onRecoveryLookup={(word) => handleLookupSelection('recovery', word, {
+                  setQuery,
+                  focusSearch: () => searchInputRef.current?.focus(),
+                  trackRecovery: () => { void productAnalytics.track('lookup_recovery_used') },
+                })}
+                onRelatedLookup={(word) => handleLookupSelection('related', word, {
+                  setQuery,
+                  focusSearch: () => searchInputRef.current?.focus(),
+                  trackRecovery: () => { void productAnalytics.track('lookup_recovery_used') },
+                })}
                 onRetry={triggerSearch}
                 onSave={response && !loading && !failure ? () => void handleSaveClick() : undefined}
-                saveDisabled={saving || alreadySaved || !(
-                  translationLanguage === null || (
-                    translations.status !== 'idle' && translations.status !== 'loading'
-                  )
+                saveDisabled={saving || alreadySaved || !translationIsSettledForSave(
+                  translationLanguage,
+                  translations.status,
+                  translationEligible,
                 )}
                 saveFeedback={
                   saveError || (savedWord.toLowerCase() === wordToSave.toLowerCase() ? 'Saved' : '')
@@ -313,9 +321,7 @@ export default function SearchView() {
               >
                 {showSignInNudge ? (
                   <SignInChip
-                    onSignIn={() => {
-                      setLoginPromptOpen(true)
-                    }}
+                    onSignIn={openLoginPrompt}
                     onDismiss={dismissSignInNudge}
                   />
                 ) : (
@@ -380,7 +386,7 @@ export default function SearchView() {
             error={auth.error || saveError}
             loading={auth.loading || saving}
             message={auth.message}
-            onClose={() => setLoginPromptOpen(false)}
+            onClose={dismissLoginPrompt}
             onSignIn={auth.signInWithGoogle}
             open={loginPromptOpen}
             word={pendingSaveWord || wordToSave}
