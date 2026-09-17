@@ -111,7 +111,7 @@ select_release_node() {
         if node_is_supported; then
           warn "active Node was unsupported; using $(node --version) from $candidate"
           step "Rebuilding native DMG dependency for $(node --version)"
-          npm rebuild macos-alias || die "could not rebuild macos-alias for $(node --version)"
+          npm rebuild macos-alias fs-xattr || die "could not rebuild DMG native dependencies for $(node --version)"
           return
         fi
       fi

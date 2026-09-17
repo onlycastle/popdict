@@ -63,8 +63,8 @@ step "Checking notarization credentials"
 xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" --output-format json >/dev/null
 
 step "Checking native DMG maker dependency"
-if ! node -e "require('macos-alias')" >/dev/null 2>&1; then
-  printf 'macos-alias is not built for %s; run npm rebuild macos-alias with this Node runtime.\n' "$(node --version)" >&2
+if ! node -e "require('macos-alias'); require('fs-xattr')" >/dev/null 2>&1; then
+  printf 'DMG native dependencies are not ready for %s; run npm rebuild macos-alias fs-xattr with this Node runtime.\n' "$(node --version)" >&2
   exit 1
 fi
 
