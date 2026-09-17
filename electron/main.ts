@@ -1,3 +1,5 @@
+import { LocalDictionary } from './local/LocalDictionary'
+import { LocalLibrary } from './local/LocalLibrary'
 import { app, BrowserWindow, Notification, powerMonitor } from 'electron'
 import { randomUUID } from 'node:crypto'
 import * as path from 'path'
@@ -104,6 +106,12 @@ if (hasSingleInstanceLock) {
     const lookupCache = new LookupCache(
       path.join(app.getPath('userData'), 'lookup-cache-v1.json')
     )
+    const localDictionary = new LocalDictionary(
+      app.isPackaged ? path.join(process.resourcesPath, 'offline') : path.join(app.getAppPath(), 'data/offline'),
+      path.join(app.getPath('userData'), 'dictionaries'),
+    )
+    const localLibrary = new LocalLibrary(path.join(app.getPath('userData'), 'library.sqlite'))
+    app.once('will-quit', () => localLibrary.close())
     dueCountBroker = new DueCountBroker()
     reminderScheduler = new ReviewReminderScheduler({
       getState: () => {
@@ -114,7 +122,7 @@ if (hasSingleInstanceLock) {
         }
       },
       markFired: (windowId) => { store.patch({ reviewReminderLastWindow: windowId }) },
-      requestDueCount: () => dueCountBroker!.request(windows.get('search')),
+      requestDueCount: async () => localLibrary.dueCount(),
       notify: (count) => {
         if (!Notification.isSupported()) return
         const notification = new Notification({
@@ -160,6 +168,8 @@ if (hasSingleInstanceLock) {
       tray,
       analyticsSessionId,
       lookupCache,
+      localDictionary,
+      localLibrary,
       dueCountBroker,
       reminderScheduler,
     })

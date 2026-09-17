@@ -14,6 +14,12 @@ export type AppSettings = {
 }
 
 export interface ElectronAPI {
+  lookupLocalDictionary: (query: string) => Promise<import('./dictionary').DictionaryResult[]>
+  lookupLocalTranslations: (word: string, language: TargetLanguage) => Promise<WordTranslation[]>
+  localLibrary: (command: import('../../shared/local').LocalLibraryCommand) => Promise<import('../../shared/local').LocalLibraryResult>
+  localReviewCount: () => Promise<number>
+  localReviewStart: () => Promise<import('../services/QuizSessionService').QuizSession>
+  localReviewAnswer: (id: string, choice: number) => Promise<import('../services/QuizSessionService').AnswerResult>
   hideWindow: () => void
   setWindowHeight: (height: number) => void
   onFocusSearch: (cb: () => void) => void

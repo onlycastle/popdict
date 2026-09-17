@@ -14,7 +14,7 @@ export function toLookupFailure(error: unknown, query: string): LookupFailure {
   const message = kind === 'network'
     ? 'No connection — check your internet and try again.'
     : kind === 'service'
-      ? 'Dictionary service is unavailable. Try again shortly.'
+      ? 'The local dictionary could not be opened. Restart PopDict or reinstall the app.'
       : phrase
         ? `No results found for "${query}"`
         : `"${query}" not found`

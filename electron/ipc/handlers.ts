@@ -16,6 +16,8 @@ import { dismissOwningWindow } from './dismissOwningWindow'
 const log = createLogger('Auth')
 
 export interface IpcDeps {
+  localDictionary?: import('../local/LocalDictionary').LocalDictionary
+  localLibrary?: import('../local/LocalLibrary').LocalLibrary
   store: Store
   windows: WindowManager
   broker: AuthCallbackBroker
@@ -55,6 +57,13 @@ export function registerIpcHandlers(router: IpcRouter, deps: IpcDeps): void {
     store, windows, broker, hotkey, tray, analyticsSessionId, lookupCache,
     dueCountBroker, reminderScheduler,
   } = deps
+
+  router.handle('local-dictionary', (_e, query: string) => deps.localDictionary!.lookup(query))
+  router.handle('local-translations', (_e, word: string, language: string) => deps.localDictionary!.translate(word, language))
+  router.handle('local-library', (_e, command: import('../../shared/local').LocalLibraryCommand) => deps.localLibrary!.execute(command))
+  router.handle('local-review-count', () => deps.localLibrary!.dueCount())
+  router.handle('local-review-start', () => deps.localLibrary!.startSession())
+  router.handle('local-review-answer', (_e, id: string, choice: number) => deps.localLibrary!.answer(id, choice))
 
   router.handle('get-settings', () => settingsPayload(store))
   router.handle('get-app-version', () => app.getVersion())

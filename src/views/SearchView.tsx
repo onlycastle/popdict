@@ -2,18 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import FeedbackDialog from '../components/FeedbackDialog'
 import FeedbackNudge from '../components/FeedbackNudge'
-import LoginModal from '../components/LoginModal'
-import QuizOptInPrompt from '../components/QuizOptInPrompt'
 import ReviewChip from '../components/ReviewChip'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
-import SignInChip from '../components/SignInChip'
 import TranslationCard from '../components/TranslationCard'
 import { translationPanelState } from '../components/translationPresentation'
-import { shouldShowSignInNudge } from '../components/signInNudge'
 import WindowControls from '../components/WindowControls'
 import { useDictionarySearch } from '../hooks/useDictionarySearch'
-import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import { translationIsSettledForSave, useSaveWord } from '../hooks/useSaveWord'
 import { useTranslations } from '../hooks/useTranslations'
 import type { AppSettings } from '../types/electron'
@@ -24,9 +19,7 @@ import { QuizSessionService } from '../services/QuizSessionService'
 import { handleLookupSelection } from './lookupSelection'
 import '../App.css'
 
-// The login modal is absolutely positioned, so it contributes no layout height
-// for the ResizeObserver to measure — give it a fixed window height instead.
-const LOGIN_MODAL_HEIGHT = 440
+// The feedback modal is positioned outside normal layout, so reserve its height.
 const FEEDBACK_MODAL_HEIGHT = 520
 const quizSessions = new QuizSessionService()
 
@@ -41,7 +34,6 @@ export default function SearchView() {
     triggerSearch,
     searchedTerm,
   } = useDictionarySearch(query)
-  const auth = useSupabaseAuth()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const glassRef = useRef<HTMLDivElement>(null)
   const [history, setHistory] = useState<string[]>([])
@@ -80,21 +72,13 @@ export default function SearchView() {
 
   const {
     wordToSave,
-    pendingSaveWord,
     savedWord,
     saveError,
     saving,
     alreadySaved,
     saveLabel,
-    loginPromptOpen,
-    openLoginPrompt,
-    dismissLoginPrompt,
     handleSaveClick,
-    quizPromptOpen,
-    enableQuizEmails,
-    dismissQuizPrompt,
   } = useSaveWord({
-    user: auth.user,
     response,
     searchedTerm,
     query,
@@ -120,12 +104,6 @@ export default function SearchView() {
       window.electronAPI.sendReminderDueCount(nonce, 0)
     })
   }), [])
-
-  const dismissSignInNudge = useCallback(() => {
-    const dismissedAt = Date.now()
-    setSettings((s) => (s ? { ...s, signInNudgeDismissedAt: dismissedAt } : s))
-    void window.electronAPI?.setSettings({ signInNudgeDismissedAt: dismissedAt })
-  }, [])
 
   // Record the term that produced the current result (not the live query,
   // which runs ahead of the debounced search).
@@ -166,15 +144,6 @@ export default function SearchView() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (quizPromptOpen) {
-          // Escape is a dismissal too — persist the decline like "Not now".
-          void dismissQuizPrompt()
-          return
-        }
-        if (loginPromptOpen) {
-          dismissLoginPrompt()
-          return
-        }
         if (feedbackOpen) {
           setFeedbackOpen(false)
           return
@@ -187,7 +156,7 @@ export default function SearchView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [feedbackOpen, loginPromptOpen, quizPromptOpen, dismissLoginPrompt, dismissQuizPrompt])
+  }, [feedbackOpen])
 
   const handleRemoveRecent = useCallback((word: string) => {
     window.electronAPI?.removeHistory(word).then(setHistory)
@@ -197,22 +166,13 @@ export default function SearchView() {
   // content-sized (capped by its CSS max-height), independent of the window's
   // current height, so this never feeds back on itself. Modals are absolutely
   // positioned (no layout height), hence the explicit floor.
-  const loginOpenRef = useRef(loginPromptOpen)
-  loginOpenRef.current = loginPromptOpen
-  const quizOpenRef = useRef(quizPromptOpen)
-  quizOpenRef.current = quizPromptOpen
   const feedbackOpenRef = useRef(feedbackOpen)
   feedbackOpenRef.current = feedbackOpen
   const applyWindowHeight = useCallback(() => {
     const el = glassRef.current
     if (!el || !window.electronAPI?.setWindowHeight) return
     const measured = Math.ceil(el.getBoundingClientRect().height)
-    const modalHeight = Math.max(
-      loginOpenRef.current ? LOGIN_MODAL_HEIGHT : 0,
-      // The quiz opt-in prompt shares the login modal's markup and size.
-      quizOpenRef.current ? LOGIN_MODAL_HEIGHT : 0,
-      feedbackOpenRef.current ? FEEDBACK_MODAL_HEIGHT : 0
-    )
+    const modalHeight = feedbackOpenRef.current ? FEEDBACK_MODAL_HEIGHT : 0
     const height = modalHeight ? Math.max(measured, modalHeight) : measured
     window.electronAPI.setWindowHeight(height)
   }, [])
@@ -226,19 +186,12 @@ export default function SearchView() {
     return () => observer.disconnect()
   }, [applyWindowHeight])
 
-  useEffect(applyWindowHeight, [applyWindowHeight, feedbackOpen, loginPromptOpen, quizPromptOpen])
+  useEffect(applyWindowHeight, [applyWindowHeight, feedbackOpen])
 
-  const showSignInNudge = shouldShowSignInNudge({
-    configured: auth.configured,
-    authLoading: auth.loading,
-    signedIn: Boolean(auth.user),
-    dismissedAt: settings === null ? undefined : settings.signInNudgeDismissedAt,
-  })
   const hasRecent = !query && history.length > 0
-  // The sign-in chip must show even before the first lookup (empty history).
-  const showEmptyState = hasRecent || (!query && showSignInNudge)
+  const showEmptyState = !query
   const showContent = Boolean(query) || showEmptyState
-  const modalOpen = feedbackOpen || loginPromptOpen || quizPromptOpen
+  const modalOpen = feedbackOpen
 
   return (
     <MotionConfig reducedMotion="user">
@@ -319,14 +272,7 @@ export default function SearchView() {
                 transition={{ duration: 0.15 }}
                 className="empty-state"
               >
-                {showSignInNudge ? (
-                  <SignInChip
-                    onSignIn={openLoginPrompt}
-                    onDismiss={dismissSignInNudge}
-                  />
-                ) : (
-                  <ReviewChip />
-                )}
+                <ReviewChip />
                 {hasRecent && (
                   <details className="recent-list">
                     <summary className="dict-label cursor-pointer select-none">Recent</summary>
@@ -381,22 +327,6 @@ export default function SearchView() {
             />
           )}
 
-          <LoginModal
-            configured={auth.configured}
-            error={auth.error || saveError}
-            loading={auth.loading || saving}
-            message={auth.message}
-            onClose={dismissLoginPrompt}
-            onSignIn={auth.signInWithGoogle}
-            open={loginPromptOpen}
-            word={pendingSaveWord || wordToSave}
-          />
-
-          <QuizOptInPrompt
-            open={quizPromptOpen}
-            onEnable={() => void enableQuizEmails()}
-            onDismiss={() => void dismissQuizPrompt()}
-          />
           <FeedbackDialog
             context={
               searchedTerm

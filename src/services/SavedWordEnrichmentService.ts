@@ -1,4 +1,4 @@
-import type { User } from '@supabase/supabase-js'
+import type { LibraryOwner as User } from './LocalSavedWordsRepository'
 import { normalizeEnglishWord, type TargetLanguage, type WordTranslation } from '../../shared/language'
 import type { CachedLookup, SearchResponse } from '../types/dictionary'
 import type { SavedWordDetails, SavedWordRecord } from '../types/savedWords'

@@ -14,7 +14,7 @@ The step-by-step runbook lives in the `deploy-popdict` skill
 ## Pipeline
 
 1. Bump the ROOT `package.json` version (never `site/package.json`).
-2. Use Node 20.19+, 22.12+, or 24.x. The release script rejects unsupported runtimes;
+2. Use Node 22.13+ or 24.x. The release script rejects unsupported runtimes;
    Electron Forge 7 can exit during package finalization without producing an
    app under Node 26 (learning L-012). After switching Node versions, run
    `npm rebuild macos-alias`; the preflight rejects a stale native ABI before

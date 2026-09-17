@@ -56,7 +56,7 @@ export function useDictionarySearch(query: string) {
       if (requestId !== requestIdRef.current) return // a newer search superseded this one
       setResponse(result)
       setSearchedTerm(trimmed)
-      void window.electronAPI?.writeLookupCache({ query: trimmed, response: result })
+      if (result.provenance === 'live') void window.electronAPI?.writeLookupCache({ query: trimmed, response: result })
     } catch (err) {
       if (requestId !== requestIdRef.current) return
       const nextFailure = toLookupFailure(err, trimmed)

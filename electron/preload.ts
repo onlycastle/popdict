@@ -21,6 +21,12 @@ ipcRenderer.on('open-feedback', () => {
 })
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  lookupLocalDictionary: (query: string) => ipcRenderer.invoke('local-dictionary', query),
+  lookupLocalTranslations: (word: string, language: TargetLanguage) => ipcRenderer.invoke('local-translations', word, language),
+  localLibrary: (command: import('../shared/local').LocalLibraryCommand) => ipcRenderer.invoke('local-library', command),
+  localReviewCount: () => ipcRenderer.invoke('local-review-count'),
+  localReviewStart: () => ipcRenderer.invoke('local-review-start'),
+  localReviewAnswer: (id: string, choice: number) => ipcRenderer.invoke('local-review-answer', id, choice),
   hideWindow: () => ipcRenderer.send('hide-window'),
   setWindowHeight: (height: number) => ipcRenderer.send('set-window-height', height),
   onFocusSearch: (callback: () => void) => {

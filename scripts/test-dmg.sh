@@ -95,7 +95,7 @@ fi
 # --- phases ----------------------------------------------------------------
 node_is_supported() {
   command -v node >/dev/null 2>&1 &&
-    [ "$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); Number((major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major === 24)" 2>/dev/null)" = "1" ]
+    [ "$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); Number((major === 22 && minor >= 13) || major === 24)" 2>/dev/null)" = "1" ]
 }
 
 select_release_node() {
@@ -103,7 +103,7 @@ select_release_node() {
   node_is_supported && return
 
   if command -v brew >/dev/null 2>&1; then
-    for formula in node@24 node@22 node@20; do
+    for formula in node@24 node@22; do
       candidate="$(brew --prefix "$formula" 2>/dev/null || true)/bin"
       if [ -x "$candidate/node" ]; then
         PATH="$candidate:$PATH"
@@ -118,7 +118,7 @@ select_release_node() {
     done
   fi
 
-  die "Node 20.19+, 22.12+, or 24.x is required; switch Node versions and rerun $0"
+  die "Node 22.13+ or 24.x is required; switch Node versions and rerun $0"
 }
 
 phase_build() {

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "entries": 167502,
+  "aliases": 44770,
+  "translations": 48367,
+  "sqliteBytes": 182673408,
+  "sqliteSha256": "a55e480c08d52a2a86b819f398c14b62b7f9daa3d883802d74f45e5694861ba6",
+  "compressedBytes": 18160952,
+  "compressedSha256": "b505e333c1e7fea594d5728403d8cbf755f0edad29a560da095c97680529a6d9",
+  "sources": [
+    {
+      "url": "https://kaikki.org/dictionary/downloads/simple/simple-extract.jsonl.gz",
+      "sha256": "374a69a96715daae1aa8ea7c6b86210c5ce35790a6dff337dacd128039954b4a"
+    },
+    {
+      "url": "https://wordnetcode.princeton.edu/wn3.1.dict.tar.gz",
+      "sha256": "3f7d8be8ef6ecc7167d39b10d66954ec734280b5bdcd57f7d9eafe429d11c22a"
+    },
+    {
+      "path": "data/phrases/phrase-entries.csv",
+      "sha256": "a357619e31d87b3f3d1322ebd131fda3be899a30825a2e36e2a45131477b22bd"
+    },
+    {
+      "path": "data/translations/word-translations.csv",
+      "sha256": "25166c8e9c287e6a77b33005fd927d978ab23f0b8c26c9d1c52cc7d6006fd6a9"
+    }
+  ]
+}

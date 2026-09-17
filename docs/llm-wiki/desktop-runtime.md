@@ -1,6 +1,6 @@
 ---
 title: Desktop runtime (Electron)
-last-verified: 2026-07-19
+last-verified: 2026-09-17
 ---
 
 # Desktop runtime
@@ -35,13 +35,16 @@ screenshots), navigation hardening, then windows, tray, hotkey, updater.
   [electron/ipc/handlers.ts](../../electron/ipc/handlers.ts); the renderer
   sees only the [electron/preload.ts](../../electron/preload.ts) bridge.
 - Persistence: [electron/store.ts](../../electron/store.ts).
-- Offline lookup cache: [electron/lookupCache.ts](../../electron/lookupCache.ts)
+- Bundled dictionary and device library: [local/](../../electron/local/) uses
+  Node SQLite through preload IPC; no account is required. Dictionary resources
+  are separate from the durable personal library. `node:sqlite` must stay
+  external in [vite.main.config.ts](../../vite.main.config.ts).
+- Legacy offline lookup cache: [electron/lookupCache.ts](../../electron/lookupCache.ts)
   stores at most 100 normalized successful entries for 90 days under Electron
   user data. It is consulted only after network/service failures and cleared
   with recent lookup data.
 - Review reminders: [electron/reminders/](../../electron/reminders/) schedules
-  local cadence/quiet-hour notifications and requests only an authenticated due
-  count through nonce-bound IPC. Notification clicks open Review.
+  local cadence/quiet-hour notifications and reads the local library due count directly. Notification clicks open Review.
 - Feedback: the tray or Settings opens the private in-app feedback dialog;
   submissions go through the `feedback` edge function and are never published
   automatically as GitHub issues.

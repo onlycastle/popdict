@@ -3,6 +3,7 @@ import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
 import type { AppSettings } from '../types/electron'
 import FeedbackDialog from '../components/FeedbackDialog'
 import HotkeyField from '../components/HotkeyField'
+import { LibraryTransferService } from '../services/LibraryTransferService'
 import { quizPreferences } from '../services/QuizPreferencesRepository'
 import { TARGET_LANGUAGE_OPTIONS } from '../../shared/language'
 import { productAnalytics } from '../services/ProductAnalytics'
@@ -14,6 +15,20 @@ export default function SettingsView() {
   const [version, setVersion] = useState('')
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const auth = useSupabaseAuth()
+
+  const [transferBusy, setTransferBusy] = useState(false)
+  const [transferStatus, setTransferStatus] = useState('')
+  const transfer = async (direction: 'download' | 'upload') => {
+    if (!auth.user || transferBusy) return
+    setTransferBusy(true)
+    setTransferStatus('')
+    try {
+      const count = await new LibraryTransferService()[direction](auth.user)
+      setTransferStatus(`${count} words copied ${direction === 'download' ? 'to this Mac' : 'to your account'}. Existing words were kept.`)
+    } catch (error) {
+      setTransferStatus(error instanceof Error ? error.message : 'Transfer failed. Local words are safe.')
+    } finally { setTransferBusy(false) }
+  }
 
   const [quizEnabled, setQuizEnabled] = useState<boolean | null>(null)
   const [quizError, setQuizError] = useState('')
@@ -90,15 +105,15 @@ export default function SettingsView() {
 
         <section className="space-y-3 border-b border-white/10 pb-5">
           <div>
-            <h2 className="dict-label mb-1.5">Account</h2>
+            <h2 className="dict-label mb-1.5">Optional account transfer</h2>
             <p className="text-sm text-white/70">
-              {auth.user ? accountName : 'Sign in or create an account with Google'}
+              {auth.user ? accountName : 'Search, saving and review work offline. Sign in only to copy words to or from an account.'}
             </p>
           </div>
 
           {!auth.configured ? (
             <p className="notice">
-              Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to enable auth.
+              Account transfer is unavailable in this build. All local features are available.
             </p>
           ) : auth.user ? (
             <button
@@ -116,6 +131,18 @@ export default function SettingsView() {
             >
               Continue with Google
             </button>
+          )}
+
+          {auth.user && (
+            <div className="space-y-2">
+              <p className="text-xs text-white/45">Copy missing words with notes and tags. Upload also merges tags. Existing definitions and notes are kept; local review progress stays on this Mac. Internet is needed only for the transfer.</p>
+              <div className="flex flex-wrap gap-2">
+                <button className="btn-ghost text-sm" disabled={transferBusy} onClick={() => void transfer('download')}>Copy account words to this Mac</button>
+                <button className="btn-ghost text-sm" disabled={transferBusy} onClick={() => void transfer('upload')}>Copy local words to account</button>
+              </div>
+              {transferBusy && <p className="text-xs text-white/60">Copying… Local search and review remain available.</p>}
+              {transferStatus && <p className="text-xs text-white/60" role="status">{transferStatus}</p>}
+            </div>
           )}
 
           {(auth.message || auth.error) && (
@@ -156,7 +183,7 @@ export default function SettingsView() {
                 disabled={quizSaving}
                 onChange={(e) => void toggleQuiz(e.target.checked)}
               />
-              <span className="text-sm text-white/80">Weekly quiz email on your saved words</span>
+              <span className="text-sm text-white/80">Weekly quiz email on words copied to your account</span>
             </label>
             {quizError && <p className="text-xs text-red-300">{quizError}</p>}
           </section>

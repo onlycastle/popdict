@@ -82,3 +82,15 @@ anything security-sensitive stay local-only.
 - Class: release-invariant
 - Guard: script:scripts/release-arm64.sh::macos-alias
 - Context: Switching from an unsupported Node runtime left the DMG maker's native alias module compiled for the wrong ABI. Forge signed and notarized the app before failing to make the DMG, so the release preflight now loads that module before any expensive release work.
+
+## L-014: An unavailable dictionary provider blocks every lookup path
+- Status: Closed
+- Class: lookup-availability
+- Guard: test:src/services/localRuntime.test.ts::routes lookup, translations, save and review to IPC while fetch is forbidden
+- Context: Core lookups, translations, saving and review now use bundled data and a durable local library. Cold-cache vocabulary tests exercise the shipped dictionary with network calls forbidden, so a remote provider outage cannot block core use.
+
+## L-015: Prefix-only Node builtins become empty modules in desktop bundles
+- Status: Closed
+- Class: desktop-bundling
+- Guard: test:electron/local/package.test.ts::keeps SQLite functional through the main-process production bundler
+- Context: SQLite worked in unit tests but became an empty module in the packaged main process. Keep the prefix-only builtin external and verify a real SQLite query after production bundling.
