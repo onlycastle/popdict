@@ -27,6 +27,7 @@ require_cmd() {
 require_cmd node
 require_cmd npm
 require_cmd deno
+require_cmd gh
 
 NODE_SUPPORTED="$(node -p "const [major, minor] = process.versions.node.split('.').map(Number); Number((major === 22 && minor >= 13) || major === 24)")"
 if [[ "$NODE_SUPPORTED" != "1" ]]; then
@@ -71,6 +72,13 @@ fi
 if [[ -z "${POPDICT_GITHUB_REPO:-}" ]]; then
   printf 'POPDICT_GITHUB_REPO is required for public releases so auto-update is enabled.\n' >&2
   printf 'Re-run as: POPDICT_GITHUB_REPO=owner/repo %s\n' "$0" >&2
+  exit 1
+fi
+
+step "Checking GitHub push access for the active gh account"
+if [[ "$(gh api "repos/${POPDICT_GITHUB_REPO}" --jq '.permissions.push' 2>/dev/null)" != "true" ]]; then
+  printf 'The active gh account cannot push to %s.\n' "$POPDICT_GITHUB_REPO" >&2
+  printf 'Run gh auth switch --user <maintainer> before releasing; git push and gh release create both use the active account.\n' >&2
   exit 1
 fi
 

@@ -14,7 +14,7 @@ Shipping PopDict is a **manual release, not a git push**. The website's Download
 - `.env.local` (gitignored) holds the repository, signing/notary, and packaged
   Supabase public-client variables required by `scripts/release-arm64.sh`.
 - The `popdict-notary` notarytool keychain profile exists (`xcrun notarytool history --keychain-profile popdict-notary` should succeed). Apple secrets live in the keychain, not in env.
-- `gh` authed as `onlycastle` (the repo owner).
+- `gh` authed as `onlycastle` (the repo owner). If several accounts are logged in, run `gh auth switch --user onlycastle` first; git pushes and `gh release create` both use the active account, and the release preflight rejects one without push access.
 
 ## Runbook
 

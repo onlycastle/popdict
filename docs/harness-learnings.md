@@ -94,3 +94,9 @@ anything security-sensitive stay local-only.
 - Class: desktop-bundling
 - Guard: test:electron/local/package.test.ts::keeps SQLite functional through the main-process production bundler
 - Context: SQLite worked in unit tests but became an empty module in the packaged main process. Keep the prefix-only builtin external and verify a real SQLite query after production bundling.
+
+## L-016: Release pushes fail when the active GitHub account lacks push access
+- Status: Closed
+- Class: release-invariant
+- Guard: script:scripts/release-arm64.sh::permissions.push
+- Context: The release machine keeps more than one GitHub account logged in, and both git pushes and gh commands use whichever account is active. A finished, notarized build was blocked at push time because the active account was read-only on the repository. The release preflight now verifies push permission before any build work.
