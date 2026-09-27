@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { User } from '@supabase/supabase-js'
+import type { LibraryOwner as User } from '../services/LocalSavedWordsRepository'
 import { savedWords, type SavedWord } from '../services/SavedWordsRepository'
 
 interface SavedWordCardProps {
@@ -28,7 +28,7 @@ export function SavedWordCard({
     setCardError('')
     try {
       const created = await savedWords.addTag(user, entry.id, tag)
-      onUpdate({ ...entry, tags: [...entry.tags, created] })
+      onUpdate({ ...entry, tags: [...entry.tags.filter((tag) => tag.id !== created.id), created] })
       setTag('')
     } catch (error) {
       setCardError(error instanceof Error ? error.message : 'Could not add tag')

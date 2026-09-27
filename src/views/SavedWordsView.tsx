@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TargetLanguage } from '../../shared/language'
 import { SavedWordCard } from '../components/SavedWordCard'
-import { useSupabaseAuth } from '../hooks/useSupabaseAuth'
+import { LOCAL_OWNER } from '../services/LocalSavedWordsRepository'
 import {
   enrichWithConcurrency,
   savedWordEnrichment,
@@ -36,7 +36,7 @@ type EnrichmentContext = {
 }
 
 export default function SavedWordsView() {
-  const auth = useSupabaseAuth()
+  const owner = LOCAL_OWNER
   const [wordState, setWordState] = useState(() => initialSavedWordsLoadState<SavedWord>())
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<SavedWordsFilter>('all')
@@ -53,7 +53,7 @@ export default function SavedWordsView() {
   const translationLanguageRef = useRef<TargetLanguage | null>(null)
   translationLanguageRef.current = enrichmentContext.language
   const translationLanguage = enrichmentContext.language
-  const activeUserId = auth.user?.id ?? null
+  const activeUserId = owner?.id ?? null
   const activeUserIdRef = useRef(activeUserId)
   activeUserIdRef.current = activeUserId
   const words = visibleSavedWords(wordState, activeUserId)
@@ -79,7 +79,7 @@ export default function SavedWordsView() {
   }, [])
 
   const refresh = useCallback(() => {
-    const user = auth.user
+    const user = owner
     const userId = user?.id ?? null
     const requestId = ++requestIdRef.current
     const generation = ++enrichmentGenerationRef.current
@@ -122,7 +122,7 @@ export default function SavedWordsView() {
         }))
       }
     })()
-  }, [auth.user])
+  }, [owner])
 
   useEffect(() => {
     refresh()
@@ -134,18 +134,18 @@ export default function SavedWordsView() {
   }, [refresh])
 
   const handleDelete = useCallback(async (entry: SavedWord) => {
-    if (!auth.user) return
+    if (!owner) return
     const previous = words
-    const userId = auth.user.id
+    const userId = owner.id
     updateWords((current) => current.filter((word) => word.id !== entry.id))
     try {
-      await savedWords.delete(auth.user, entry.normalizedWord)
+      await savedWords.delete(owner, entry.normalizedWord)
     } catch (deleteError) {
       if (activeUserIdRef.current !== userId) return
       updateWords(() => previous)
       setCurrentError(deleteError instanceof Error ? deleteError.message : 'Could not delete word')
     }
-  }, [auth.user, setCurrentError, updateWords, words])
+  }, [owner, setCurrentError, updateWords, words])
 
   const allTags = useMemo(() => {
     const tags = new Map<string, string>()
@@ -160,8 +160,8 @@ export default function SavedWordsView() {
   )
 
   const enrichOne = useCallback((entry: SavedWord): Promise<void> => {
-    if (!auth.user || !enrichmentContext.ready) return Promise.resolve()
-    const user = auth.user
+    if (!owner || !enrichmentContext.ready) return Promise.resolve()
+    const user = owner
     const { generation, language } = enrichmentContext
     const isCurrent = () => (
       activeUserIdRef.current === user.id &&
@@ -185,7 +185,7 @@ export default function SavedWordsView() {
         setEnrichmentFailures((current) => new Set(current).add(entry.id))
       }
     })
-  }, [auth.user, enrichmentContext, updateWords])
+  }, [owner, enrichmentContext, updateWords])
 
   useEffect(() => {
     if (!enrichmentContext.ready) return
@@ -219,28 +219,13 @@ export default function SavedWordsView() {
       <header className="flex items-center justify-between border-b border-white/10 px-6 pb-4">
         <h1 className="view-title text-lg">Saved Words</h1>
         <div className="flex items-center gap-3">
-          {auth.user && words.length > 0 && <span className="dict-label">{words.length} saved</span>}
-          {auth.user && words.length > 0 && (
+          {owner && words.length > 0 && <span className="dict-label">{words.length} saved</span>}
+          {owner && words.length > 0 && (
             <button className="btn-ghost text-xs" onClick={() => void exportCsv()}>Export CSV</button>
           )}
         </div>
       </header>
 
-      {!auth.configured ? (
-        <div className="p-6"><p className="notice">Add Supabase settings to enable saved words.</p></div>
-      ) : !auth.user ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="text-sm text-white/70">Sign in to view the words you’ve saved.</p>
-          <button onClick={auth.signInWithGoogle} disabled={auth.loading} className="btn-primary text-sm">
-            Continue with Google
-          </button>
-          {(auth.message || auth.error) && (
-            <p className={`text-xs ${auth.error ? 'text-red-300' : 'text-white/60'}`}>
-              {auth.error || auth.message}
-            </p>
-          )}
-        </div>
-      ) : (
         <>
           <div className="space-y-3 px-6 pt-4">
             <input
@@ -278,16 +263,17 @@ export default function SavedWordsView() {
             {loading ? (
               <p className="text-sm text-white/50">Loading…</p>
             ) : filtered.length === 0 ? (
-              <p className="text-sm text-white/50">
-                {words.length === 0 ? 'No saved words yet. Look up a word and tap Save.' : 'No words match this filter.'}
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-white/50">{words.length === 0 ? 'No saved words on this Mac yet. Look up a word and tap Save.' : 'No words match this filter.'}</p>
+                {words.length === 0 && <button className="btn-ghost text-xs" onClick={() => window.electronAPI.openSettings()}>Copy existing account words in Settings</button>}
+              </div>
             ) : (
               <ul className="space-y-3">
                 {filtered.map((entry) => (
                   <SavedWordCard
                     key={entry.id}
                     entry={entry}
-                    user={auth.user!}
+                    user={owner}
                     enrichmentFailed={enrichmentFailures.has(entry.id)}
                     onDelete={handleDelete}
                     onRetry={enrichOne}
@@ -298,7 +284,6 @@ export default function SavedWordsView() {
             )}
           </div>
         </>
-      )}
     </div>
   )
 }

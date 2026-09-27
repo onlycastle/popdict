@@ -71,7 +71,7 @@ describe('pronounce', () => {
     )
   }
 
-  it('plays the audio clip and does not fall back when playback succeeds', async () => {
+  it('ignores a remote audio clip and uses the installed speech engine', async () => {
     const { speak } = stubSpeech()
     const play = vi.fn().mockResolvedValue(undefined)
     stubAudio(play)
@@ -79,11 +79,11 @@ describe('pronounce', () => {
     pronounce('kick', 'https://cdn/kick.mp3')
     await flush()
 
-    expect(play).toHaveBeenCalledOnce()
-    expect(speak).not.toHaveBeenCalled()
+    expect(play).not.toHaveBeenCalled()
+    expect(speak).toHaveBeenCalledOnce()
   })
 
-  it('falls back to TTS when audio playback fails', async () => {
+  it('never attempts a failed remote clip', async () => {
     const { speak } = stubSpeech()
     const play = vi.fn().mockRejectedValue(new Error('404'))
     stubAudio(play)

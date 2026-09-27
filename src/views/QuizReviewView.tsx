@@ -14,7 +14,7 @@ export function QuizReviewView({ service }: { service?: QuizSessionService }): J
     startedRef.current = true
     svc.startSession()
       .then((s) => dispatch({ type: 'loaded', cards: s.cards }))
-      .catch(() => dispatch({ type: 'load_failed', message: 'Could not reach the review service. Check your connection.' }))
+      .catch(() => dispatch({ type: 'load_failed', message: 'Could not open your local review. Close this window and try again.' }))
   }, [svc])
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function QuizReviewView({ service }: { service?: QuizSessionService }): J
     return <Shell><p className="dict-label">Loading…</p></Shell>
   }
   if (state.phase === 'empty') {
-    return <Shell><p className="quiz-review__prompt">All caught up.</p><p className="dict-label">No words are due right now.</p></Shell>
+    return <Shell><p className="quiz-review__prompt">All caught up.</p><p className="dict-label">Save at least four words with different definitions to start a review. Words you have reviewed will return when due.</p></Shell>
   }
   if (state.phase === 'error') {
     return <Shell><p className="quiz-review__prompt">Something went wrong.</p><p className="dict-label">{state.message}</p></Shell>

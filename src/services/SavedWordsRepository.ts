@@ -1,5 +1,5 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js'
-import { supabase } from './supabaseClient'
+import { LocalSavedWordsRepository } from './LocalSavedWordsRepository'
 import type { SearchSource } from '../types/dictionary'
 import type {
   SavedWordDetails,
@@ -15,6 +15,8 @@ export type SaveWordInput = {
   user: User
   word: string
   details?: SavedWordDetails | null
+  note?: string
+  onlyIfMissing?: boolean
 }
 
 type SavedWordRow = {
@@ -89,7 +91,7 @@ export class SavedWordsRepository {
     private now: () => Date = () => new Date()
   ) {}
 
-  async save({ source, user, word, details }: SaveWordInput): Promise<void> {
+  async save({ source, user, word, details, note, onlyIfMissing }: SaveWordInput): Promise<void> {
     const client = this.requireClient()
 
     const trimmedWord = word.trim()
@@ -125,8 +127,9 @@ export class SavedWordsRepository {
         user_id: user.id,
         word: trimmedWord,
         ...snapshot,
+        ...(note === undefined ? {} : { note }),
       },
-      { onConflict: 'user_id,normalized_word' }
+      { onConflict: 'user_id,normalized_word', ...(onlyIfMissing ? { ignoreDuplicates: true } : {}) }
     )
 
     if (error) this.fail('save word', error)
@@ -365,5 +368,5 @@ export class SavedWordsRepository {
   }
 }
 
-/** App-wide instance wired to the real Supabase client. */
-export const savedWords = new SavedWordsRepository(supabase)
+/** Device library is the default; the cloud repository is used only on request. */
+export const savedWords = new LocalSavedWordsRepository()

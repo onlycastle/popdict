@@ -1,8 +1,8 @@
 # PopDict — Agent Entrypoint
 
 PopDict is a macOS menu-bar dictionary: a global hotkey pops a glass-minimal
-lookup window (English definitions plus public multilingual equivalents via
-Supabase; saving and review features require sign-in).
+lookup window (bundled English definitions, multilingual equivalents, local
+saving and review; account transfers are optional).
 Electron + Vite + React desktop app, Next.js site in `site/`, Supabase edge
 functions in `supabase/functions/`.
 

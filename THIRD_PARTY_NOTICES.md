@@ -199,3 +199,13 @@ Exact counts, checksums, and filtering rules are recorded in
 _This file is bundled into the packaged macOS app and mirrored on the website at
 `/licenses`. If you add a dependency or data source with attribution
 requirements, add it here in the same change._
+
+## Offline dictionary data
+
+The bundled `offline/dictionary.sqlite.gz` contains adapted Simple English
+Wiktionary/Kaikki data and PopDict's phrase and translation datasets under
+CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/ . It also includes
+Princeton WordNet 3.1 data under the license in `offline/WORDNET-LICENSE.txt`.
+The application ships the source URLs, transformation description and hashes
+in `offline/README.md` and `offline/manifest.json`. Dictionary entries retain
+source attribution. These data licenses are separate from the application code.

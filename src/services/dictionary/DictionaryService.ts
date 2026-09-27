@@ -4,9 +4,8 @@ import type {
   SearchResponse,
 } from '../../types/dictionary'
 import type { DictionarySource } from './DictionarySource'
-import { FreeDictionarySource } from './FreeDictionarySource'
+import { LocalDictionarySource } from './LocalDictionarySource'
 import { DictionaryError } from './DictionaryError'
-import { KaikkiPhraseSource } from './KaikkiPhraseSource'
 
 function attributionsFor(
   result: DictionaryResult,
@@ -106,8 +105,11 @@ export class DictionaryService {
   }
 }
 
-/** App-wide instance wired to the real sources. */
-export const dictionaryService = new DictionaryService(
-  new FreeDictionarySource(),
-  new KaikkiPhraseSource()
-)
+/** Runtime search never contacts a remote dictionary. */
+const localSource = new LocalDictionarySource()
+export const dictionaryService = {
+  async search(query: string): Promise<SearchResponse> {
+    const results = await localSource.lookup(query.trim())
+    return { dictionaryResults: results, source: 'local-dictionary', provenance: 'local' }
+  },
+}

@@ -3,6 +3,27 @@
 All notable changes to PopDict are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] - 2026-09-27
+
+### Added
+- Bundled offline dictionary built from Simple English Wiktionary / Kaikki,
+  WordNet 3.1, and the existing licensed phrase and translation datasets, with
+  inflection aliases and per-entry source attribution.
+- Local device library for saved words, notes, tags, and review progress that
+  works without sign-in and survives offline.
+- Optional account transfers in Settings that copy the local library to and
+  from a signed-in account without overwriting existing entries.
+
+### Changed
+- Lookups, translations, saving, and review sessions read the bundled database
+  and device library; the runtime search path makes no network requests.
+- Pronunciation uses installed system speech only.
+- Building from source requires Node 22.13+ or 24.x.
+
+### Fixed
+- Every lookup failed for all users whenever the remote Free Dictionary
+  provider was unreachable; definitions now come from the bundled data.
+
 ## [1.8.0] - 2026-07-19
 
 ### Added

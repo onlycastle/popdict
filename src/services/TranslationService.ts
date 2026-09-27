@@ -56,4 +56,10 @@ export class TranslationService {
   }
 }
 
-export const translationService = new TranslationService()
+export const translationService = {
+  async lookup(word: string, language: TargetLanguage): Promise<WordTranslation[]> {
+    const normalized = normalizeEnglishWord(word)
+    if (!normalized) return []
+    return window.electronAPI.lookupLocalTranslations(normalized, language)
+  },
+}

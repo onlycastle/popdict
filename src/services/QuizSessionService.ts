@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { supabase } from './supabaseClient'
 
 export type SessionCard = {
   questionId: string
@@ -20,9 +19,10 @@ export type AnswerResult = {
 
 /** Calls the authed quiz edge actions; the user JWT is attached by functions.invoke. */
 export class QuizSessionService {
-  constructor(private client: SupabaseClient | null = supabase) {}
+  constructor(private client?: SupabaseClient | null) {}
 
   async dueCount(): Promise<number> {
+    if (this.client === undefined) return window.electronAPI.localReviewCount()
     if (!this.client) return 0
     const { data, error } = await this.client.functions.invoke('quiz', { body: { action: 'count' } })
     if (error || !data || typeof data.due !== 'number') return 0
@@ -30,6 +30,7 @@ export class QuizSessionService {
   }
 
   async startSession(): Promise<QuizSession> {
+    if (this.client === undefined) return window.electronAPI.localReviewStart()
     if (!this.client) return { quizId: null, cards: [] }
     const { data, error } = await this.client.functions.invoke('quiz', { body: { action: 'session' } })
     if (error || !data) throw new Error('session_failed')
@@ -37,6 +38,7 @@ export class QuizSessionService {
   }
 
   async answer(questionId: string, choiceIndex: number): Promise<AnswerResult> {
+    if (this.client === undefined) return window.electronAPI.localReviewAnswer(questionId, choiceIndex)
     if (!this.client) throw new Error('not_configured')
     const { data, error } = await this.client.functions.invoke('quiz', {
       body: { action: 'answer', q: questionId, c: choiceIndex },

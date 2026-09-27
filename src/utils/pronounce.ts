@@ -29,33 +29,15 @@ function speak(word: string): void {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(word)
     utterance.lang = 'en-US'
+    const localVoice = window.speechSynthesis.getVoices?.().find((voice) => voice.localService && /^en(?:-|_)/i.test(voice.lang))
+    if (localVoice) utterance.voice = localVoice
     window.speechSynthesis.speak(utterance)
   } catch {
     // ignore TTS failures
   }
 }
 
-/**
- * Play a word's pronunciation: prefer the recorded audio clip, and fall back to
- * the browser's speech synthesis when there is no clip or playback fails
- * (404 / network / unsupported codec).
- */
-export function pronounce(word: string, audioUrl?: string | null): void {
-  if (audioUrl) {
-    try {
-      const audio = new Audio(audioUrl)
-      let fellBack = false
-      const fallback = () => {
-        if (fellBack) return
-        fellBack = true
-        speak(word)
-      }
-      audio.addEventListener('error', fallback)
-      void audio.play().catch(fallback)
-      return
-    } catch {
-      // fall through to TTS
-    }
-  }
+/** Pronunciation always uses an installed system voice, never a remote audio URL. */
+export function pronounce(word: string, _audioUrl?: string | null): void {
   speak(word)
 }

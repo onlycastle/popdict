@@ -38,7 +38,7 @@ export interface DictionaryResult {
   attributions?: DictionaryAttribution[]
 }
 
-export type SearchSource = 'free-dictionary' | 'kaikki-phrases' | 'combined'
+export type SearchSource = 'free-dictionary' | 'kaikki-phrases' | 'combined' | 'local-dictionary'
 
 export type LookupFailureKind = 'not-found' | 'network' | 'service'
 
@@ -51,7 +51,7 @@ export interface LookupFailure {
 export interface SearchResponse {
   dictionaryResults: DictionaryResult[] | null
   source: SearchSource
-  provenance: 'live' | 'cache'
+  provenance: 'live' | 'cache' | 'local'
   cachedAt?: string
 }
 

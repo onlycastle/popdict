@@ -83,7 +83,7 @@ const SearchResults = ({
       >
         <div className="text-center py-10">
           <p className="text-white/75 text-sm">No entry found for “{query}”</p>
-          <p className="text-white/55 text-xs mt-2">Check the spelling or try the base form</p>
+          <p className="text-white/55 text-xs mt-2">Not in the bundled dictionary. Check the spelling or try the base form</p>
           {recoverySuggestions.length > 0 && onRecoveryLookup && (
             <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Suggestions">
               {recoverySuggestions.map((suggestion) => (
