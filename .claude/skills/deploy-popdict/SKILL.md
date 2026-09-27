@@ -14,7 +14,21 @@ Shipping PopDict is a **manual release, not a git push**. The website's Download
 - `.env.local` (gitignored) holds the repository, signing/notary, and packaged
   Supabase public-client variables required by `scripts/release-arm64.sh`.
 - The `popdict-notary` notarytool keychain profile exists (`xcrun notarytool history --keychain-profile popdict-notary` should succeed). Apple secrets live in the keychain, not in env.
-- `gh` authed as `onlycastle` (the repo owner). If several accounts are logged in, run `gh auth switch --user onlycastle` first; git pushes and `gh release create` both use the active account, and the release preflight rejects one without push access.
+- `gh` has a stored login for `onlycastle` (the repo owner) with the `repo` and
+  `workflow` scopes. The globally active gh account may be a different one:
+  `.env.local` sets `POPDICT_GITHUB_USER=onlycastle`, which the release script
+  turns into a scoped `GH_TOKEN`, and the preflight rejects an account without
+  push access. For ad-hoc `gh pr` / `gh release` commands in this repo, prefix
+  them with `GH_TOKEN=$(gh auth token --user onlycastle)`.
+- Git pushes from this checkout are routed to `onlycastle` by a repo-local
+  credential helper (recreate on a fresh clone):
+
+  ```bash
+  git config --local user.email sungman.cho@originlayer.net
+  git config --local --add credential.https://github.com.helper ''
+  git config --local --add credential.https://github.com.helper \
+    '!f() { [ "$1" = get ] || exit 0; printf "username=onlycastle\npassword=%s\n" "$(gh auth token --user onlycastle)"; }; f'
+  ```
 
 ## Runbook
 
@@ -29,12 +43,17 @@ Run from the repo root on macOS (Apple Silicon):
 #    app/site/harness plus Deno Edge Function gates before building.
 ./scripts/test-dmg.sh build
 
-# 3. Commit + push the version bump so the release tag points at the right commit.
+# 3. Commit the version bump, push the release branch, open a PR, wait for the
+#    required `quality` check, and merge. main only accepts pull requests.
 git add package.json && git commit -m "chore(release): v<version>"
-git push origin main
+git push -u origin release/v<version>
+GH_TOKEN=$(gh auth token --user onlycastle) gh pr create --base main --fill
+GH_TOKEN=$(gh auth token --user onlycastle) gh pr merge --merge
+git switch main && git pull --ff-only
 
 # 4. Publish the release with BOTH assets (the script prints the exact paths).
-gh release create v<version> \
+GH_TOKEN=$(gh auth token --user onlycastle) gh release create v<version> \
+  --target main \
   out/make/PopDict-<version>-arm64.dmg \
   out/make/zip/darwin/arm64/PopDict-darwin-arm64-<version>.zip \
   --repo onlycastle/popdict \

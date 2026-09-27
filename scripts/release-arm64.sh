@@ -75,10 +75,19 @@ if [[ -z "${POPDICT_GITHUB_REPO:-}" ]]; then
   exit 1
 fi
 
-step "Checking GitHub push access for the active gh account"
+if [[ -n "${POPDICT_GITHUB_USER:-}" ]]; then
+  step "Using the stored gh login for ${POPDICT_GITHUB_USER}"
+  GH_TOKEN="$(gh auth token --user "$POPDICT_GITHUB_USER")" || {
+    printf 'gh has no stored login for %s; run gh auth login for that account.\n' "$POPDICT_GITHUB_USER" >&2
+    exit 1
+  }
+  export GH_TOKEN
+fi
+
+step "Checking GitHub push access for the release account"
 if [[ "$(gh api "repos/${POPDICT_GITHUB_REPO}" --jq '.permissions.push' 2>/dev/null)" != "true" ]]; then
-  printf 'The active gh account cannot push to %s.\n' "$POPDICT_GITHUB_REPO" >&2
-  printf 'Run gh auth switch --user <maintainer> before releasing; git push and gh release create both use the active account.\n' >&2
+  printf 'The gh account in use cannot push to %s.\n' "$POPDICT_GITHUB_REPO" >&2
+  printf 'Set POPDICT_GITHUB_USER=<maintainer> in .env.local (or gh auth switch --user <maintainer>); git push and gh release create both need that account.\n' >&2
   exit 1
 fi
 
